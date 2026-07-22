@@ -40,6 +40,42 @@ spec:
                   name: portfolio-secrets
                   key: ADMIN_PASSWORD
                   optional: true
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: SMTP_HOST
+                  optional: true
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: SMTP_PORT
+                  optional: true
+            - name: SMTP_SECURE
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: SMTP_SECURE
+                  optional: true
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: SMTP_USER
+                  optional: true
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: SMTP_PASS
+                  optional: true
+            - name: CONTACT_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: CONTACT_EMAIL
+                  optional: true
           resources:
             requests:
               cpu: 100m

@@ -3,12 +3,11 @@ import { RouterOutlet } from '@angular/router';
 import { NavbarComponent } from './components/navbar/navbar';
 import { FooterComponent } from './components/footer/footer';
 import { CommandPaletteComponent } from './components/command-palette/command-palette';
-import { RobotBuddyComponent } from './components/robot-buddy/robot-buddy';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, FooterComponent, CommandPaletteComponent, RobotBuddyComponent],
+  imports: [RouterOutlet, NavbarComponent, FooterComponent, CommandPaletteComponent],
   template: `
     <app-navbar></app-navbar>
     <main>
@@ -16,7 +15,6 @@ import { RobotBuddyComponent } from './components/robot-buddy/robot-buddy';
     </main>
     <app-footer></app-footer>
     <app-command-palette></app-command-palette>
-    <app-robot-buddy></app-robot-buddy>
   `,
   styles: [`
     main {

@@ -5,12 +5,13 @@ import { ApiService } from '../../services/api.service';
 import { Project } from '../../models/project.model';
 import { ProjectCardComponent } from "../../components/project-card/project-card";
 import { StorySectionComponent } from "../../components/story-section/story-section";
+import { HeroSceneComponent } from "../../components/hero-scene/hero-scene";
 
 
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, RouterLink, ProjectCardComponent, StorySectionComponent],
+    imports: [CommonModule, RouterLink, ProjectCardComponent, StorySectionComponent, HeroSceneComponent],
     templateUrl: './home.html',
     styleUrl: './home.scss'
 })

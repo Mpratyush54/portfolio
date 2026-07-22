@@ -2,145 +2,123 @@
 
 .story-section {
   position: relative;
-  padding: 120px 40px 140px;
+  height: 100vh;
   overflow: hidden;
-
-  @media (max-width: 768px) {
-    padding: 80px 20px 100px;
-  }
+  touch-action: none;
 }
 
 .story-canvas {
   position: absolute;
-  inset: -80px 0;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.4;
+}
+
+.story-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 60px 40px 40px;
+  pointer-events: none;
+
+  @media (max-width: 768px) {
+    padding: 40px 20px 24px;
+  }
 }
 
 .story-header {
-  position: relative;
-  z-index: 1;
   text-align: center;
-  margin-bottom: 80px;
 
   .story-title {
-    font-size: 2.8rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    margin: 0 0 12px;
+    margin: 0 0 24px;
     background: linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #818cf8 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 
     @media (max-width: 768px) {
-      font-size: 2rem;
+      font-size: 1.8rem;
+      margin-bottom: 16px;
     }
-  }
-
-  .story-subtitle {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-    margin: 0;
-    opacity: 0.7;
   }
 }
 
-.milestone-track {
-  position: relative;
-  z-index: 1;
-  max-width: 800px;
-  margin: 0 auto;
+.progress-track {
   display: flex;
-  flex-direction: column;
-  gap: 40px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 23px;
-    top: 12px;
-    bottom: 12px;
-    width: 2px;
-    background: linear-gradient(to bottom, rgba(129, 140, 248, 0.6), rgba(167, 139, 250, 0.6));
-    border-radius: 2px;
-
-    @media (min-width: 769px) {
-      left: 50%;
-      transform: translateX(-50%);
-    }
-  }
-
-  @media (min-width: 769px) {
-    gap: 60px;
-  }
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 16px;
+  border-radius: 30px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: inline-flex;
 }
 
-.milestone {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  opacity: 0;
-  transform: translateY(40px);
-  animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i) * 0.12s + 0.2s) forwards;
-
-  @media (min-width: 769px) {
-    width: 50%;
-    gap: 32px;
-  }
-
-  &:nth-child(odd) {
-    @media (min-width: 769px) {
-      align-self: flex-start;
-      flex-direction: row-reverse;
-      text-align: right;
-    }
-  }
-
-  &:nth-child(even) {
-    @media (min-width: 769px) {
-      align-self: flex-end;
-      text-align: left;
-    }
-  }
-}
-
-.milestone-dot {
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+.progress-dot {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--color, #818cf8);
-  box-shadow: 0 0 12px var(--color, #818cf8), 0 0 30px rgba(129, 140, 248, 0.2);
-  position: relative;
-  z-index: 2;
-  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-  @media (min-width: 769px) {
-    width: 16px;
-    height: 16px;
-    margin-top: 8px;
+  &.active {
+    width: 32px;
+    border-radius: 6px;
+    background: var(--dot-color, #818cf8);
+    box-shadow: 0 0 12px var(--dot-color, #818cf8);
+  }
+
+  &.done {
+    background: var(--dot-color, #818cf8);
+    opacity: 0.4;
+  }
+}
+
+.milestone-stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 40px;
+
+  @media (max-width: 768px) {
+    padding-bottom: 20px;
   }
 }
 
 .milestone-card {
-  flex: 1;
-  padding: 20px 24px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
+  position: absolute;
+  max-width: 520px;
+  width: 90%;
+  padding: 28px 32px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease, border-color 0.3s;
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
 
-  &:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 16px 40px rgba(99, 102, 241, 0.12);
-    border-color: rgba(129, 140, 248, 0.2);
+  &.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 
-  @media (min-width: 769px) {
-    padding: 24px 28px;
+  @media (max-width: 768px) {
+    padding: 20px 24px;
   }
 }
 
@@ -153,24 +131,24 @@
   padding: 4px 14px;
   border-radius: 20px;
   background: linear-gradient(135deg, rgba(129, 140, 248, 0.2), rgba(167, 139, 250, 0.2));
-  color: var(--color, #a78bfa);
-  margin-bottom: 10px;
+  color: var(--card-color, #a78bfa);
+  margin-bottom: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .milestone-title {
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   color: var(--text-color);
 
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
   }
 }
 
 .milestone-desc {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.6;
@@ -181,9 +159,17 @@
   }
 }
 
-@keyframes fadeUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
+.story-footer {
+  text-align: center;
+
+  .scroll-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    letter-spacing: 0.05em;
+    padding: 4px 14px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(8px);
   }
 }

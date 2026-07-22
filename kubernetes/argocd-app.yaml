@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: portfolio
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    namespace: portfolio
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/Mpratyush54/portfolio/
+    path: kubernetes
+    targetRevision: HEAD
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false

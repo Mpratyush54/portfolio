@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 @Component({
    selector: 'app-contact',
@@ -17,13 +18,27 @@ export class ContactComponent {
       message: ''
    };
 
+   status: 'idle' | 'sending' | 'success' | 'error' = 'idle';
+   statusMessage = '';
+
+   constructor(private http: HttpClient) {}
+
    onSubmit() {
-      const { name, email, phone, message } = this.formData;
+      if (this.status === 'sending') return;
 
-      const subject = `Contact from Portfolio: ${name}`;
-      const body = `Name: ${name}%0D%0AEmail: ${email}%0D%0APhone: ${phone || 'Not provided'}%0D%0A%0D%0AMessage:%0D%0A${message}`;
+      this.status = 'sending';
+      this.statusMessage = '';
 
-      // Open Mailto link
-      window.location.href = `mailto:mpratyush54@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+      this.http.post<{ success: boolean; message: string }>('/api/contact', this.formData).subscribe({
+         next: (res) => {
+            this.status = 'success';
+            this.statusMessage = res.message;
+            this.formData = { name: '', email: '', phone: '', message: '' };
+         },
+         error: (err: HttpErrorResponse) => {
+            this.status = 'error';
+            this.statusMessage = err.error?.error || 'Something went wrong. Try again later.';
+         }
+      });
    }
 }

@@ -7,7 +7,55 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
+
+const { sendContactNotification } = require('./services/mailer');
+
+// In-memory rate limiter
+const rateStore = new Map();
+const WINDOW_MS = 60 * 60 * 1000;
+const MAX_REQUESTS = 3;
+
+function getRateKey(ip, email) {
+  return `${ip}::${email}`;
+}
+
+function isRateLimited(ip, email) {
+  const now = Date.now();
+  const key = getRateKey(ip, email);
+  const globalKey = `ip::${ip}`;
+
+  [key, globalKey].forEach((k) => {
+    if (!rateStore.has(k)) {
+      rateStore.set(k, []);
+    }
+    const timestamps = rateStore.get(k).filter((t) => now - t < WINDOW_MS);
+    rateStore.set(k, timestamps);
+  });
+
+  const byIpAndEmail = rateStore.get(key).length;
+  const byIp = rateStore.get(globalKey).length;
+
+  return byIpAndEmail >= MAX_REQUESTS || byIp >= MAX_REQUESTS * 2;
+}
+
+function recordAttempt(ip, email) {
+  const now = Date.now();
+  const key = getRateKey(ip, email);
+  const globalKey = `ip::${ip}`;
+  rateStore.get(key).push(now);
+  rateStore.get(globalKey).push(now);
+}
+
+// Periodic cleanup
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of rateStore) {
+    const filtered = v.filter((t) => now - t < WINDOW_MS);
+    if (filtered.length) rateStore.set(k, filtered);
+    else rateStore.delete(k);
+  }
+}, 60 * 1000);
 
 const curatedProjects = require('./data/projects');
 
@@ -124,6 +172,35 @@ app.post('/api/admin/sync', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('[Sync] Error:', err);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ===== CONTACT ROUTE =====
+
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, phone, message } = req.body;
+    const ip = req.ip || req.connection.remoteAddress;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Name, email, and message are required.' });
+    }
+
+    if (isRateLimited(ip, email.toLowerCase())) {
+      return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
+    }
+
+    recordAttempt(ip, email.toLowerCase());
+
+    if (!process.env.SMTP_HOST) {
+      return res.json({ success: true, message: 'Message received (email not configured).' });
+    }
+
+    await sendContactNotification({ name, email, phone, message });
+    res.json({ success: true, message: 'Message sent! Check your email for a confirmation.' });
+  } catch (err) {
+    console.error('[Contact] Error:', err);
+    res.status(500).json({ error: 'Failed to send message. Please try again later.' });
   }
 });
 

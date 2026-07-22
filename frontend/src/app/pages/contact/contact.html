@@ -32,14 +32,16 @@
                         placeholder="Tell me about your project..."></textarea>
                 </div>
 
-                <button type="submit" class="btn-primary full-width" [disabled]="!contactForm.form.valid">
-                    <span>Send Message</span>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
-                        style="margin-left: 8px;">
-                        <path
-                            d="M14.6667 1.33334L7.33334 8.66668M14.6667 1.33334L10 14.6667L7.33334 8.66668M14.6667 1.33334L1.33334 6.00001L7.33334 8.66668"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+                <div *ngIf="status === 'success'" class="form-message success">
+                    {{ statusMessage }}
+                </div>
+                <div *ngIf="status === 'error'" class="form-message error">
+                    {{ statusMessage }}
+                </div>
+                <button type="submit" class="btn-primary full-width"
+                    [disabled]="!contactForm.form.valid || status === 'sending' || status === 'success'">
+                    <span *ngIf="status !== 'sending'">Send Message</span>
+                    <span *ngIf="status === 'sending'">Sending...</span>
                 </button>
             </form>
         </div>
@@ -54,6 +56,8 @@
                 <p class="info-text">Prefer email? Reach out anytime.</p>
                 <a href="mailto:mpratyush54@gmail.com"
                     class="highlight-link">mpratyush54@gmail.com</a>
+                <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank"
+                    class="highlight-link resume-link">📄 Download Resume</a>
             </div>
 
             <div class="info-card glass-panel">

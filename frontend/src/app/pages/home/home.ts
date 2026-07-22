@@ -4,12 +4,13 @@ import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { Project } from '../../models/project.model';
 import { ProjectCardComponent } from "../../components/project-card/project-card";
+import { StorySectionComponent } from "../../components/story-section/story-section";
 
 
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, RouterLink, ProjectCardComponent],
+    imports: [CommonModule, RouterLink, ProjectCardComponent, StorySectionComponent],
     templateUrl: './home.html',
     styleUrl: './home.scss'
 })

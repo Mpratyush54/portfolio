@@ -17,6 +17,8 @@ spec:
         app: portfolio
         tier: frontend
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: frontend
           image: ghcr.io/mpratyush54/portfolio-frontend:latest

@@ -17,6 +17,8 @@ spec:
         app: portfolio
         tier: backend
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: backend
           image: ghcr.io/mpratyush54/portfolio-backend:latest

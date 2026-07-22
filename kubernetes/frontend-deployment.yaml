@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/pratyush-exe/portfolio-frontend:latest
+          image: ghcr.io/mpratyush54/portfolio-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

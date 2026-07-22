@@ -1,0 +1,76 @@
+<div class="project-card glass-panel" [routerLink]="['/projects', project._id]">
+    <!-- Thumbnail Area -->
+    <div class="card-thumbnail">
+        <!-- Status Badge with Explanation -->
+        <div class="status-badge-container" [class]="statusBadge.type">
+            <div class="badge-label">
+                <span class="dot"></span>
+                {{ statusBadge.label }}
+            </div>
+            <div class="badge-tooltip">
+                {{ availabilityText }}
+            </div>
+        </div>
+
+        <!-- Source Badge -->
+        @if (project.source) {
+        <div class="source-badge" [class]="project.source">
+            <span class="source-icon">{{ project.source === 'github' ? '&#x1F5A5;' : '&#x1F4C1;' }}</span>
+            <span class="source-label">{{ project.source === 'github' ? 'GitHub' : 'GitLab' }}</span>
+        </div>
+        }
+
+        <!-- Placeholder until real images are set -->
+        <div class="img-placeholder" [style.background-image]="project.imageUrl ? 'url(' + project.imageUrl + ')' : ''"
+            [class.has-image]="!!project.imageUrl">
+            <span *ngIf="!project.imageUrl">{{ project.title[0] }}</span>
+        </div>
+
+        <!-- Overlay Action Layer -->
+        <div class="card-overlay">
+            <div class="actions">
+                @if (project.link) {
+                <a [href]="project.link" target="_blank" class="action-btn live" (click)="$event.stopPropagation()">
+                    <span>Launch App</span>
+                </a>
+                }
+
+                <div class="code-links">
+                    @if (project.frontendRepo) {
+                    <a [href]="project.frontendRepo" target="_blank" class="icon-link" title="Frontend Code"
+                        (click)="$event.stopPropagation()">
+                        <span>Frontend</span>
+                    </a>
+                    }
+                    @if (project.backendRepo) {
+                    <a [href]="project.backendRepo" target="_blank" class="icon-link" title="Backend Code"
+                        (click)="$event.stopPropagation()">
+                        <span>Backend</span>
+                    </a>
+                    }
+                    @if (!project.frontendRepo && !project.backendRepo && project.repo) {
+                    <a [href]="project.repo" target="_blank" class="action-btn outline"
+                        (click)="$event.stopPropagation()">
+                        <span>View Source</span>
+                    </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-content">
+        <h3>{{ project.title }}</h3>
+        <p class="description">{{ project.shortDescription }}</p>
+
+        <div class="tags">
+            @for (tag of project.tags; track tag) {
+            <span class="tag">{{ tag }}</span>
+            }
+        </div>
+
+        <div class="card-footer">
+            <span class="details-link">View Details →</span>
+        </div>
+    </div>
+</div>

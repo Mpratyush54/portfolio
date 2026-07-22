@@ -1,0 +1,46 @@
+<div class="projects-container container animate-fade-in">
+    <header class="page-header">
+        <div class="context-tabs">
+            <button class="context-pill" [class.active]="pageTitle === 'Application Development'" (click)="switchContext('apps')">
+                &#x1F4F1; Applications
+            </button>
+            <button class="context-pill" [class.active]="pageTitle === 'Systems & Infrastructure'" (click)="switchContext('systems')">
+                &#x2699;&#xFE0F; Systems &amp; Infrastructure
+            </button>
+        </div>
+        <h1>{{ pageTitle }}</h1>
+        <p class="subtitle animate-slide-up">{{ subtitleText }}</p>
+    </header>
+
+    <!-- Filter Row -->
+    <div class="filter-row animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="filter-tabs">
+            @for (category of categories; track category) {
+            <button class="filter-pill" [class.active]="selectedCategory === category" (click)="setCategory(category)">
+                {{ category }}
+            </button>
+            }
+        </div>
+        <div class="source-tabs">
+            @for (src of sourceFilters; track src.value) {
+            <button class="source-pill" [class.active]="selectedSource === src.value" (click)="setSource(src.value)">
+                {{ src.label }}
+            </button>
+            }
+        </div>
+    </div>
+
+    @if (isLoading) {
+    <div class="loading-spinner">Loading...</div>
+    } @else {
+    @if (filteredProjects.length === 0) {
+    <div class="empty-state">No projects found matching your filters.</div>
+    } @else {
+    <div class="projects-grid">
+        @for (project of filteredProjects; track project._id) {
+        <app-project-card [project]="project" class="animate-card"></app-project-card>
+        }
+    </div>
+    }
+    }
+</div>

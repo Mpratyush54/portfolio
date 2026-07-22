@@ -1,0 +1,20 @@
+<nav class="navbar glass-panel">
+    <a routerLink="/" class="logo">Home</a>
+
+    <div class="nav-links">
+        <a routerLink="/projects" routerLinkActive="active" class="nav-item">Projects</a>
+        <a routerLink="/about" routerLinkActive="active" class="nav-item">About</a>
+        <a routerLink="/contact" routerLinkActive="active" class="nav-item">Contact</a>
+    </div>
+
+    <div class="actions">
+        <button class="theme-toggle" (click)="toggleTheme()"
+            [attr.aria-label]="themeService.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+            @if (themeService.isDarkMode()) {
+            <span class="dot light"></span>
+            } @else {
+            <span class="dot dark"></span>
+            }
+        </button>
+    </div>
+</nav>

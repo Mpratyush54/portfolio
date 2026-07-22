@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: portfolio
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portfolio
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: portfolio
+        tier: backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/pratyush-exe/portfolio-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: MONGO_URI
+                  optional: true
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: ADMIN_PASSWORD
+                  optional: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  labels:
+    app: portfolio
+    tier: backend
+spec:
+  selector:
+    app: portfolio
+    tier: backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000

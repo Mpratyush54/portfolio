@@ -1,0 +1,288 @@
+<div class="detail-container">
+    @if (isLoading) {
+    <div class="loading">Loading...</div>
+    } @else if (project) {
+
+    <!-- ===== HERO ===== -->
+    <section class="detail-hero">
+        <div class="hero-bg" [style.backgroundImage]="'url(' + project.imageUrl + ')'"></div>
+        <div class="hero-overlay">
+            <div class="hero-text container">
+                <div class="title-row">
+                    <h1>{{ project.title }}</h1>
+                    <button class="status-pill" [class]="statusBadge.type" (click)="openAccessModal()">
+                        <span class="dot"></span>{{ statusBadge.label }}
+                    </button>
+                </div>
+                <p class="hero-desc">{{ project.shortDescription }}</p>
+                <div class="hero-meta">
+                    <span class="meta-chip">{{ project.source === 'github' ? 'GitHub' : 'GitLab' }}</span>
+                    <span class="meta-chip">{{ project.category }}</span>
+                    @if (project.status?.phase) {
+                    <span class="meta-chip">{{ project.status!.phase }}</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="detail-body container">
+        <div class="detail-two-col">
+
+            <!-- ===== LEFT COLUMN ===== -->
+            <div class="detail-left">
+
+                <!-- Architecture Flow -->
+                @if (project.architecture?.steps?.length) {
+                <section class="arch-section">
+                    <h2 class="section-title">{{ project.architecture!.title }}</h2>
+                    <div class="arch-flow">
+                        @for (step of project.architecture!.steps; track step.label; let i = $index, last = $last) {
+                        <div class="arch-step">
+                            <div class="arch-node">
+                                <div class="arch-number">{{ i + 1 }}</div>
+                                @if (!last) { <div class="arch-line"></div> }
+                            </div>
+                            <div class="arch-card glass-panel">
+                                <span class="arch-icon">{{ step.icon }}</span>
+                                <h3>{{ step.label }}</h3>
+                                <p>{{ step.description }}</p>
+                            </div>
+                        </div>
+                        }
+                    </div>
+                </section>
+                }
+
+                <!-- Full Description -->
+                <section class="desc-section">
+                    <h2 class="section-title">About This Project</h2>
+                    <div class="desc-body">
+                        @for (para of project.fullDescription.split('\n\n'); track para) {
+                        <p>{{ para }}</p>
+                        }
+                    </div>
+                </section>
+
+                <!-- Tech Detail Cards -->
+                @if (project.techDetails?.length) {
+                <section class="tech-details-section">
+                    <h2 class="section-title">Key Technical Decisions</h2>
+                    <div class="tech-grid">
+                        @for (detail of project.techDetails; track detail.title) {
+                        <div class="tech-card glass-panel" [style.--card-accent]="getCategoryColor(detail.category || '')">
+                            @if (detail.category) {
+                            <span class="tech-badge" [style.background]="getCategoryColor(detail.category)">{{ detail.category }}</span>
+                            }
+                            <h3>{{ detail.title }}</h3>
+                            <p>{{ detail.description }}</p>
+                            @if (detail.tags?.length) {
+                            <div class="tech-tags">
+                                @for (tag of detail.tags; track tag) {
+                                <span class="tag">{{ tag }}</span>
+                                }
+                            </div>
+                            }
+                        </div>
+                        }
+                    </div>
+                </section>
+                }
+
+                <!-- Features -->
+                @if (project.features!.length) {
+                <section class="features-section">
+                    <h2 class="section-title">Key Features</h2>
+                    <ul class="features-list">
+                        @for (f of project.features; track f) {
+                        <li>{{ f }}</li>
+                        }
+                    </ul>
+                </section>
+                }
+
+            </div>
+
+            <!-- ===== RIGHT COLUMN ===== -->
+            <div class="detail-right">
+
+                <!-- Tech Stack Donut -->
+                <div class="side-card glass-panel">
+                    <h3 class="side-title">Tech Stack</h3>
+                    @if (project.languageStats?.length) {
+                    <div class="donut-wrapper" (mouseleave)="setHover(null)">
+                        <svg viewBox="0 0 40 40" class="donut-svg">
+                            <circle cx="20" cy="20" r="15.9155" fill="transparent" />
+                            @for (seg of chartData; track seg.name) {
+                            <circle cx="20" cy="20" r="15.9155" fill="transparent" stroke-width="5"
+                                [attr.stroke]="seg.color" [attr.stroke-dasharray]="seg.dashArray"
+                                [attr.stroke-dashoffset]="seg.dashOffset" class="chart-segment"
+                                [class.active]="hoveredIndex === seg.index"
+                                [class.dimmed]="hoveredIndex !== null && hoveredIndex !== seg.index"
+                                (mouseenter)="setHover(seg.index)">
+                            </circle>
+                            }
+                        </svg>
+                        <div class="donut-center">
+                            @if (hoveredIndex !== null && project!.languageStats![hoveredIndex]) {
+                            <span class="donut-pct">{{ project!.languageStats![hoveredIndex].percent }}%</span>
+                            <span class="donut-lbl">{{ project!.languageStats![hoveredIndex].name }}</span>
+                            } @else {
+                            <span class="donut-pct">100%</span>
+                            <span class="donut-lbl">Total</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="donut-legend">
+                        @for (lang of project.languageStats; track lang.name; let i = $index) {
+                        <div class="legend-item" [class.active]="hoveredIndex === i"
+                            [class.dimmed]="hoveredIndex !== null && hoveredIndex !== i"
+                            (mouseenter)="setHover(i)" (mouseleave)="setHover(null)">
+                            <span class="legend-dot" [style.background]="lang.color"></span>
+                            <span class="legend-name">{{ lang.name }}</span>
+                            <span class="legend-pct">{{ lang.percent }}%</span>
+                        </div>
+                        }
+                    </div>
+                    } @else {
+                    <div class="empty-state-small">No language data available.</div>
+                    }
+                </div>
+
+                <!-- Timeline -->
+                @if (project.timeline) {
+                <div class="side-card glass-panel">
+                    <h3 class="side-title">Project Journey</h3>
+                    <div class="tl-dates">
+                        <div class="tl-date">
+                            <span class="tl-label">Started</span>
+                            <span class="tl-val">{{ project.timeline.start }}</span>
+                        </div>
+                        <span class="tl-arrow">&rarr;</span>
+                        <div class="tl-date">
+                            <span class="tl-label">Status</span>
+                            <span class="tl-val">{{ project.timeline.end }}</span>
+                        </div>
+                    </div>
+                    <div class="tl-phases">
+                        @for (item of project.timeline.history; track item.phase; let last = $last) {
+                        <div class="tl-phase" [class.completed]="item.completed" [class.current]="!item.completed">
+                            <div class="tl-marker">
+                                <div class="tl-dot"></div>
+                                @if (!last) { <div class="tl-line"></div> }
+                            </div>
+                            <div class="tl-content">
+                                <span class="tl-name">{{ item.phase }}</span>
+                                <span class="tl-date">{{ item.date }}</span>
+                            </div>
+                        </div>
+                        }
+                    </div>
+                </div>
+                }
+
+                <!-- Deployment -->
+                @if (project.deployment) {
+                <div class="side-card glass-panel">
+                    <h3 class="side-title">Deployment</h3>
+                    <div class="deploy-type">{{ project.deployment.type }}</div>
+                    <div class="deploy-platform">
+                        <span class="deploy-label">Platform</span>
+                        <span>{{ project.deployment.platform }}</span>
+                    </div>
+                    @if (project.deployment.url) {
+                    <div class="deploy-url">
+                        <a [href]="project.deployment.url" target="_blank">{{ project.deployment.url }}</a>
+                    </div>
+                    }
+                    <div class="deploy-details">
+                        <p>{{ project.deployment.details }}</p>
+                    </div>
+                    <div class="deploy-cicd">
+                        <span class="deploy-label">CI/CD</span>
+                        <p>{{ project.deployment.ciCd }}</p>
+                    </div>
+                </div>
+                }
+
+                <!-- Resources -->
+                <div class="side-card glass-panel">
+                    <h3 class="side-title">Resources</h3>
+                    <div class="resource-links">
+                        @if (project.link) {
+                        <a [href]="project.link" target="_blank" class="res-btn">&#x1F680; Launch Live App</a>
+                        }
+                        @if (project.frontendRepo) {
+                        <a [href]="project.frontendRepo" target="_blank" class="res-btn">&#x1F4BB; Frontend Code</a>
+                        }
+                        @if (project.backendRepo) {
+                        <a [href]="project.backendRepo" target="_blank" class="res-btn">&#x2699;&#xFE0F; Backend Code</a>
+                        }
+                        @if (!project.frontendRepo && !project.backendRepo && project.repo) {
+                        <a [href]="project.repo" target="_blank" class="res-btn">&#x1F4C1; Source Code</a>
+                        }
+                        <button class="res-btn premium" (click)="openAccessModal()">&#x2728; Request Full Access</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ===== GALLERY ===== -->
+        @if (project.gallery?.length) {
+        <section class="gallery-section">
+            <h2 class="section-title">Gallery</h2>
+            <div class="gallery-grid">
+                @for (img of project.gallery; track img; let i = $index) {
+                <div class="gallery-item" (click)="openLightbox(i)">
+                    <img [src]="img" alt="Screenshot {{i + 1}}" loading="lazy">
+                    <div class="gallery-overlay">&#x1F50D;</div>
+                </div>
+                }
+            </div>
+        </section>
+        }
+    </div>
+
+    <!-- Lightbox -->
+    @if (isLightboxOpen && project.gallery) {
+    <div class="lightbox" (click)="closeLightbox()">
+        <button class="lb-close" (click)="closeLightbox()">&times;</button>
+        <div class="lb-content" (click)="$event.stopPropagation()">
+            <button class="lb-nav prev" (click)="prevImage()">&#x276E;</button>
+            <img [src]="project.gallery[currentImageIndex]" class="lb-img" alt="Full view">
+            <button class="lb-nav next" (click)="nextImage()">&#x276F;</button>
+        </div>
+        <div class="lb-thumbs" (click)="$event.stopPropagation()">
+            @for (img of project.gallery; track img; let i = $index) {
+            <img [src]="img" [class.active]="i === currentImageIndex" (click)="setGalleryImage(i)" alt="Thumb">
+            }
+        </div>
+    </div>
+    }
+
+    <!-- Access Modal -->
+    @if (isAccessModalOpen) {
+    <div class="modal-overlay" (click)="closeAccessModal()">
+        <div class="modal-card" (click)="$event.stopPropagation()">
+            <button class="modal-close" (click)="closeAccessModal()">&times;</button>
+            <h2>Request Access</h2>
+            <p>Unlock the full potential of {{ project.title }}.</p>
+            <form (submit)="submitAccessRequst($event)">
+                <input type="text" placeholder="Name" required>
+                <input type="email" placeholder="Email" required>
+                <select><option>Testing / QA</option><option>Business Inquiry</option><option>Just Curious</option></select>
+                <button type="submit" class="btn-submit">Send Request</button>
+            </form>
+        </div>
+    </div>
+    }
+
+    <div class="back-link container">
+        <a routerLink="/projects">&larr; Back to Projects</a>
+    </div>
+
+    } @else {
+    <div class="container"><p>Project not found.</p></div>
+    }
+</div>

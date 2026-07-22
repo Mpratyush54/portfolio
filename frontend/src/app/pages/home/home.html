@@ -1,0 +1,53 @@
+<div class="home-container">
+    <section class="hero-section">
+
+        <div class="hero-content zero-weight">
+            <h1 class="hero-title" [class.typing-done]="typingDone">
+                <span class="typed-text">{{ displayedText }}</span>
+                <span class="cursor" *ngIf="!typingDone"></span>
+            </h1>
+
+            <p class="hero-subtitle" [class.settled]="typingDone">Backend Engineer &bull; Tech Lead &bull; Building at CAPS &bull; CHRIST University</p>
+
+            <div class="cta-wrapper">
+                <a routerLink="/projects" class="btn-primary">
+                    View Projects
+                </a>
+                <a routerLink="/about" class="btn-secondary">
+                    More About Me
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-visual zero-weight">
+            <div class="img-wrapper">
+                <img src="https://school.pratyushes.dev/assets/images/devloper.jpg" alt="Pratyush Mishra" />
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Featured Projects Section -->
+    @if (featuredProjects.length > 0) {
+    <section class="featured-section">
+        <div class="featured-header">
+            <h2 class="section-title">Featured Work</h2>
+            <p class="section-subtitle">Projects that define my journey</p>
+        </div>
+
+        <div class="featured-grid">
+            @for (project of featuredProjects; track project._id; let i = $index) {
+            <div class="featured-card-wrapper" [style.animation-delay]="i * 0.15 + 's'">
+                <app-project-card [project]="project"></app-project-card>
+            </div>
+            }
+        </div>
+
+        <div class="view-all-wrapper">
+            <a routerLink="/projects" class="btn-secondary view-all-btn">
+                View All Projects &rarr;
+            </a>
+        </div>
+    </section>
+    }
+</div>

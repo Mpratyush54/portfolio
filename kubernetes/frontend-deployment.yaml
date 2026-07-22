@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: portfolio
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portfolio
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: portfolio
+        tier: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/pratyush-exe/portfolio-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  labels:
+    app: portfolio
+    tier: frontend
+spec:
+  selector:
+    app: portfolio
+    tier: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP

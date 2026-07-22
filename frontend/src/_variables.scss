@@ -1,0 +1,47 @@
+// Color Palette
+$primary-color: #7F5AF0; // Slightly improved purple
+$secondary-color: #2CB67D;
+$accent-color: #94A1B2;
+
+// Light Theme
+$light-bg: #eff0f3;
+$light-text: #2d334a;
+$light-surface: #fffffe;
+$light-border: #d1d1e9;
+
+// Premium Dark Theme - Richer, Deep Blue/Grey
+$dark-bg: #16161a;
+$dark-surface: #242629;
+$dark-text: #fffffe;
+$dark-border: #383a42; // Soft border
+
+// Gradients
+$gradient-main: linear-gradient(135deg, #7F5AF0, #2CB67D);
+$gradient-dark: linear-gradient(135deg, #242629, #16161a);
+
+// Fonts
+$font-family-base: 'Outfit', 'Inter', sans-serif; // Switched to Outfit if available, or Inter
+
+// Mixins
+@mixin glass-effect {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+
+    // Dark mode specific glass
+    @media (prefers-color-scheme: dark) {
+        background: rgba(36, 38, 41, 0.7);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+}
+
+@mixin card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+}

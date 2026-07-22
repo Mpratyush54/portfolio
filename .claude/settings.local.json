@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"D:\\\\portfolio\\\\frontend\\\\public\\\\screenshots\")",
+      "Bash(cp classstream-home.jpg classstream-classes.jpg classstream-students.jpg classstream.jpg classstream-login.jpg caps-kengeri.jpg caps-automation.jpg rf-filled.jpg \"D:\\\\portfolio\\\\frontend\\\\public\\\\screenshots\\\\\" && ls \"D:\\\\portfolio\\\\frontend\\\\public\\\\screenshots\")",
+      "Bash(mkdir -p /d/portfolio/frontend/public/screenshots)",
+      "Read(//d/portfolio/backend/screenshots/**)",
+      "Bash(cp classstream-home.jpg classstream-classes.jpg classstream-students.jpg classstream.jpg classstream-login.jpg caps-kengeri.jpg caps-automation.jpg rf-filled.jpg /d/portfolio/frontend/public/screenshots/)",
+      "Read(//d/portfolio/frontend/public/**)"
+    ]
+  }
+}

@@ -1,0 +1,145 @@
+@use 'variables' as *;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+
+/* =====================================================
+   THEME VARIABLES
+   ===================================================== */
+
+/* Light Mode */
+:root {
+    --bg-color: #f5f5f7;
+    --text-color: #1d1d1f;
+    --text-secondary: #86868b;
+    --surface-color: rgba(255, 255, 255, 0.85);
+    --border-color: rgba(0, 0, 0, 0.06);
+    --primary-color: #0071e3;
+}
+
+/* Dark Mode - Applied to HTML for full coverage */
+html.dark-mode {
+    --bg-color: #050505; // True Black
+    --text-color: #ffffff;
+    --text-secondary: #a0a0a0;
+    --surface-color: rgba(30, 30, 30, 0.8);
+    --border-color: rgba(255, 255, 255, 0.15);
+    --primary-color: #4facfe;
+}
+
+html {
+    height: 100%;
+    background-color: var(--bg-color); // Now works dynamically
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-color);
+    background-color: transparent; // Let html bg show through
+    overflow-x: hidden;
+
+    /* NO Fixed Gradient Overlay - Clean Background */
+    background-color: var(--bg-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* NO complex planes/mesh - keeping it CLEAN for clarity */
+body::before,
+body::after {
+    display: none;
+}
+
+/* ... Zero Weight & Global Utils ... */
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px;
+
+    /* Mobile: Critical Fix */
+    @media (max-width: 768px) {
+        padding: 0 24px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+/* Premium Utilities */
+.glass-panel {
+    background: var(--surface-color);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, var(--text-color) 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+
+/* =====================================================
+   BUTTONS
+   ===================================================== */
+
+.btn-primary {
+    background: var(--text-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 14px 32px;
+    border-radius: 40px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    letter-spacing: -0.01em;
+    transition: transform 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 14px 32px;
+    border-radius: 40px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition:
+        transform 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+    border-color: var(--primary-color);
+}
+
+/* =====================================================
+   SCROLLBAR (INTENTIONAL MINIMAL)
+   ===================================================== */
+
+::-webkit-scrollbar {
+    width: 0;
+}
+
+/* =====================================================
+   APP ROOT
+   ===================================================== */
+
+app-root {
+    display: block;
+    min-height: 100vh;
+}

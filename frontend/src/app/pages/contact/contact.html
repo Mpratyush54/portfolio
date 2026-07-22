@@ -1,0 +1,81 @@
+<div class="contact-container container animate-fade-in">
+    <div class="header-section">
+        <h1 class="text-gradient">Get in Touch</h1>
+        <p class="subtitle">Have a project or opportunity? Let's connect and build something amazing.</p>
+    </div>
+
+    <div class="contact-content">
+        <!-- Contact Form -->
+        <div class="form-card glass-panel">
+            <form (ngSubmit)="onSubmit()" #contactForm="ngForm">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" [(ngModel)]="formData.name" required
+                        placeholder="Your Name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" [(ngModel)]="formData.email" required
+                        placeholder="your.email@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone (Optional)</label>
+                    <input type="tel" id="phone" name="phone" [(ngModel)]="formData.phone"
+                        placeholder="+1 (555) 000-0000">
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" rows="5" [(ngModel)]="formData.message" required
+                        placeholder="Tell me about your project..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary full-width" [disabled]="!contactForm.form.valid">
+                    <span>Send Message</span>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
+                        style="margin-left: 8px;">
+                        <path
+                            d="M14.6667 1.33334L7.33334 8.66668M14.6667 1.33334L10 14.6667L7.33334 8.66668M14.6667 1.33334L1.33334 6.00001L7.33334 8.66668"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+
+        <!-- Direct Contact Info -->
+        <div class="info-column">
+            <div class="info-card glass-panel">
+                <div class="info-header">
+                    <div class="icon-box">📧</div>
+                    <h3>Email Me Directly</h3>
+                </div>
+                <p class="info-text">Prefer email? Reach out anytime.</p>
+                <a href="mailto:mpratyush54@gmail.com"
+                    class="highlight-link">mpratyush54@gmail.com</a>
+            </div>
+
+            <div class="info-card glass-panel">
+                <div class="info-header">
+                    <div class="icon-box">🌐</div>
+                    <h3>Connect on Socials</h3>
+                </div>
+                <div class="social-links-vertical">
+                    <a href="https://linkedin.com/in/Mpratyush54" target="_blank" class="social-item">
+                        <span>LinkedIn</span>
+                        <span class="arrow">↗</span>
+                    </a>
+                    <a href="https://github.com/Mpratyush54" target="_blank" class="social-item">
+                        <span>GitHub</span>
+                        <span class="arrow">↗</span>
+                    </a>
+                    <a href="https://gitlab.com/techtank.capskengeri" target="_blank" class="social-item">
+                        <span>GitLab</span>
+                        <span class="arrow">↗</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

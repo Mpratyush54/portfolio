@@ -1,0 +1,101 @@
+@use '../../../variables' as *;
+@use 'sass:color';
+
+.about-container {
+    padding-top: 80px;
+    padding-bottom: 60px;
+
+    @media (max-width: 768px) {
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+}
+
+.intro-section {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 100px;
+
+    @media (max-width: 768px) {
+        margin-bottom: 60px;
+    }
+
+    h1 {
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        margin-bottom: 16px;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+        font-size: 1.5rem;
+        color: var(--text-secondary);
+        margin-bottom: 40px;
+    }
+
+    .bio-text {
+        text-align: left;
+        font-size: 1.2rem;
+        line-height: 1.7;
+        color: var(--text-color);
+
+        p {
+            margin-bottom: 20px;
+        }
+    }
+}
+
+.values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); // Smaller min-width
+    gap: 40px;
+    margin-bottom: 60px;
+
+    @media (max-width: 600px) {
+        grid-template-columns: 1fr; // Single column on small screens
+        gap: 20px;
+    }
+
+    .value-card {
+        padding: 30px;
+        background: var(--surface-color);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+
+        /* Dark Mode Override for better visibility */
+        @media (prefers-color-scheme: dark) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        body.dark-mode & {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        border-radius: 20px;
+        transition: transform 0.3s;
+
+        &:hover {
+            transform: translateY(-5px);
+        }
+
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+        }
+
+        p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+    }
+}
+
+.spacing {
+    height: 60px;
+}

@@ -1,0 +1,73 @@
+@use '../../../variables' as *;
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    position: sticky;
+    top: 10px;
+    z-index: 1000;
+    margin: 0 auto;
+    max-width: 800px; // Floating island style
+    border-radius: 100px; // Pill shape navbar
+
+    .logo {
+        text-decoration: none;
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--text-color);
+        padding: 0 10px;
+        opacity: 0.9;
+        transition: opacity 0.2s;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 20px;
+
+        .nav-item {
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 14px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+
+            &:hover {
+                opacity: 1;
+            }
+
+            &.active {
+                opacity: 1;
+                font-weight: 500;
+            }
+        }
+    }
+
+    .theme-toggle {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+
+        .dot {
+            display: block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+
+            &.light {
+                background: #fff;
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            }
+
+            &.dark {
+                background: #000;
+            }
+        }
+    }
+}

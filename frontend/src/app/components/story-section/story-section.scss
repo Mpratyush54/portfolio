@@ -110,12 +110,12 @@
 .year-stack {
   position: relative;
   height: 140px;
-  width: 200px;
+  width: 340px;
   overflow: hidden;
 
   @media (max-width: 900px) {
     height: 80px;
-    width: 120px;
+    width: 160px;
   }
 }
 

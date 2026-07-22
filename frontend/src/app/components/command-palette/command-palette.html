@@ -1,0 +1,28 @@
+<div class="cp-overlay" [class.open]="open" (click)="close()">
+  <div class="cp-modal" (click)="$event.stopPropagation()">
+    <div class="cp-header">
+      <span class="cp-title">terminal</span>
+      <span class="cp-close" (click)="close()">&#x2715;</span>
+    </div>
+
+    <div class="cp-body" #bodyEl>
+      @for (item of history; track item) {
+      <div class="cp-line">
+        @if (item.input) {
+        <div class="cp-input-line">
+          <span class="cp-prompt">{{ prefix }}</span>
+          <span class="cp-input">{{ item.input }}</span>
+        </div>
+        }
+        <div class="cp-output" [class.error]="item.isError" [innerHTML]="item.output"></div>
+      </div>
+      }
+
+      <div class="cp-input-line current">
+        <span class="cp-prompt">{{ prefix }}</span>
+        <input #inputEl class="cp-field" [value]="input" (input)="input = $any($event.target).value" (keydown.enter)="submit()" autocomplete="off" spellcheck="false" />
+        <span class="cp-cursor" [class.visible]="cursorVisible"></span>
+      </div>
+    </div>
+  </div>
+</div>

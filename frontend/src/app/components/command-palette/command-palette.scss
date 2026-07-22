@@ -1,0 +1,183 @@
+@use '../../../variables' as *;
+
+.cp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+
+  &.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.cp-modal {
+  width: 90%;
+  max-width: 680px;
+  max-height: 70vh;
+  background: #0a0a0f;
+  border: 1px solid rgba(129, 140, 248, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+  animation: cpSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cpSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(129, 140, 248, 0.6);
+}
+
+.cp-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px;
+  transition: color 0.2s;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.cp-body {
+  padding: 20px;
+  overflow-y: auto;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #e0e0e0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(129, 140, 248, 0.2) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(129, 140, 248, 0.2);
+    border-radius: 2px;
+  }
+}
+
+.cp-line {
+  margin-bottom: 8px;
+}
+
+.cp-input-line {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+
+  &.current {
+    margin-top: 4px;
+  }
+}
+
+.cp-prompt {
+  color: rgba(129, 140, 248, 0.7);
+  white-space: pre;
+  flex-shrink: 0;
+}
+
+.cp-input {
+  color: #a78bfa;
+  word-break: break-all;
+}
+
+.cp-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #a78bfa;
+  font: inherit;
+  font-size: inherit;
+  padding: 0;
+  margin: 0;
+  caret-color: transparent;
+  min-width: 0;
+
+  &::selection {
+    background: rgba(129, 140, 248, 0.3);
+  }
+}
+
+.cp-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 1.2em;
+  background: rgba(129, 140, 248, 0.8);
+  margin-left: 1px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+
+  &.visible {
+    opacity: 1;
+  }
+}
+
+.cp-output {
+  color: rgba(255, 255, 255, 0.7);
+  padding-left: 0;
+  margin-top: 2px;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  &.error {
+    color: rgba(251, 113, 133, 0.8);
+  }
+}
+
+:host ::ng-deep .cmd {
+  color: #818cf8;
+  font-weight: 600;
+}
+
+:host ::ng-deep .key {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.6);
+}

@@ -15,10 +15,6 @@ export class ProjectDetailComponent implements OnInit {
     project: Project | undefined;
     isLoading = true;
 
-    // Lightbox
-    isLightboxOpen = false;
-    currentImageIndex = 0;
-
     // Donut chart
     hoveredIndex: number | null = null;
 
@@ -66,12 +62,6 @@ export class ProjectDetailComponent implements OnInit {
     }
 
     setHover(index: number | null) { this.hoveredIndex = index; }
-
-    openLightbox(index: number) { this.currentImageIndex = index; this.isLightboxOpen = true; document.body.style.overflow = 'hidden'; }
-    closeLightbox() { this.isLightboxOpen = false; document.body.style.overflow = ''; }
-    nextImage() { if (this.project?.gallery) this.currentImageIndex = (this.currentImageIndex + 1) % this.project.gallery.length; }
-    prevImage() { if (this.project?.gallery) this.currentImageIndex = (this.currentImageIndex - 1 + this.project.gallery.length) % this.project.gallery.length; }
-    setGalleryImage(i: number) { this.currentImageIndex = i; }
 
     openAccessModal() { this.isAccessModalOpen = true; document.body.style.overflow = 'hidden'; }
     closeAccessModal() { this.isAccessModalOpen = false; document.body.style.overflow = ''; }

@@ -1,29 +1,72 @@
-<section #sectionEl class="story-section" [class.ready]="ready">
-  <div #storyCanvas class="story-canvas"></div>
+<section #sectionEl class="story-section">
 
-  <div class="story-ui">
-    <header class="story-header">
-      <h2 class="story-title">My Journey</h2>
-      <div class="progress-track">
-        @for (m of milestones; track m.year; let i = $index) {
-        <button class="progress-dot" [class.active]="i === activeIndex" [class.done]="i < activeIndex"
-          [style.--dot-color]="m.color" (click)="goTo(i)"></button>
-        }
-      </div>
-    </header>
+  <!-- Sticky container (fixed while scrolling through milestones) -->
+  <div #stickyEl class="story-sticky">
+    <div class="story-canvas" [style.transform]="'translateY(' + (-parallaxY * 0.08) + 'px)'"></div>
 
-    <div class="milestone-stage">
-      @for (m of milestones; track m.year; let i = $index) {
-      <div class="milestone-card" [class.visible]="i === activeIndex" [style.--card-color]="m.color">
-        <span class="milestone-year">{{ m.year }}</span>
-        <h3 class="milestone-title">{{ m.title }}</h3>
-        <p class="milestone-desc">{{ m.description }}</p>
-      </div>
-      }
+    <!-- Decorative floating shapes -->
+    <div class="deco-shapes" [style.transform]="'translateY(' + (-parallaxY * 0.15) + 'px)'">
+      <div class="deco-ring deco-ring--1"></div>
+      <div class="deco-ring deco-ring--2"></div>
+      <div class="deco-ring deco-ring--3"></div>
     </div>
 
-    <div class="story-footer">
-      <span class="scroll-hint">{{ activeIndex + 1 }} / {{ totalMilestones }}</span>
+    <div class="story-inner">
+      <!-- Left: Year -->
+      <div class="story-year-col">
+        <div class="year-stack">
+          <span class="year-current" [style.transform]="'translateY(' + (-progress * 100) + '%)'"
+            [style.opacity]="1 - progress">
+            {{ milestones[activeIndex].year }}
+          </span>
+          <span class="year-next" [style.transform]="'translateY(' + ((1 - progress) * 100) + '%)'"
+            [style.opacity]="progress">
+            {{ milestones[nextIndex].year }}
+          </span>
+        </div>
+
+        <!-- Progress dots -->
+        <div class="dots-col">
+          @for (m of milestones; track m.year; let i = $index) {
+          <div class="dot" [class.active]="i === activeIndex" [class.done]="i < activeIndex"
+            [style.transform]="i === activeIndex ? 'scaleY(' + (1.5 + progress) + ')' : ''">
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Right: Content -->
+      <div class="story-content-col">
+        <h3 class="content-title">{{ milestones[activeIndex].title }}</h3>
+        <p class="content-desc">{{ milestones[activeIndex].description }}</p>
+
+        <!-- Progress bar -->
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width]="((activeIndex + progress) / (totalMilestones - 1)) * 100 + '%'"></div>
+        </div>
+        <span class="progress-label">{{ activeIndex + 1 }} / {{ totalMilestones }}</span>
+      </div>
     </div>
   </div>
+
+  <!-- Scroll markers — each creates scroll distance -->
+  <div class="scroll-marker" [style.height]="'calc(100vh - 80px)'">
+    <div class="marker-label">
+      <span>{{ milestones[0].year }}</span>
+      <div class="marker-line"></div>
+      <span>{{ milestones[0].title }}</span>
+    </div>
+  </div>
+
+  @for (m of milestones; track m.year; let i = $index) {
+  @if (i < milestones.length - 1) {
+  <div class="scroll-marker" [style.height]="'calc(100vh - 80px)'">
+    <div class="marker-label">
+      <span>{{ milestones[i + 1].year }}</span>
+      <div class="marker-line"></div>
+      <span>{{ milestones[i + 1].title }}</span>
+    </div>
+  </div>
+  }
+  }
 </section>

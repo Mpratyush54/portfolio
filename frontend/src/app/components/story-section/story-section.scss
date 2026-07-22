@@ -2,174 +2,280 @@
 
 .story-section {
   position: relative;
+}
+
+/* ============ STICKY CONTAINER ============ */
+
+.story-sticky {
+  position: sticky;
+  top: 0;
   height: 100vh;
   overflow: hidden;
-  touch-action: none;
+  display: flex;
+  align-items: center;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.04) 0%, transparent 40%, transparent 60%, rgba(99, 102, 241, 0.02) 100%);
 }
 
 .story-canvas {
   position: absolute;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
+  background: radial-gradient(ellipse at 30% 50%, rgba(129, 140, 248, 0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 50%, rgba(167, 139, 250, 0.04) 0%, transparent 50%);
 }
 
-.story-ui {
+/* ============ DECORATIVE SHAPES ============ */
+
+.deco-shapes {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.deco-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(129, 140, 248, 0.08);
+  animation: ringFloat 8s ease-in-out infinite;
+
+  &--1 {
+    width: 500px;
+    height: 500px;
+    top: -100px;
+    right: -100px;
+    animation-delay: 0s;
+  }
+
+  &--2 {
+    width: 350px;
+    height: 350px;
+    bottom: -80px;
+    left: -50px;
+    animation-delay: -2s;
+  }
+
+  &--3 {
+    width: 200px;
+    height: 200px;
+    top: 50%;
+    left: 30%;
+    animation-delay: -4s;
+  }
+}
+
+@keyframes ringFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+}
+
+/* ============ INNER LAYOUT ============ */
+
+.story-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 80px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+    gap: 40px;
+    padding: 24px;
+    justify-content: center;
+  }
+}
+
+/* ============ LEFT: YEAR ============ */
+
+.story-year-col {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 200px;
+
+  @media (max-width: 900px) {
+    min-width: 0;
+    flex-direction: row;
+    gap: 20px;
+  }
+}
+
+.year-stack {
+  position: relative;
+  height: 140px;
+  width: 200px;
+  overflow: hidden;
+
+  @media (max-width: 900px) {
+    height: 80px;
+    width: 120px;
+  }
+}
+
+.year-current,
+.year-next {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 7rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  transition: none;
+
+  @media (max-width: 900px) {
+    font-size: 4rem;
+  }
+}
+
+.year-current {
+  background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.year-next {
+  background: linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #e879f9 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============ DOTS ============ */
+
+.dots-col {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 60px 40px 40px;
-  pointer-events: none;
-
-  @media (max-width: 768px) {
-    padding: 40px 20px 24px;
-  }
-}
-
-.story-header {
-  text-align: center;
-
-  .story-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin: 0 0 24px;
-    background: linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #818cf8 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-
-    @media (max-width: 768px) {
-      font-size: 1.8rem;
-      margin-bottom: 16px;
-    }
-  }
-}
-
-.progress-track {
-  display: flex;
   gap: 8px;
-  justify-content: center;
   align-items: center;
-  padding: 6px 16px;
-  border-radius: 30px;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  display: inline-flex;
+
+  @media (max-width: 900px) {
+    flex-direction: row;
+  }
 }
 
-.progress-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.dot {
+  width: 3px;
+  height: 24px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.4s ease, transform 0.4s ease;
 
   &.active {
-    width: 32px;
-    border-radius: 6px;
-    background: var(--dot-color, #818cf8);
-    box-shadow: 0 0 12px var(--dot-color, #818cf8);
+    background: #818cf8;
+    box-shadow: 0 0 8px rgba(129, 140, 248, 0.5);
   }
 
   &.done {
-    background: var(--dot-color, #818cf8);
-    opacity: 0.4;
+    background: rgba(129, 140, 248, 0.5);
+  }
+
+  @media (max-width: 900px) {
+    width: 20px;
+    height: 3px;
   }
 }
 
-.milestone-stage {
-  position: relative;
+/* ============ RIGHT: CONTENT ============ */
+
+.story-content-col {
   flex: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 40px;
-
-  @media (max-width: 768px) {
-    padding-bottom: 20px;
-  }
-}
-
-.milestone-card {
-  position: absolute;
+  min-width: 0;
   max-width: 520px;
-  width: 90%;
-  padding: 28px 32px;
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: auto;
-  opacity: 0;
-  transform: translateY(20px) scale(0.95);
 
-  &.visible {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-
-  @media (max-width: 768px) {
-    padding: 20px 24px;
+  @media (max-width: 900px) {
+    text-align: center;
+    max-width: 100%;
   }
 }
 
-.milestone-year {
-  display: inline-block;
-  font-size: 0.7rem;
+.content-title {
+  font-size: 2rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 4px 14px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.2), rgba(167, 139, 250, 0.2));
-  color: var(--card-color, #a78bfa);
-  margin-bottom: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.milestone-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 8px;
+  margin: 0 0 16px;
   color: var(--text-color);
+  line-height: 1.2;
 
-  @media (max-width: 768px) {
-    font-size: 1.2rem;
+  @media (max-width: 900px) {
+    font-size: 1.4rem;
   }
 }
 
-.milestone-desc {
-  font-size: 0.95rem;
+.content-desc {
+  font-size: 1.05rem;
   color: var(--text-secondary);
-  margin: 0;
-  line-height: 1.6;
+  margin: 0 0 32px;
+  line-height: 1.7;
   opacity: 0.85;
 
-  @media (max-width: 768px) {
-    font-size: 0.85rem;
+  @media (max-width: 900px) {
+    font-size: 0.9rem;
   }
 }
 
-.story-footer {
-  text-align: center;
+/* ============ PROGRESS ============ */
 
-  .scroll-hint {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    opacity: 0.5;
-    letter-spacing: 0.05em;
-    padding: 4px 14px;
-    border-radius: 20px;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(8px);
+.progress-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #818cf8, #a78bfa);
+  transition: width 0.1s linear;
+}
+
+.progress-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  letter-spacing: 0.05em;
+}
+
+/* ============ SCROLL MARKERS ============ */
+
+.scroll-marker {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  @media (max-width: 900px) {
+    height: calc(90vh - 60px) !important;
   }
+}
+
+.marker-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+}
+
+.marker-line {
+  width: 40px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
 }

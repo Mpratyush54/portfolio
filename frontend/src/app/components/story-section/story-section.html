@@ -1,28 +1,21 @@
-<section #sectionEl class="story-section">
+<section class="story-section">
   <div #storyCanvas class="story-canvas"></div>
 
-  <div class="story-ui">
-    <header class="story-header">
-      <h2 class="story-title">My Journey</h2>
-      <div class="story-progress">
-        <div class="progress-track">
-          @for (m of milestones; track m.year; let i = $index) {
-          <div class="progress-dot" [class.active]="i === activeIndex" [class.done]="i < activeIndex"
-            [style.--dot-color]="'#' + m.color.toString(16).padStart(6, '0')"></div>
-          }
-        </div>
-      </div>
-    </header>
+  <header class="story-header">
+    <h2 class="story-title">My Journey</h2>
+    <p class="story-subtitle">From first commit to production at scale</p>
+  </header>
 
-    <div class="milestone-stage">
-      @for (m of milestones; track m.year; let i = $index) {
-      <div class="milestone-card" [class.visible]="i === activeIndex" [class.before]="i < activeIndex"
-        [class.after]="i > activeIndex" [style.--card-color]="'#' + m.color.toString(16).padStart(6, '0')">
+  <div class="milestone-track">
+    @for (m of milestones; track m.year; let i = $index) {
+    <div class="milestone" [style.--i]="i" [style.--color]="'#' + m.color.toString(16).padStart(6, '0')">
+      <div class="milestone-dot"></div>
+      <div class="milestone-card">
         <span class="milestone-year">{{ m.year }}</span>
         <h3 class="milestone-title">{{ m.title }}</h3>
         <p class="milestone-desc">{{ m.description }}</p>
       </div>
-      }
     </div>
+    }
   </div>
 </section>

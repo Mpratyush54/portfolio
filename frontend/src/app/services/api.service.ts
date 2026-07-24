@@ -8,7 +8,7 @@ import { Project } from '../models/project.model';
 })
 export class ApiService {
     private http = inject(HttpClient);
-    private apiUrl = '/api';
+    private apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 
     getProjects(source?: string): Observable<Project[]> {
         const params = source ? `?source=${source}` : '';

@@ -16,14 +16,32 @@
   }
 }
 
-/* === 3D Scene Background === */
 .hero-scene-bg {
   position: absolute;
   inset: 0;
   z-index: 2;
 }
 
-/* === Giant Wordmark (behind the 3D scene) === */
+/* === Desktop / Mobile visibility === */
+.desktop-only {
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.mobile-layout {
+  display: none;
+
+  @media (max-width: 768px) {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+  }
+}
+
+/* === Desktop styles (unchanged) === */
 .hero-wordmark {
   position: absolute;
   inset: 0;
@@ -45,23 +63,11 @@
     text-transform: uppercase;
     text-shadow: 0 0 60px rgba(129, 140, 248, 0.03);
 
-    &:first-child {
-      padding-right: 0.3em;
-    }
-    &:last-child {
-      padding-left: 0.3em;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .wordmark-line {
-      font-size: clamp(2.5rem, 12vw, 5rem);
-      letter-spacing: -0.02em;
-    }
+    &:first-child { padding-right: 0.3em; }
+    &:last-child { padding-left: 0.3em; }
   }
 }
 
-/* === Top-Left Branding === */
 .hero-branding {
   position: absolute;
   top: 32px;
@@ -93,17 +99,8 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     letter-spacing: 0.02em;
   }
-
-  @media (max-width: 768px) {
-    top: 20px;
-    left: 20px;
-
-    .brand-name { font-size: 0.85rem; }
-    .tag { font-size: 0.6rem; padding: 2px 8px; }
-  }
 }
 
-/* === Floating Navigation (Top-Right) === */
 .floating-nav {
   position: absolute;
   top: 32px;
@@ -139,23 +136,8 @@
       background: rgba(129, 140, 248, 0.12);
     }
   }
-
-  @media (max-width: 768px) {
-    top: auto;
-    bottom: 20px;
-    right: 50%;
-    transform: translateX(50%);
-    background: rgba(10, 10, 18, 0.85);
-    backdrop-filter: blur(16px);
-
-    .nav-item {
-      padding: 6px 14px;
-      font-size: 0.7rem;
-    }
-  }
 }
 
-/* === Left Side Message === */
 .hero-message {
   position: absolute;
   bottom: 140px;
@@ -172,19 +154,8 @@
     font-family: 'Courier New', Courier, monospace;
     letter-spacing: -0.01em;
   }
-
-  @media (max-width: 768px) {
-    bottom: 110px;
-    left: 20px;
-    max-width: 280px;
-
-    .message-text {
-      font-size: 0.92rem;
-    }
-  }
 }
 
-/* === Bottom-Left Suggestion Chips === */
 .hero-chips {
   position: absolute;
   bottom: 40px;
@@ -212,20 +183,8 @@
       color: #a5b4fc;
     }
   }
-
-  @media (max-width: 768px) {
-    bottom: 80px;
-    left: 20px;
-    gap: 6px;
-
-    .chip {
-      padding: 6px 14px;
-      font-size: 0.65rem;
-    }
-  }
 }
 
-/* === Right-Side Controls === */
 .hero-controls {
   position: absolute;
   right: 40px;
@@ -256,13 +215,8 @@
       color: #a5b4fc;
     }
   }
-
-  @media (max-width: 768px) {
-    display: none;
-  }
 }
 
-/* === IDEA-style Label === */
 .idea-label {
   position: absolute;
   right: 40px;
@@ -286,8 +240,170 @@
     color: #555;
     letter-spacing: 0.02em;
   }
+}
 
-  @media (max-width: 768px) {
-    display: none;
+/* === Mobile Layout (FUCH.AI inspired) === */
+.mob-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 18px 0;
+  flex-shrink: 0;
+
+  .mob-header-left {
+    .mob-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e0e0e0;
+      letter-spacing: 0.01em;
+    }
+
+    .mob-status {
+      font-size: 0.55rem;
+      font-weight: 600;
+      color: rgba(129, 140, 248, 0.5);
+      letter-spacing: 0.12em;
+      margin-top: 2px;
+    }
+  }
+
+  .mob-header-actions {
+    display: flex;
+    gap: 8px;
+
+    .mob-action-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(129, 140, 248, 0.1);
+      background: rgba(10, 10, 20, 0.5);
+      backdrop-filter: blur(8px);
+      color: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(129, 140, 248, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+      }
+    }
+  }
+}
+
+.mob-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 18px;
+  min-height: 0;
+
+  .mob-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: rgba(129, 140, 248, 0.4);
+    letter-spacing: 0.2em;
+    margin-bottom: 10px;
+  }
+
+  .mob-typewriter {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #c0c0d0;
+    margin-bottom: 24px;
+
+    .mob-cursor {
+      color: rgba(129, 140, 248, 0.6);
+      animation: mobBlink 0.8s step-end infinite;
+    }
+  }
+
+  .mob-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+
+    .mob-chip {
+      padding: 8px 16px;
+      border-radius: 100px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(129, 140, 248, 0.08);
+        border-color: rgba(129, 140, 248, 0.15);
+        color: #a5b4fc;
+      }
+    }
+  }
+
+  .mob-hint {
+    font-size: 0.55rem;
+    color: rgba(255, 255, 255, 0.15);
+    letter-spacing: 0.05em;
+  }
+}
+
+@keyframes mobBlink {
+  50% { opacity: 0; }
+}
+
+.mob-bottom-nav {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 12px 14px 20px;
+  padding: 6px 4px;
+  border-radius: 18px;
+  background: rgba(10, 10, 20, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+
+  .mob-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.3);
+    transition: all 0.2s;
+
+    svg {
+      opacity: 0.6;
+    }
+
+    span {
+      font-size: 0.55rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    &.active {
+      color: #818cf8;
+
+      svg {
+        opacity: 1;
+      }
+
+      background: rgba(129, 140, 248, 0.08);
+    }
   }
 }

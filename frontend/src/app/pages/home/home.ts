@@ -11,8 +11,13 @@ import { HeroSceneComponent } from "../../components/hero-scene/hero-scene";
 })
 export class HomeComponent implements OnInit {
     @ViewChild(HeroSceneComponent) heroScene!: HeroSceneComponent;
+    mobileMenuOpen = false;
 
     ngOnInit() {}
+
+    toggleMobileMenu(): void {
+        this.mobileMenuOpen = !this.mobileMenuOpen;
+    }
 
     triggerQnA(type: string): void {
         if (this.heroScene) {

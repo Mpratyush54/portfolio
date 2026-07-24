@@ -37,7 +37,7 @@
     <div class="empty-state">No projects found matching your filters.</div>
     } @else {
     <div class="projects-grid">
-        @for (project of filteredProjects; track project._id) {
+        @for (project of filteredProjects; track project.title) {
         <app-project-card [project]="project" class="animate-card"></app-project-card>
         }
     </div>

@@ -1,3 +1,35 @@
-<div class="hero-scene" #sceneEl (click)="interact()">
+<div class="hero-scene" #sceneEl>
   <div class="speech-bubble" [class.show]="showSpeech">{{ speechText }}</div>
+
+  <div class="chat-widget" [class.open]="chatOpen">
+    <div class="chat-panel" (click)="$event.stopPropagation()">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <span class="chat-avatar">B</span>
+          <div>
+            <div class="chat-title">Ask Bud</div>
+            <div class="chat-subtitle">about Pratyush</div>
+          </div>
+        </div>
+        <button class="chat-close" (click)="toggleChat()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="chat-messages" #chatMsgs>
+        @for (msg of messages; track msg.text) {
+          <div class="msg-row" [class.is-you]="msg.type === 'q'" [class.is-bud]="msg.type === 'a'">
+            @if (msg.type === 'a') { <span class="msg-avatar sm">B</span> }
+            <div class="msg-bubble" [class.question]="msg.type === 'q'" [class.answer]="msg.type === 'a'">
+              <div class="msg-text" [innerHTML]="msg.text"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+    <button class="chat-toggle" (click)="toggleChat(); $event.stopPropagation()" title="Ask about Pratyush">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </button>
+  </div>
 </div>

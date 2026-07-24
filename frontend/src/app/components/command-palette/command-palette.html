@@ -20,9 +20,18 @@
 
       <div class="cp-input-line current">
         <span class="cp-prompt">{{ prefix }}</span>
-        <input #inputEl class="cp-field" [value]="input" (input)="input = $any($event.target).value" (keydown.enter)="submit()" autocomplete="off" spellcheck="false" />
-        <span class="cp-cursor" [class.visible]="cursorVisible"></span>
+        <input #inputEl class="cp-field" [value]="input" (input)="onInput($any($event.target).value)" (keydown.enter)="submit()" autocomplete="off" spellcheck="false" />
       </div>
+      @if (suggestions.length) {
+      <div class="cp-suggestions">
+        @for (s of suggestions; track s.key; let i = $index) {
+        <div class="cp-suggestion" [class.selected]="i === selIdx" (mousedown)="selectSuggestion(s.key)">
+          <span class="sug-key">{{ s.key }}</span>
+          <span class="sug-desc">{{ s.desc }}</span>
+        </div>
+        }
+      </div>
+      }
     </div>
   </div>
 </div>

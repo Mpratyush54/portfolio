@@ -123,7 +123,7 @@
 }
 
 .cp-field {
-  flex: 1;
+  flex: 0 1 auto;
   background: transparent;
   border: none;
   outline: none;
@@ -132,26 +132,11 @@
   font-size: inherit;
   padding: 0;
   margin: 0;
-  caret-color: transparent;
-  min-width: 0;
+  min-width: 2ch;
+  caret-color: #818cf8;
 
   &::selection {
     background: rgba(129, 140, 248, 0.3);
-  }
-}
-
-.cp-cursor {
-  display: inline-block;
-  width: 8px;
-  height: 1.2em;
-  background: rgba(129, 140, 248, 0.8);
-  margin-left: 1px;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.1s;
-
-  &.visible {
-    opacity: 1;
   }
 }
 
@@ -164,6 +149,38 @@
 
   &.error {
     color: rgba(251, 113, 133, 0.8);
+  }
+}
+
+.cp-suggestions {
+  margin-top: 6px;
+  border: 1px solid rgba(129, 140, 248, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cp-suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 0.82rem;
+
+  &:hover,
+  &.selected {
+    background: rgba(129, 140, 248, 0.1);
+  }
+
+  .sug-key {
+    color: #a78bfa;
+    font-weight: 500;
+  }
+
+  .sug-desc {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.75rem;
   }
 }
 

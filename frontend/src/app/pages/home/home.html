@@ -1,56 +1,57 @@
 <div class="home-container">
-    <section class="hero-section">
+  <section class="hero-section">
 
-        <div class="hero-content zero-weight">
-            <h1 class="hero-title" [class.typing-done]="typingDone">
-                <span class="typed-text">{{ displayedText }}</span>
-                <span class="cursor" *ngIf="!typingDone"></span>
-            </h1>
+    <app-hero-scene class="hero-scene-bg"></app-hero-scene>
 
-            <p class="hero-subtitle" [class.settled]="typingDone">Backend Engineer &bull; Tech Lead &bull; Building at CAPS &bull; CHRIST University</p>
+    <div class="hero-wordmark" aria-hidden="true">
+      <span class="wordmark-line">PRATYUSH</span>
+      <span class="wordmark-line">MISHRA</span>
+    </div>
 
-            <div class="cta-wrapper">
-                <a routerLink="/projects" class="btn-primary">
-                    View Projects
-                </a>
-                <a routerLink="/about" class="btn-secondary">
-                    More About Me
-                </a>
-            </div>
-            <div class="terminal-hint">
-                <span class="key-hint">L</span> to open terminal
-            </div>
-        </div>
+    <div class="hero-branding">
+      <h1 class="brand-name">pratyush mishra.</h1>
+      <div class="brand-tags">
+        <span class="tag">Backend Engineer</span>
+        <span class="tag">Tech Lead</span>
+        <span class="tag">Full Stack Dev</span>
+        <span class="tag">CHRIST&nbsp;Univ</span>
+      </div>
+    </div>
 
-        <div class="hero-scene-wrapper zero-weight">
-            <app-hero-scene></app-hero-scene>
-        </div>
+    <div class="hero-message">
+      <p class="message-text">building systems that scale.<br>one deploy at a time.</p>
+    </div>
 
-    </section>
+    <nav class="floating-nav">
+      <a routerLink="/" class="nav-item active">Home</a>
+      <a routerLink="/projects" class="nav-item">Work</a>
+      <a routerLink="/about" class="nav-item">About</a>
+      <a routerLink="/contact" class="nav-item">Contact</a>
+      <a routerLink="/resume/Pratyush_mishra_SDE.pdf" class="nav-item" target="_blank">Resume</a>
+    </nav>
 
-    <app-story-section></app-story-section>
+    <div class="hero-chips">
+      <button class="chip" (click)="triggerQnA('who')">who is pratyush?</button>
+      <button class="chip" (click)="triggerQnA('built')">what has he built?</button>
+      <button class="chip" (click)="triggerQnA('work')">is he open to work?</button>
+    </div>
 
-    <!-- Featured Projects Section -->
-    @if (featuredProjects.length > 0) {
-    <section class="featured-section">
-        <div class="featured-header">
-            <h2 class="section-title">Featured Work</h2>
-            <p class="section-subtitle">Projects that define my journey</p>
-        </div>
+    <div class="hero-controls">
+      <button class="ctrl-btn" title="Toggle chat" (click)="toggleChat()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <button class="ctrl-btn" title="View projects" routerLink="/projects">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </button>
+      <button class="ctrl-btn" title="Terminal (L)" (click)="openTerminal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      </button>
+    </div>
 
-        <div class="featured-grid">
-            @for (project of featuredProjects; track project._id; let i = $index) {
-            <div class="featured-card-wrapper" [style.animation-delay]="i * 0.15 + 's'">
-                <app-project-card [project]="project"></app-project-card>
-            </div>
-            }
-        </div>
+    <div class="idea-label">
+      <span class="idea-title">PROJECTS</span>
+      <span class="idea-sub">8+ projects shipped &mdash; Latest: CAPS Automation</span>
+    </div>
 
-        <div class="view-all-wrapper">
-            <a routerLink="/projects" class="btn-secondary view-all-btn">
-                View All Projects &rarr;
-            </a>
-        </div>
-    </section>
-    }
+  </section>
 </div>

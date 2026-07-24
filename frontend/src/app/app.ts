@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject, Renderer2 } from '@angular/core';
+import { RouterOutlet, NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs';
 import { NavbarComponent } from './components/navbar/navbar';
 import { FooterComponent } from './components/footer/footer';
 import { CommandPaletteComponent } from './components/command-palette/command-palette';
@@ -9,17 +10,48 @@ import { CommandPaletteComponent } from './components/command-palette/command-pa
   standalone: true,
   imports: [RouterOutlet, NavbarComponent, FooterComponent, CommandPaletteComponent],
   template: `
-    <app-navbar></app-navbar>
+    @if (!isHome) {
+      <app-navbar></app-navbar>
+    }
     <main>
       <router-outlet></router-outlet>
     </main>
-    <app-footer></app-footer>
+    @if (!isHome) {
+      <app-footer></app-footer>
+    }
     <app-command-palette></app-command-palette>
   `,
   styles: [`
-    main {
-       min-height: calc(100vh - 80px); /* Adjust for navbar height */
+    :host.home-route main {
+       min-height: 100vh;
+    }
+    :host:not(.home-route) main {
+       min-height: calc(100vh - 80px);
     }
   `]
 })
-export class App { }
+export class App {
+  private router = inject(Router);
+  private renderer = inject(Renderer2);
+  isHome = false;
+
+  constructor() {
+    this.isHome = this.router.url === '/';
+    this.setBodyOverflow(this.isHome);
+
+    this.router.events.pipe(
+      filter(e => e instanceof NavigationEnd)
+    ).subscribe((e: any) => {
+      this.isHome = e.urlAfterRedirects === '/';
+      this.setBodyOverflow(this.isHome);
+    });
+  }
+
+  private setBodyOverflow(home: boolean): void {
+    if (home) {
+      this.renderer.setStyle(document.body, 'overflow', 'hidden');
+    } else {
+      this.renderer.removeStyle(document.body, 'overflow');
+    }
+  }
+}

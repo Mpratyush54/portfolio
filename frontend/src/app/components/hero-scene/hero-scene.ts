@@ -1,4 +1,10 @@
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, HostListener, Output, EventEmitter } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, HostListener } from '@angular/core';
+
+interface QAPair {
+  key: string;
+  question: string;
+  answer: string;
+}
 
 @Component({
   selector: 'app-hero-scene',
@@ -10,90 +16,151 @@ import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, HostListene
 export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   @ViewChild('sceneEl') canvasRef!: ElementRef<HTMLDivElement>;
 
-  @Output() ready = new EventEmitter<void>();
-
   speechText = '';
   showSpeech = false;
-  waveLoop = false;
+  chatOpen = false;
+  messages: { type: 'q' | 'a'; text: string }[] = [];
+
+  qaMap: Record<string, QAPair> = {
+    who: { key: 'who', question: 'who is pratyush?', answer: 'I\'m <b>Pratyush Mishra</b> — Backend Engineer & Full Stack Dev. I build systems that scale. Clean architecture, automated deploys, great DX. When not coding: distributed systems, open source, planning the next project.' },
+    built: { key: 'built', question: 'what has he built?', answer: '6+ projects — ClassStream (live edu with DRM/WebRTC), CAPS Automation, Phone Proctor (AI exam integrity), Ambue (pharma scanner), and more. Check <b>/projects</b>.' },
+    work: { key: 'work', question: 'is he open to work?', answer: 'Yes — actively looking for <b>Backend Engineer</b> or <b>Full Stack</b> roles. Check <b>/resume</b> or head to <b>/contact</b>.' },
+    stack: { key: 'stack', question: 'what is his tech stack?', answer: '<b>Backend:</b> Node.js, Express, Python, Go, Rust | <b>Frontend:</b> Angular, React, TypeScript | <b>DevOps:</b> Docker, Kubernetes, ArgoCD, Nginx, GitHub Actions | <b>DB:</b> MongoDB, MySQL, PostgreSQL' },
+    experience: { key: 'experience', question: 'what is his experience?', answer: 'Started coding in <b>2022</b>. At <b>CHRIST University</b>, leads CAPS club tech — building platforms used by campus. Shipped DRM video streaming, AI proctoring, and more — all on Kubernetes with CI/CD.' },
+    contact: { key: 'contact', question: 'how to contact him?', answer: 'Email <a href="mailto:mpratyush54@gmail.com">mpratyush54@gmail.com</a> or connect on <a href="https://www.linkedin.com/in/pratyushm07" target="_blank">LinkedIn</a>. Contact form also works — replies within 24h.' },
+  };
+
+  phrases = [
+    'I know everything about Pratyush.',
+    'Ask me anything about his work.',
+    'His projects are impressive.',
+    'Check out his projects!'
+  ];
 
   private scene: any = null;
   private camera: any = null;
   private renderer: any = null;
+  private mixer: any = null;
   private robot: any = null;
-  private head: any = null;
-  private leftEye: any = null;
-  private rightEye: any = null;
-  private antennaBall: any = null;
-  private leftArm: any = null;
-  private rightArm: any = null;
-  private body: any = null;
-  private platform: any = null;
+  private headBone: any = null;
   private particles: any = null;
-  private orbitGroup1: any = null;
-  private orbitGroup2: any = null;
+  private actions: any[] = [];
+  private currentAction: any = null;
   private mouseX = 0;
   private mouseY = 0;
   private animId = 0;
   private destroyed = false;
   private T: any = null;
   private time = 0;
-  private waveTimer: any = null;
   private speechTimer: any = null;
+  private waveTimer: any = null;
+  private controls: any = null;
+  private isDragging = false;
 
-  phrases = [
-    'Hey, I\'m Bud!',
-    'I know everything about Pratyush\'s work.',
-    'Check out his projects!',
-    'Press L for the terminal.',
-    'Built with Angular + Three.js',
-  ];
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(e: MouseEvent): void {
+    this.onPointerMove(e.clientX, e.clientY);
+  }
+
+  @HostListener('document:touchmove', ['$event'])
+  onTouchMove(e: TouchEvent): void {
+    const t = e.touches[0];
+    if (t) this.onPointerMove(t.clientX, t.clientY);
+  }
+
+  private onPointerMove(cx: number, cy: number): void {
+    if (this.isDragging || !this.canvasRef?.nativeElement) return;
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    if (!rect) return;
+    this.mouseX = ((cx - rect.left) / rect.width) * 2 - 1;
+    this.mouseY = -((cy - rect.top) / rect.height) * 2 + 1;
+  }
 
   async ngAfterViewInit(): Promise<void> {
     try {
-      this.T = await import('three');
+      const T = await import('three');
+      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+      const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js');
+      this.T = T;
       this.initScene();
+      this.initControls(OrbitControls);
+      await this.loadRobot(GLTFLoader);
+      this.buildEnvironment(T);
       this.animate();
       window.addEventListener('resize', this.onResize);
-      setTimeout(() => this.ready.emit(), 200);
-      setTimeout(() => this.doWave(), 1500);
-      setTimeout(() => this.showRandomPhrase(), 3000);
-    } catch {}
+      setTimeout(() => this.playIdle(), 200);
+      setTimeout(() => this.showPhrase(), 1500);
+      this.waveTimer = setInterval(() => {
+        if (!this.chatOpen && Math.random() < 0.35) {
+          this.playAnim('Wave');
+          setTimeout(() => this.playIdle(), 1200);
+        }
+      }, 8000);
+    } catch (e) {
+      console.error('3D scene failed to load:', e);
+    }
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
     cancelAnimationFrame(this.animId);
     window.removeEventListener('resize', this.onResize);
-    if (this.waveTimer) clearTimeout(this.waveTimer);
     if (this.speechTimer) clearTimeout(this.speechTimer);
+    if (this.waveTimer) clearInterval(this.waveTimer);
+    if (this.controls) this.controls.dispose();
+    if (this.mixer) this.mixer.stopAllAction();
     if (this.renderer) { this.renderer.dispose(); this.renderer.forceContextLoss(); }
   }
 
-  @HostListener('document:mousemove', ['$event'])
-  onMouseMove(e: MouseEvent): void {
-    const rect = this.canvasRef?.nativeElement?.getBoundingClientRect();
-    if (!rect) return;
-    this.mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    this.mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  triggerQnA(key: string): void {
+    const qa = this.qaMap[key];
+    if (!qa) return;
+    if (!this.chatOpen) this.toggleChat();
+    this.messages.push({ type: 'q', text: qa.question });
+    this.playAnim('Thinking');
+    setTimeout(() => {
+      this.messages.push({ type: 'a', text: qa.answer });
+      this.playIdle();
+    }, 600);
   }
 
-  interact(): void {
-    this.doWave();
-    this.showRandomPhrase();
+  toggleChat(): void {
+    this.chatOpen = !this.chatOpen;
+    if (this.chatOpen && this.messages.length === 0) {
+      this.messages.push({ type: 'a', text: 'Ask me anything about Pratyush.' });
+    }
+    if (this.chatOpen) this.playAnim('Dance');
+    else this.playIdle();
+    setTimeout(() => this.playIdle(), 2000);
   }
 
-  private doWave(): void {
-    if (this.waveTimer) clearTimeout(this.waveTimer);
-    this.waveLoop = true;
-    this.waveTimer = setTimeout(() => { this.waveLoop = false; }, 2000);
+  ask(qa: QAPair): void {
+    this.messages.push({ type: 'q', text: qa.question });
+    this.playAnim('Thinking');
+    setTimeout(() => {
+      this.messages.push({ type: 'a', text: qa.answer });
+      this.playIdle();
+    }, 600);
   }
 
-  private showRandomPhrase(): void {
+  private showPhrase(): void {
     const p = this.phrases[Math.floor(Math.random() * this.phrases.length)];
     this.speechText = p;
     this.showSpeech = true;
     if (this.speechTimer) clearTimeout(this.speechTimer);
     this.speechTimer = setTimeout(() => { this.showSpeech = false; }, 4000);
+  }
+
+  private playAnim(name: string): void {
+    const clip = this.actions.find((a: any) => a.name === name);
+    if (!clip) return;
+    if (this.currentAction) this.currentAction.fadeOut(0.3);
+    this.currentAction = clip;
+    clip.reset().fadeIn(0.3).play();
+  }
+
+  private playIdle(): void {
+    this.playAnim('Idle');
   }
 
   private initScene(): void {
@@ -103,174 +170,105 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     const h = el.clientHeight;
 
     this.scene = new T.Scene();
-    this.scene.fog = new T.FogExp2(0x0a0a14, 0.025);
-
     this.camera = new T.PerspectiveCamera(45, w / h, 0.1, 100);
-    this.camera.position.set(0, 1.5, 5.5);
-    this.camera.lookAt(0, 0.5, 0);
+    const dist = w < 768 ? 3.2 : 4.5;
+    this.camera.position.set(0, 1.0, dist);
 
     this.renderer = new T.WebGLRenderer({ alpha: true, antialias: true });
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.2;
+    this.renderer.toneMappingExposure = 1.8;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = T.PCFSoftShadowMap;
+    this.renderer.outputColorSpace = T.SRGBColorSpace;
     el.appendChild(this.renderer.domElement);
-
-    this.buildPlatform(T);
-    this.buildRobot(T);
-    this.buildOrbitals(T);
-    this.buildParticles(T);
-
-    const ambient = new T.AmbientLight(0x404060, 0.5);
-    this.scene.add(ambient);
-    const key = new T.DirectionalLight(0xffffff, 1.8);
-    key.position.set(4, 8, 5);
-    key.castShadow = true;
-    key.shadow.mapSize.width = 512;
-    key.shadow.mapSize.height = 512;
-    this.scene.add(key);
-    const fill = new T.DirectionalLight(0x818cf8, 0.6);
-    fill.position.set(-3, 2, 4);
-    this.scene.add(fill);
-    const rim = new T.DirectionalLight(0x6366f1, 0.4);
-    rim.position.set(0, -2, -6);
-    this.scene.add(rim);
   }
 
-  private buildPlatform(T: any): void {
-    const geo = new T.CircleGeometry(2.2, 32);
-    const mat = new T.MeshStandardMaterial({
-      color: 0x1e1b4b,
-      roughness: 0.7,
-      metalness: 0.2,
-      transparent: true,
-      opacity: 0.6,
-      side: T.DoubleSide,
-    });
-    this.platform = new T.Mesh(geo, mat);
-    this.platform.rotation.x = -Math.PI / 2;
-    this.platform.position.y = -0.6;
-    this.platform.receiveShadow = true;
-    this.scene.add(this.platform);
-
-    const ringGeo = new T.RingGeometry(2.3, 2.5, 48);
-    const ringMat = new T.MeshBasicMaterial({
-      color: 0x818cf8,
-      transparent: true,
-      opacity: 0.15,
-      side: T.DoubleSide,
-    });
-    const ring = new T.Mesh(ringGeo, ringMat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = -0.55;
-    this.scene.add(ring);
-
-    const gridHelper = new T.GridHelper(5, 12, 0x818cf8, 0x6366f1);
-    gridHelper.position.y = -0.55;
-    gridHelper.material.transparent = true;
-    gridHelper.material.opacity = 0.15;
-    this.scene.add(gridHelper);
+  private initControls(OrbitControls: any): void {
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.controls.minDistance = 2;
+    this.controls.maxDistance = 10;
+    this.controls.maxPolarAngle = Math.PI / 2.1;
+    this.controls.target.set(0, 0.6, 0);
+    this.controls.update();
+    this.controls.addEventListener('start', () => { this.isDragging = true; });
+    this.controls.addEventListener('end', () => { this.isDragging = false; });
   }
 
-  private buildRobot(T: any): void {
-    this.robot = new T.Group();
-    this.robot.position.y = 0;
-    this.robot.castShadow = true;
-
-    this.body = new T.Mesh(
-      new T.BoxGeometry(0.9, 1.0, 0.6),
-      new T.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.4, metalness: 0.3 })
-    );
-    this.body.position.y = 0;
-    this.body.castShadow = true;
-    this.robot.add(this.body);
-
-    this.head = new T.Mesh(
-      new T.SphereGeometry(0.42, 20, 20),
-      new T.MeshStandardMaterial({ color: 0x312e81, roughness: 0.3, metalness: 0.4 })
-    );
-    this.head.position.y = 0.75;
-    this.head.castShadow = true;
-    this.robot.add(this.head);
-
-    const eyeMat = new T.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x818cf8, emissiveIntensity: 0.8 });
-    const eyeGeo = new T.SphereGeometry(0.09, 10, 10);
-    this.leftEye = new T.Mesh(eyeGeo, eyeMat);
-    this.leftEye.position.set(-0.15, 0.82, 0.38);
-    this.robot.add(this.leftEye);
-    this.rightEye = new T.Mesh(eyeGeo.clone(), eyeMat);
-    this.rightEye.position.set(0.15, 0.82, 0.38);
-    this.robot.add(this.rightEye);
-
-    const mouthGeo = new T.BoxGeometry(0.2, 0.04, 0.05);
-    const mouthMat = new T.MeshStandardMaterial({ color: 0x6366f1, emissive: 0x6366f1, emissiveIntensity: 0.3 });
-    const mouth = new T.Mesh(mouthGeo, mouthMat);
-    mouth.position.set(0, 0.68, 0.4);
-    this.robot.add(mouth);
-
-    const antennaMat = new T.MeshStandardMaterial({ color: 0x6366f1, roughness: 0.2, metalness: 0.6 });
-    const antenna = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 0.3, 6), antennaMat);
-    antenna.position.set(0, 1.1, 0);
-    this.robot.add(antenna);
-    this.antennaBall = new T.Mesh(
-      new T.SphereGeometry(0.06, 8, 8),
-      new T.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x818cf8, emissiveIntensity: 1 })
-    );
-    this.antennaBall.position.set(0, 1.25, 0);
-    this.robot.add(this.antennaBall);
-
-    const armMat = new T.MeshStandardMaterial({ color: 0x312e81, roughness: 0.4, metalness: 0.3 });
-    this.leftArm = new T.Mesh(new T.CylinderGeometry(0.06, 0.08, 0.5, 6), armMat);
-    this.leftArm.position.set(-0.55, 0.15, 0);
-    this.leftArm.rotation.z = 0.3;
-    this.leftArm.rotation.x = -0.2;
-    this.leftArm.castShadow = true;
-    this.robot.add(this.leftArm);
-
-    this.rightArm = new T.Mesh(new T.CylinderGeometry(0.06, 0.08, 0.5, 6), armMat);
-    this.rightArm.position.set(0.55, 0.15, 0);
-    this.rightArm.rotation.z = -0.3;
-    this.rightArm.rotation.x = 0.2;
-    this.rightArm.castShadow = true;
-    this.robot.add(this.rightArm);
-
+  private async loadRobot(GLTFLoader: any): Promise<void> {
+    const url = 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb';
+    const loader = new GLTFLoader();
+    const gltf = await loader.loadAsync(url);
+    this.robot = gltf.scene;
+    this.robot.scale.set(0.55, 0.55, 0.55);
+    this.robot.position.y = -0.15;
+    this.robot.traverse((node: any) => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+      if (node.isBone) {
+        const lower = node.name.toLowerCase();
+        if (lower.includes('head') && !lower.includes('upper') && !this.headBone) {
+          this.headBone = node;
+        }
+      }
+    });
     this.scene.add(this.robot);
+
+    this.mixer = new this.T.AnimationMixer(this.robot);
+    gltf.animations.forEach((clip: any) => {
+      const action = this.mixer.clipAction(clip);
+      this.actions.push(action);
+    });
   }
 
-  private buildOrbitals(T: any): void {
-    const colors = [0x6366f1, 0x8b5cf6, 0xa78bfa];
-    for (let i = 0; i < 3; i++) {
-      const g = new T.Group();
-      const size = 0.12 + Math.random() * 0.1;
-      const mesh = new T.Mesh(
-        new T.IcosahedronGeometry(size, 0),
-        new T.MeshStandardMaterial({ color: colors[i], emissive: colors[i], emissiveIntensity: 0.2, roughness: 0.3, metalness: 0.5 })
-      );
-      g.add(mesh);
-      const angle = (i / 3) * Math.PI * 2;
-      const radius = 1.8 + Math.random() * 0.3;
-      g.position.set(Math.cos(angle) * radius, -0.3 + Math.random() * 0.3, Math.sin(angle) * radius);
-      this.scene.add(g);
-      if (i === 0) this.orbitGroup1 = { group: g, angle, radius, speed: 0.3 + Math.random() * 0.2 };
-      else if (i === 1) this.orbitGroup2 = { group: g, angle, radius, speed: 0.2 + Math.random() * 0.2 };
-    }
-  }
+  private buildEnvironment(T: any): void {
+    const groundGeo = new T.CircleGeometry(4, 48);
+    const groundMat = new T.MeshStandardMaterial({
+      color: 0x111122, roughness: 0.9, metalness: 0.05,
+      transparent: true, opacity: 0.3, side: T.DoubleSide
+    });
+    const ground = new T.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.6;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
 
-  private buildParticles(T: any): void {
-    const count = 500;
+    const grid = new T.GridHelper(8, 16, 0x6366f1, 0x4338ca);
+    grid.position.y = -0.55;
+    (grid.material as any).transparent = true;
+    (grid.material as any).opacity = 0.08;
+    this.scene.add(grid);
+
+    const count = 600;
     const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * 20;
+    for (let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * 25;
     const geo = new T.BufferGeometry();
     geo.setAttribute('position', new T.BufferAttribute(pos, 3));
     const mat = new T.PointsMaterial({
-      color: 0x818cf8, size: 0.04, transparent: true, opacity: 0.4,
+      color: 0x818cf8, size: 0.035, transparent: true, opacity: 0.3,
       blending: T.AdditiveBlending, sizeAttenuation: true,
     });
     this.particles = new T.Points(geo, mat);
-    this.particles.position.y = 8;
+    this.particles.position.y = 5;
     this.scene.add(this.particles);
+
+    const amb = new T.AmbientLight(0x404060, 0.5);
+    this.scene.add(amb);
+    const key = new T.DirectionalLight(0xffffff, 2.5);
+    key.position.set(5, 10, 7);
+    key.castShadow = true;
+    this.scene.add(key);
+    const fill = new T.DirectionalLight(0x818cf8, 1);
+    fill.position.set(-4, 3, 5);
+    this.scene.add(fill);
+    const rim = new T.DirectionalLight(0x6366f1, 0.6);
+    rim.position.set(0, -2, -7);
+    this.scene.add(rim);
   }
 
   private animate = (): void => {
@@ -278,42 +276,16 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.animId = requestAnimationFrame(this.animate);
     this.time += 0.016;
 
-    const bob = Math.sin(this.time * 1.5) * 0.06;
-    this.robot.position.y = bob;
-
-    const headX = this.mouseY * 0.2;
-    const headY = this.mouseX * 0.25;
-    this.head.rotation.x = headX;
-    this.head.rotation.y = headY;
-    this.leftEye.position.x = -0.15 + this.mouseX * 0.02;
-    this.leftEye.position.y = 0.82 - this.mouseY * 0.02;
-    this.rightEye.position.x = 0.15 + this.mouseX * 0.02;
-    this.rightEye.position.y = 0.82 - this.mouseY * 0.02;
-
-    this.antennaBall.material.emissiveIntensity = 0.6 + Math.sin(this.time * 2.5) * 0.4;
-
-    if (this.waveLoop) {
-      this.leftArm.rotation.z = 0.3 + Math.sin(this.time * 6) * 0.5;
-      this.leftArm.rotation.x = -0.2 + Math.sin(this.time * 6) * 0.3;
-    } else {
-      this.leftArm.rotation.z += (0.3 - this.leftArm.rotation.z) * 0.05;
-      this.leftArm.rotation.x += (-0.2 - this.leftArm.rotation.x) * 0.05;
+    if (this.mixer) this.mixer.update(0.016);
+    if (this.robot) {
+      this.robot.position.y = -0.15 + Math.sin(this.time * 0.8) * 0.03;
     }
-    this.rightArm.rotation.z += (-0.3 - this.rightArm.rotation.z) * 0.05;
-    this.rightArm.rotation.x += (0.2 - this.rightArm.rotation.x) * 0.05;
-
-    if (this.orbitGroup1) {
-      this.orbitGroup1.angle += 0.005 * this.orbitGroup1.speed;
-      this.orbitGroup1.group.position.x = Math.cos(this.orbitGroup1.angle) * this.orbitGroup1.radius;
-      this.orbitGroup1.group.position.z = Math.sin(this.orbitGroup1.angle) * this.orbitGroup1.radius;
+    if (this.headBone && !this.isDragging) {
+      this.headBone.rotation.x += (this.mouseY * 0.15 - this.headBone.rotation.x) * 0.035;
+      this.headBone.rotation.y += (this.mouseX * 0.25 - this.headBone.rotation.y) * 0.035;
     }
-    if (this.orbitGroup2) {
-      this.orbitGroup2.angle += 0.005 * this.orbitGroup2.speed;
-      this.orbitGroup2.group.position.x = Math.cos(this.orbitGroup2.angle) * this.orbitGroup2.radius;
-      this.orbitGroup2.group.position.z = Math.sin(this.orbitGroup2.angle) * this.orbitGroup2.radius;
-    }
-
-    this.particles.rotation.y += 0.0005;
+    if (this.particles) this.particles.rotation.y += 0.0003;
+    if (this.controls) this.controls.update();
 
     this.renderer.render(this.scene, this.camera);
   };

@@ -81,12 +81,11 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       const T = await import('three');
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
       const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js');
-      const { RoomEnvironment } = await import('three/examples/jsm/environments/RoomEnvironment.js');
       this.T = T;
       this.initScene();
       this.initControls(OrbitControls);
-      await this.buildEnvironment(RoomEnvironment);
       await this.loadRobot(GLTFLoader);
+      this.buildEnvironment(T);
       this.animate();
       window.addEventListener('resize', this.onResize);
       setTimeout(() => this.playIdle(), 200);
@@ -171,9 +170,9 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     const h = el.clientHeight;
 
     this.scene = new T.Scene();
-    this.camera = new T.PerspectiveCamera(50, w / h, 0.1, 100);
-    const dist = w < 768 ? 4.0 : 4.5;
-    this.camera.position.set(0, 0.9, dist);
+    this.camera = new T.PerspectiveCamera(45, w / h, 0.1, 100);
+    const dist = w < 768 ? 3.2 : 4.5;
+    this.camera.position.set(0, 1.0, dist);
 
     this.renderer = new T.WebGLRenderer({ alpha: true, antialias: true });
     this.renderer.setSize(w, h);
@@ -210,13 +209,6 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       if (node.isMesh) {
         node.castShadow = true;
         node.receiveShadow = true;
-        if (node.material) {
-          if (Array.isArray(node.material)) {
-            node.material.forEach((m: any) => this.enhanceMaterial(m));
-          } else {
-            this.enhanceMaterial(node.material);
-          }
-        }
       }
       if (node.isBone) {
         const lower = node.name.toLowerCase();
@@ -234,30 +226,11 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  private enhanceMaterial(m: any): void {
-    if (m.envMap) return;
-    const isMetal = m.metalness > 0.3;
-    m.envMap = this.scene.environment;
-    m.envMapIntensity = isMetal ? 1.2 : 0.8;
-    m.roughness = Math.min(m.roughness, isMetal ? 0.4 : 0.7);
-    if (!isMetal) m.metalness = 0.05;
-  }
-
-  private async buildEnvironment(RoomEnvironment: any): Promise<void> {
-    const T = this.T;
-    const pmrem = new T.PMREMGenerator(this.renderer);
-    const envScene = new RoomEnvironment();
-    const envTexture = pmrem.fromScene(envScene).texture;
-    this.scene.environment = envTexture;
-    this.scene.background = new T.Color(0x0a0a12);
-    envScene.dispose();
-    pmrem.dispose();
-
-    const groundGeo = new T.CircleGeometry(5, 48);
+  private buildEnvironment(T: any): void {
+    const groundGeo = new T.CircleGeometry(4, 48);
     const groundMat = new T.MeshStandardMaterial({
-      color: 0x0d0d1a, roughness: 0.3, metalness: 0.6,
-      transparent: true, opacity: 0.4, side: T.DoubleSide,
-      envMap: envTexture, envMapIntensity: 0.5,
+      color: 0x111122, roughness: 0.9, metalness: 0.05,
+      transparent: true, opacity: 0.3, side: T.DoubleSide
     });
     const ground = new T.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
@@ -265,34 +238,36 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    const grid = new T.GridHelper(10, 20, 0x6366f1, 0x4338ca);
-    grid.position.y = -0.58;
+    const grid = new T.GridHelper(8, 16, 0x6366f1, 0x4338ca);
+    grid.position.y = -0.55;
     (grid.material as any).transparent = true;
-    (grid.material as any).opacity = 0.05;
+    (grid.material as any).opacity = 0.08;
     this.scene.add(grid);
 
-    const count = 400;
+    const count = 600;
     const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * 20;
+    for (let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * 25;
     const geo = new T.BufferGeometry();
     geo.setAttribute('position', new T.BufferAttribute(pos, 3));
-    const pMat = new T.PointsMaterial({
-      color: 0x818cf8, size: 0.025, transparent: true, opacity: 0.2,
+    const mat = new T.PointsMaterial({
+      color: 0x818cf8, size: 0.035, transparent: true, opacity: 0.3,
       blending: T.AdditiveBlending, sizeAttenuation: true,
     });
-    this.particles = new T.Points(geo, pMat);
-    this.particles.position.y = 4;
+    this.particles = new T.Points(geo, mat);
+    this.particles.position.y = 5;
     this.scene.add(this.particles);
 
-    const key = new T.DirectionalLight(0xffffff, 3);
-    key.position.set(4, 8, 6);
+    const amb = new T.AmbientLight(0x404060, 0.5);
+    this.scene.add(amb);
+    const key = new T.DirectionalLight(0xffffff, 2.5);
+    key.position.set(5, 10, 7);
     key.castShadow = true;
     this.scene.add(key);
-    const fill = new T.DirectionalLight(0x818cf8, 1.2);
-    fill.position.set(-5, 2, 4);
+    const fill = new T.DirectionalLight(0x818cf8, 1);
+    fill.position.set(-4, 3, 5);
     this.scene.add(fill);
-    const rim = new T.DirectionalLight(0x6366f1, 1.5);
-    rim.position.set(0, -1, -8);
+    const rim = new T.DirectionalLight(0x6366f1, 0.6);
+    rim.position.set(0, -2, -7);
     this.scene.add(rim);
   }
 

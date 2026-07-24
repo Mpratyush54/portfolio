@@ -4,13 +4,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px;
+    padding: 10px 16px;
     position: sticky;
     top: 10px;
     z-index: 1000;
-    margin: 0 auto;
-    max-width: 800px; // Floating island style
-    border-radius: 100px; // Pill shape navbar
+    margin: 0 12px;
+    border-radius: 100px;
 
     .logo {
         text-decoration: none;
@@ -36,6 +35,7 @@
             font-size: 14px;
             opacity: 0.7;
             transition: opacity 0.2s;
+            white-space: nowrap;
 
             &:hover {
                 opacity: 1;
@@ -53,6 +53,7 @@
         border: none;
         cursor: pointer;
         padding: 5px;
+        flex-shrink: 0;
 
         .dot {
             display: block;
@@ -68,6 +69,37 @@
             &.dark {
                 background: #000;
             }
+        }
+    }
+
+    @media (max-width: 640px) {
+        padding: 8px 12px;
+        margin: 0 8px;
+        gap: 8px;
+
+        .logo {
+            font-size: 14px;
+            padding: 0 6px;
+        }
+
+        .nav-links {
+            gap: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            &::-webkit-scrollbar { display: none; }
+
+            .nav-item {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+    }
+
+    @media (max-width: 400px) {
+        .nav-links .nav-item {
+            font-size: 11px;
+            padding: 6px 8px;
         }
     }
 }

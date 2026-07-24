@@ -9,7 +9,7 @@ The core challenge was building a secure streaming pipeline with DASH + ClearKey
 For students, ClassStream supports cross-device note-taking, automated assignment grading, push notifications, and role-based access. The Angular PWA works offline and can be installed on any device.`,
     features: ['DRM-Protected Video Streaming', 'Real-time Live Classes with WebRTC', 'Cross-device Note-taking', 'Automated Assignment Grading', 'Role-based Access Control', 'Push Notifications', 'PWA with Offline Support'],
     tags: ['Angular', 'Node.js', 'TypeScript', 'WebRTC', 'DRM', 'Socket.io', 'MySQL'],
-    link: 'https://classstream.dev/',
+    link: 'https://school.pratyushes.dev/',
     frontendRepo: 'https://github.com/Mpratyush54/classstream-frontend',
     backendRepo: 'https://github.com/Mpratyush54/classstream-backend',
     category: 'Web', source: 'github', sourceUrl: 'https://github.com/Mpratyush54/classstream-frontend', featured: true,
@@ -211,33 +211,6 @@ Built with React and TypeScript, deployed at recalibrating.capskengeri.com. SEO-
     timeline: { start: '2026', end: 'Active', history: [{ phase: 'Platform Launch', date: '2026', completed: true }, { phase: 'Moderation System', date: '2026', completed: true }, { phase: 'Blocked Words', date: '2026', completed: true }, { phase: 'Feature Expansion', date: 'Present', completed: false }] }
   },
   {
-    title: 'Zorvyn — Tech Screening Platform',
-    shortDescription: 'A coding challenge platform with sandboxed code execution, automated evaluation, and candidate pipeline management for engineering hiring.',
-    fullDescription: `Zorvyn Screening helps engineering teams evaluate candidates at scale. It provides a library of coding challenges across JavaScript, Python, Java, C++, Go, and Rust — with an automated evaluation engine that compiles and runs submissions in isolated Docker containers.
-
-The evaluator tests against predefined test cases, measures execution time and memory, and produces a score with code quality metrics. The candidate pipeline dashboard tracks every applicant through the hiring process with links to submissions and performance breakdowns.`,
-    features: ['Multi-language Challenge Library', 'Sandboxed Code Execution (Docker)', 'Automated Test Case Scoring', 'Code Quality Metrics', 'Candidate Pipeline Dashboard'],
-    tags: ['JavaScript', 'TypeScript', 'Assessment'],
-    category: 'Backend', source: 'github', sourceUrl: 'https://github.com/Mpratyush54/zorvyn-screening', featured: false,
-    languageStats: [{ name: 'JavaScript', percent: 99, color: '#F7DF1E' }],
-    deployment: { type: 'Web Application + Sandboxed Runner', platform: 'Docker Compose (Self-hosted)', url: '', details: 'Designed to run via Docker Compose: code execution happens in isolated Docker containers with strict resource limits — no network access, limited CPU/memory, automatic 30-second timeout. In early development.', ciCd: 'Not configured yet — the evaluation engine is still being built.' },
-    architecture: {
-      title: 'How Zorvyn Works',
-      steps: [
-        { icon: '📝', label: 'Create or Select Challenge', description: 'Recruiters pick from a library of coding challenges across multiple languages, or create custom challenges.' },
-        { icon: '👨\u200d💻', label: 'Candidate Submits Solution', description: 'Candidates receive a link, write code in the browser-based editor, and submit their solution for evaluation.' },
-        { icon: '🔒', label: 'Sandboxed Execution', description: 'The submission runs in an isolated Docker container — compiled, tested against test cases, with execution time and memory measured.' },
-        { icon: '📊', label: 'Score & Pipeline Update', description: 'Results flow into the dashboard with scores, code quality metrics, and links to the submission for manual review.' }
-      ]
-    },
-    techDetails: [
-      { title: 'Sandboxed Code Execution', description: 'Each submission runs in an isolated Docker container with no network access, limited CPU/memory, and automatic timeout — preventing abuse.', category: 'Security', tags: ['Docker', 'Sandbox'] },
-      { title: 'Multi-language Support', description: 'The engine supports JavaScript, Python, Java, C++, Go, and Rust. Each language has its own container with appropriate test harnesses.', category: 'Scalability', tags: ['Multi-language'] }
-    ],
-    status: { phase: 'Development', since: '2026-04', ciStatus: 'Not Configured' },
-    timeline: { start: 'Apr 2026', end: 'Active', history: [{ phase: 'Repository Created', date: 'Apr 2026', completed: true }, { phase: 'Evaluation Engine', date: 'Present', completed: false }] }
-  },
-  {
     title: 'Exam Protector — Mobile Exam Security',
     shortDescription: 'The Android app companion to Phone Proctor — monitors device activity during exams, detects suspicious behavior, and alerts the backend in real-time.',
     fullDescription: `Exam Protector Mobile is the Android frontend of the Phone Proctor ecosystem. While Phone Proctor handles server-side video analysis, this app runs on the student's device monitoring local activity — detecting when users switch away from the exam app, attempt screenshots, or when multiple faces appear in the camera frame.
@@ -320,32 +293,6 @@ Built for scenarios where every millisecond matters — live auctions, real-time
     status: { phase: 'Development', since: '2025-10', ciStatus: 'Not Configured' },
     timeline: { start: 'Oct 2025', end: 'Active', history: [{ phase: 'Repository Created', date: 'Oct 2025', completed: true }, { phase: 'Protocol Parsing', date: 'Nov 2025', completed: true }, { phase: 'Stream Distribution', date: 'Present', completed: false }] }
   },
-  {
-    title: 'n8n Setup — Workflow Automation Blueprints',
-    shortDescription: 'Preconfigured n8n workflow templates and Docker deployment scripts for automating API integrations, data sync, and business processes.',
-    fullDescription: 'A ready-to-deploy n8n setup with workflow templates for common automation patterns — webhook-triggered data sync, scheduled report generation, CRM integration, and notification pipelines. Includes Docker Compose configuration for one-command deployment with PostgreSQL and Redis, credential encryption setup, and environment variable management. Instead of writing code for every integration, n8n lets you visually connect 300+ services — this repo provides the production-ready blueprints to get started immediately.',
-    features: ['Prebuilt Workflow Templates', 'Webhook & API Integrations', 'Credential Management', 'Docker Compose Deployment', 'Visual Workflow Editor (n8n)'],
-    tags: ['n8n', 'Automation', 'Workflow'],
-    repo: 'https://github.com/Mpratyush54/n8n-setup',
-    category: 'DevOps', source: 'github', sourceUrl: 'https://github.com/Mpratyush54/n8n-setup', featured: false,
-    languageStats: [],
-    deployment: { type: 'Docker Compose Stack', platform: 'Any Docker Host (VPS / NAS / Local)', url: '', details: 'Single docker-compose.yml spins up n8n with PostgreSQL for workflow state, Redis for job queue management, and credential encryption with a user-provided key. Nginx reverse proxy with Let\'s Encrypt SSL included. Designed to run on any Docker host — VPS, Synology NAS, or local development machine.', ciCd: 'Docker Compose stack updates via git pull on the server. Watchtower container auto-updates images. Backup scripts for PostgreSQL and .n8n config exports.' },
-    architecture: {
-      title: 'How n8n Setup Works',
-      steps: [
-        { icon: '🐳', label: 'Deploy with Docker', description: 'Run a single docker-compose command to spin up n8n with PostgreSQL, Redis, and credential encryption.' },
-        { icon: '🔌', label: 'Connect Services', description: 'Use the visual editor to connect 300+ integrations — HTTP, databases, email, Slack, and more.' },
-        { icon: '⚡', label: 'Automate Workflows', description: 'Trigger workflows via webhook, schedule (cron), or manual execution. Monitor logs in the dashboard.' }
-      ]
-    },
-    techDetails: [
-      { title: 'One-command Docker Compose', description: 'The compose file bundles n8n, PostgreSQL, and Redis with preconfigured networking, volumes, and environment variables.', category: 'UX', tags: ['Docker', 'DevOps'] },
-      { title: 'Credential Encryption at Rest', description: 'API keys encrypted with a user-provided key using n8n\'s built-in encryption. Decryption only at execution time.', category: 'Security', tags: ['Encryption'] }
-    ],
-    status: { phase: 'Development', since: '2026-05', ciStatus: 'Not Configured' },
-    timeline: { start: 'May 2026', end: 'Active', history: [{ phase: 'Repository Created', date: 'May 2026', completed: true }, { phase: 'Template Library', date: 'Present', completed: false }] }
-  },
-// --- GitLab projects ---
   {
     title: 'CAPS Kengeri — Official Club Website',
     shortDescription: 'The official CAPS (Computer and Programming Society) club website at Christ University, Kengeri Campus — SEO-optimized, ranking 3rd for key search terms. Features admin workflow blocking, 3-tier RBAC, and content moderation with blocked words. Live at capskengeri.com.',

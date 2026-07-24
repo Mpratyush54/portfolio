@@ -170,9 +170,10 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     const h = el.clientHeight;
 
     this.scene = new T.Scene();
-    this.camera = new T.PerspectiveCamera(45, w / h, 0.1, 100);
-    const dist = w < 768 ? 3.2 : 4.5;
-    this.camera.position.set(0, 1.0, dist);
+    const isMobile = w < 768;
+    this.camera = new T.PerspectiveCamera(isMobile ? 50 : 45, w / h, 0.1, 100);
+    const dist = isMobile ? 4.2 : 4.5;
+    this.camera.position.set(0, isMobile ? 0.8 : 1.0, dist);
 
     this.renderer = new T.WebGLRenderer({ alpha: true, antialias: true });
     this.renderer.setSize(w, h);
@@ -192,7 +193,8 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.controls.minDistance = 2;
     this.controls.maxDistance = 10;
     this.controls.maxPolarAngle = Math.PI / 2.1;
-    this.controls.target.set(0, 0.6, 0);
+    const el = this.canvasRef.nativeElement;
+    this.controls.target.set(0, el.clientWidth < 768 ? 0.4 : 0.6, 0);
     this.controls.update();
     this.controls.addEventListener('start', () => { this.isDragging = true; });
     this.controls.addEventListener('end', () => { this.isDragging = false; });

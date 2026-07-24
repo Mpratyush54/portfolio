@@ -89,6 +89,7 @@ function mergeWithDb(dbProjects) {
 // ===== PUBLIC ROUTES =====
 
 app.get('/api/projects', async (req, res) => {
+  console.log('[API] Fetching projects...');
   try {
     const { source } = req.query;
     let projects;
@@ -106,6 +107,8 @@ app.get('/api/projects', async (req, res) => {
 });
 
 app.get('/api/projects/:id', async (req, res) => {
+    console.log('[API] Fetching projects...');
+
   const { id } = req.params;
   try {
     let projects;

@@ -29,13 +29,14 @@ export class ProjectsComponent implements OnInit {
     selectedSource = 'all';
     filteredProjects: Project[] = [];
     allProjects: Project[] = [];
+    private apiProjects: Project[] = [];
 
     private fallbackProjects: Project[] = [
         {
             _id: 'classstream',
-            title: 'ClassStream',
-            shortDescription: 'Live education platform with DRM video streaming, WebRTC, and real-time quizzes for 100+ concurrent users.',
-            fullDescription: 'A comprehensive live education platform built for CHRIST University. Features DRM-protected video streaming, WebRTC-based live classes, real-time quizzes, attendance tracking, and analytics dashboard.',
+            title: 'ClassStream — Live Education Platform',
+            shortDescription: 'Live education platform with DRM video streaming, WebRTC live classes, and real-time quizzes for 500+ concurrent users.',
+            fullDescription: 'A full-stack school management platform with DRM-protected video streaming, live classes, real-time chat, and collaborative tools for teachers and students. Built for CHRIST University.',
             features: ['DRM video streaming', 'WebRTC live classes', 'Real-time quizzes', 'Attendance tracking', 'Analytics dashboard'],
             tags: ['Angular', 'Node.js', 'WebRTC', 'MongoDB', 'Docker', 'Kubernetes'],
             category: 'Web',
@@ -43,54 +44,48 @@ export class ProjectsComponent implements OnInit {
             status: { phase: 'Production', ciStatus: 'Passing' },
             timeline: { start: '2024-01', history: [{ phase: 'Launch', date: '2024-06', completed: true }] },
             link: 'https://classstream.christuniversity.in',
+            frontendRepo: 'https://github.com/Mpratyush54/classstream-frontend',
+            backendRepo: 'https://github.com/Mpratyush54/classstream-backend',
         },
         {
-            _id: 'caps-automation',
-            title: 'CAPS Automation',
-            shortDescription: 'Club management automation platform — event management, member tracking, and automated workflows.',
-            fullDescription: 'End-to-end automation for CHRIST University\'s CAPS club. Manages events, member registrations, feedback collection, and certificate generation with automated email workflows.',
-            features: ['Event management', 'Member tracking', 'Automated certificates', 'Email workflows', 'Analytics'],
-            tags: ['React', 'Python', 'PostgreSQL', 'Docker', 'GitHub Actions'],
-            category: 'Web',
+            _id: 'platform-paas',
+            title: 'Platform — Internal PaaS with Multi-SDK',
+            shortDescription: 'Internal PaaS with four SDK packages (Angular, React, Node, Python), Kubernetes OAuth2 ingress, and automated CI/CD.',
+            fullDescription: 'An internal platform-as-a-service providing reusable SDK packages in Angular, React, Node.js, and Python. Runs on Kubernetes with OAuth2 proxy SSO, Docker Compose local dev parity, and GitHub Actions CI/CD.',
+            features: ['Multi-language SDKs', 'Kubernetes + OAuth2 SSO', 'Docker Compose dev parity', 'Automated CI/CD', 'Platform bootstrap script'],
+            tags: ['TypeScript', 'Python', 'Kubernetes', 'Docker', 'OAuth2', 'SDK', 'DevOps'],
+            category: 'DevOps',
             source: 'github',
-            status: { phase: 'Production', ciStatus: 'Passing' },
-            timeline: { start: '2024-03', history: [{ phase: 'Launch', date: '2024-08', completed: true }] },
+            status: { phase: 'Development', ciStatus: 'Passing' },
+            timeline: { start: '2026-06', history: [{ phase: 'SDK Architecture', date: '2026-06', completed: true }, { phase: 'K8s + OAuth2', date: 'Present', completed: false }] },
+            repo: 'https://github.com/Mpratyush54/server-automation',
         },
         {
-            _id: 'phone-proctor',
-            title: 'Phone Proctor',
-            shortDescription: 'AI-powered exam proctoring system using computer vision for integrity monitoring.',
-            fullDescription: 'An AI proctoring solution that uses computer vision to monitor exam takers. Detects suspicious behavior, tracks gaze, and provides real-time alerts to proctors.',
-            features: ['Face detection', 'Gaze tracking', 'Behavior analysis', 'Real-time alerts', 'Session recording'],
-            tags: ['Python', 'TensorFlow', 'OpenCV', 'React', 'WebSocket'],
-            category: 'Web',
+            _id: 'exam-protector',
+            title: 'Exam Protector — Mobile Exam Security',
+            shortDescription: 'Distributed AI proctoring with real-time computer vision anomaly detection and automated anti-cheating supervision.',
+            fullDescription: 'A full exam security system: the Android app monitors device activity (app switches, screenshots, multi-face detection) while the Python backend runs distributed CV pipelines with OpenCV for real-time anomaly detection via WebSocket.',
+            features: ['Computer vision anomaly detection', 'Real-time WebSocket alerts', 'App-switch detection & lock', 'Distributed worker architecture', 'Desktop Python anti-cheating engine'],
+            tags: ['Python', 'OpenCV', 'JavaScript', 'Kotlin', 'WebSocket', 'RabbitMQ', 'Android'],
+            category: 'Mobile',
             source: 'github',
-            status: { phase: 'Production', ciStatus: 'Passing' },
-            timeline: { start: '2024-05', history: [{ phase: 'Launch', date: '2024-10', completed: true }] },
+            status: { phase: 'Development', ciStatus: 'Passing' },
+            timeline: { start: '2026-02', history: [{ phase: 'Backend Launch', date: '2026-02', completed: true }, { phase: 'Mobile App', date: '2026-02', completed: true }] },
+            frontendRepo: 'https://github.com/Mpratyush54/exam-protector-mobile',
+            backendRepo: 'https://github.com/Mpratyush54/Phone-Proctor',
         },
         {
             _id: 'ambue',
-            title: 'Ambue',
-            shortDescription: 'Pharmaceutical barcode scanning app with inventory management and expiry tracking.',
-            fullDescription: 'A mobile-first pharmaceutical management app featuring barcode scanning, inventory tracking, expiry date monitoring, and automated reorder alerts.',
-            features: ['Barcode scanning', 'Inventory tracking', 'Expiry monitoring', 'Reorder alerts', 'Analytics'],
-            tags: ['Flutter', 'Node.js', 'MongoDB', 'AWS'],
+            title: 'Ambue — Pharma Scanner & Inventory',
+            shortDescription: 'Android + web pharmaceutical management — scan drug barcodes to authenticate medicines and track inventory in real-time.',
+            fullDescription: 'An Android barcode scanner app with a Node.js/TypeScript backend. Pharmacists scan drug barcodes to verify authenticity and track inventory with low-stock alerts, expiry tracking, and multi-location management.',
+            features: ['Android barcode scanning', 'Drug authentication', 'Real-time inventory', 'Multi-location management', 'Expiry tracking'],
+            tags: ['JavaScript', 'Node.js', 'TypeScript', 'Android', 'Pharmaceutical'],
             category: 'Mobile',
             source: 'github',
             status: { phase: 'Production', ciStatus: 'Passing' },
             timeline: { start: '2024-02', history: [{ phase: 'Launch', date: '2024-07', completed: true }] },
-        },
-        {
-            _id: 'gitops-pipeline',
-            title: 'Kubernetes GitOps Pipeline',
-            shortDescription: 'Automated CI/CD pipeline with ArgoCD, GitHub Actions, and Helm for cloud-native deployments.',
-            fullDescription: 'A production-grade GitOps pipeline using ArgoCD for declarative Kubernetes deployments, GitHub Actions for CI, and Helm for package management. Includes automated rollbacks and canary deployments.',
-            features: ['GitOps workflow', 'Automated rollbacks', 'Canary deployments', 'Helm charts', 'Monitoring'],
-            tags: ['Kubernetes', 'ArgoCD', 'GitHub Actions', 'Helm', 'Docker'],
-            category: 'DevOps',
-            source: 'github',
-            status: { phase: 'Production', ciStatus: 'Passing' },
-            timeline: { start: '2024-04', history: [{ phase: 'Launch', date: '2024-09', completed: true }] },
+            repo: 'https://github.com/Mpratyush54/Ambue-pharmacutical-scanner-android-web-backend',
         },
         {
             _id: 'portfolio-site',
@@ -103,29 +98,7 @@ export class ProjectsComponent implements OnInit {
             source: 'github',
             status: { phase: 'Production', ciStatus: 'Passing', deploymentType: 'Vercel' },
             timeline: { start: '2025-06', history: [{ phase: 'Launch', date: '2025-07', completed: true }] },
-        },
-        {
-            _id: 'ai-chat-assistant',
-            title: 'AI Chat Assistant',
-            shortDescription: 'Real-time AI chatbot with context-aware responses and streaming output.',
-            fullDescription: 'A real-time AI chat assistant built with WebSocket streaming, context-aware conversation management, and markdown rendering for rich responses.',
-            features: ['Streaming responses', 'Context management', 'Markdown rendering', 'Conversation history'],
-            tags: ['React', 'Node.js', 'WebSocket', 'OpenAI', 'Redis'],
-            category: 'Web',
-            source: 'github',
-            status: { phase: 'Development', ciStatus: 'Passing' },
-            timeline: { start: '2025-03', history: [{ phase: 'Development', date: '2025-03', completed: false }] },
-        },
-        {
-            title: 'Microservices E-Commerce',
-            shortDescription: 'Scalable e-commerce backend with microservices architecture, message queues, and event sourcing.',
-            fullDescription: 'A distributed e-commerce system with separate services for orders, inventory, payments, and notifications. Uses RabbitMQ for async communication and event sourcing for audit trails.',
-            features: ['Microservices', 'Event sourcing', 'Message queues', 'CQRS pattern', 'Distributed tracing'],
-            tags: ['Go', 'PostgreSQL', 'RabbitMQ', 'Docker', 'gRPC'],
-            category: 'Backend',
-            source: 'github',
-            status: { phase: 'Development', ciStatus: 'Not Configured' },
-            timeline: { start: '2025-01', history: [{ phase: 'Architecture', date: '2025-02', completed: true }] },
+            repo: 'https://github.com/Mpratyush54/portfolio',
         },
     ];
 
@@ -138,19 +111,28 @@ export class ProjectsComponent implements OnInit {
         this.categories = ['All', ...this.contextCategories];
         this.subtitleText = `Showcasing my work in ${this.contextCategories.join(' & ')}`;
 
-        this.allProjects = this.fallbackProjects.filter(p => this.contextCategories.includes(p.category));
-        this.applyFilters();
+        this.applyContextFilter();
         this.isLoading = false;
 
         this.apiService.getProjects().subscribe({
             next: (data) => {
                 if (data && data.length > 0) {
-                    this.allProjects = data.filter(p => this.contextCategories.includes(p.category));
-                    this.applyFilters();
+                    this.apiProjects = data;
+                    this.applyContextFilter();
                 }
             },
             error: () => {}
         });
+    }
+
+    private applyContextFilter() {
+        const source = this.apiProjects.length > 0 ? this.apiProjects : this.fallbackProjects;
+        if (this.contextCategories.length > 0) {
+            this.allProjects = source.filter(p => this.contextCategories.includes(p.category));
+        } else {
+            this.allProjects = [...source];
+        }
+        this.applyFilters();
     }
 
     setCategory(c: string) { this.selectedCategory = c; this.applyFilters(); }
@@ -163,7 +145,25 @@ export class ProjectsComponent implements OnInit {
         this.filteredProjects = f;
     }
 
-    switchContext(context: 'apps' | 'systems') {
-        this.router.navigate([context === 'apps' ? '/projects' : '/projects/systems']);
+    switchContext(context: 'apps' | 'systems' | 'all') {
+        if (context === 'all') {
+            this.pageTitle = 'All Projects';
+            this.contextCategories = [];
+            this.subtitleText = 'Every project across every domain';
+            this.categories = ['All'];
+            this.applyContextFilter();
+            return;
+        }
+        const targetUrl = context === 'apps' ? '/projects' : '/projects/systems';
+        if (this.router.url === targetUrl) {
+            this.pageTitle = context === 'apps' ? 'Application Development' : 'Systems & Infrastructure';
+            this.contextCategories = context === 'apps' ? ['Web', 'Mobile'] : ['DevOps', 'Backend'];
+            this.subtitleText = `Showcasing my work in ${this.contextCategories.join(' & ')}`;
+            this.categories = ['All', ...this.contextCategories];
+            this.selectedCategory = 'All';
+            this.applyContextFilter();
+            return;
+        }
+        this.router.navigate([targetUrl]);
     }
 }

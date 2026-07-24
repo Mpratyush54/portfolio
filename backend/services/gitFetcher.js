@@ -35,7 +35,7 @@ async function syncMetaOnly() {
   const ghRepos = [
     'Mpratyush54/classstream-frontend', 'Mpratyush54/classstream-backend', 'Mpratyush54/Phone-Proctor',
     'Mpratyush54/CAPS-Automation', 'Mpratyush54/Battery-AAdhar', 'Mpratyush54/recommendation-_system',
-    'Mpratyush54/zorvyn-screening', 'Mpratyush54/exam-protector-mobile', 'Mpratyush54/n8n-setup',
+    'Mpratyush54/exam-protector-mobile',
     'Mpratyush54/RTMP-Server', 'Mpratyush54/Ambue-pharmacutical-scanner-android-web-backend', 'Mpratyush54/Caps',
     'dauntless-arcane/Forum', 'dauntless-arcane/Competency-Mapping'
   ];

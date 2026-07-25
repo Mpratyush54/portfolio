@@ -115,6 +115,10 @@
   color: rgba(129, 140, 248, 0.7);
   white-space: pre;
   flex-shrink: 0;
+
+  @media (max-width: 600px) {
+    font-size: 0.75rem;
+  }
 }
 
 .cp-input {
@@ -123,7 +127,7 @@
 }
 
 .cp-field {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   background: transparent;
   border: none;
   outline: none;
@@ -163,14 +167,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 12px;
+  padding: 10px 14px;
   cursor: pointer;
   transition: background 0.15s;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(129, 140, 248, 0.2);
 
   &:hover,
+  &:active,
   &.selected {
-    background: rgba(129, 140, 248, 0.1);
+    background: rgba(129, 140, 248, 0.18);
   }
 
   .sug-key {

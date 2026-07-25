@@ -93,7 +93,7 @@ export class CommandPaletteComponent {
   selectSuggestion(key: string): void {
     this.input = key;
     this.selIdx = -1;
-    this.inputRef?.nativeElement?.focus();
+    this.submit();
   }
 
   toggle(): void {

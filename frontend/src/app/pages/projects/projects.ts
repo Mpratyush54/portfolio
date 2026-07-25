@@ -16,10 +16,14 @@ export class ProjectsComponent implements OnInit {
     apiService = inject(ApiService);
     router = inject(Router);
     isLoading = true;
+
+    // 'apps' | 'systems' | 'all'
+    activeContext: 'apps' | 'systems' | 'all' = 'apps';
+
     pageTitle = 'Application Development';
     subtitleText = '';
     contextCategories: string[] = ['Web', 'Mobile'];
-    categories: string[] = ['All'];
+    categories: string[] = ['All', 'Web', 'Mobile'];
     selectedCategory = 'All';
     sourceFilters = [
         { value: 'all', label: 'All Sources' },
@@ -58,6 +62,19 @@ export class ProjectsComponent implements OnInit {
             source: 'github',
             status: { phase: 'Development', ciStatus: 'Passing' },
             timeline: { start: '2026-06', history: [{ phase: 'SDK Architecture', date: '2026-06', completed: true }, { phase: 'K8s + OAuth2', date: 'Present', completed: false }] },
+            repo: 'https://github.com/Mpratyush54/server-automation',
+        },
+        {
+            _id: 'caps-automation',
+            title: 'CAPS — Campus Automation Platform',
+            shortDescription: 'Internal DevOps automation system for CHRIST University CAPS club: CI/CD pipelines, server provisioning, and monitoring dashboards.',
+            fullDescription: 'A comprehensive campus automation platform used by the CAPS tech club. Handles server provisioning, CI/CD pipeline management, Kubernetes deployment automation, and health-monitoring dashboards for student-built applications.',
+            features: ['Server provisioning', 'CI/CD pipelines', 'K8s deployment automation', 'Monitoring dashboards', 'Role-based access'],
+            tags: ['Node.js', 'Kubernetes', 'Docker', 'GitHub Actions', 'Nginx', 'Shell'],
+            category: 'DevOps',
+            source: 'github',
+            status: { phase: 'Production', ciStatus: 'Passing' },
+            timeline: { start: '2025-01', history: [{ phase: 'Launch', date: '2025-03', completed: true }] },
             repo: 'https://github.com/Mpratyush54/server-automation',
         },
         {
@@ -104,12 +121,20 @@ export class ProjectsComponent implements OnInit {
 
     ngOnInit() {
         const url = this.router.url;
+
         if (url.includes('systems')) {
+            this.activeContext = 'systems';
             this.pageTitle = 'Systems & Infrastructure';
-            this.contextCategories = ['DevOps', 'Backend'];
+            this.contextCategories = ['DevOps'];
+            this.subtitleText = 'Showcasing my work in DevOps & Infrastructure';
+            this.categories = ['All', 'DevOps'];
+        } else {
+            this.activeContext = 'apps';
+            this.pageTitle = 'Application Development';
+            this.contextCategories = ['Web', 'Mobile'];
+            this.subtitleText = 'Showcasing my work in Web & Mobile';
+            this.categories = ['All', 'Web', 'Mobile'];
         }
-        this.categories = ['All', ...this.contextCategories];
-        this.subtitleText = `Showcasing my work in ${this.contextCategories.join(' & ')}`;
 
         this.applyContextFilter();
         this.isLoading = false;
@@ -132,6 +157,7 @@ export class ProjectsComponent implements OnInit {
         } else {
             this.allProjects = [...source];
         }
+        this.selectedCategory = 'All';
         this.applyFilters();
     }
 
@@ -146,7 +172,11 @@ export class ProjectsComponent implements OnInit {
     }
 
     switchContext(context: 'apps' | 'systems' | 'all') {
+        // If already on the same context, do nothing
+        if (this.activeContext === context) return;
+
         if (context === 'all') {
+            this.activeContext = 'all';
             this.pageTitle = 'All Projects';
             this.contextCategories = [];
             this.subtitleText = 'Every project across every domain';
@@ -154,16 +184,33 @@ export class ProjectsComponent implements OnInit {
             this.applyContextFilter();
             return;
         }
-        const targetUrl = context === 'apps' ? '/projects' : '/projects/systems';
-        if (this.router.url === targetUrl) {
-            this.pageTitle = context === 'apps' ? 'Application Development' : 'Systems & Infrastructure';
-            this.contextCategories = context === 'apps' ? ['Web', 'Mobile'] : ['DevOps', 'Backend'];
-            this.subtitleText = `Showcasing my work in ${this.contextCategories.join(' & ')}`;
-            this.categories = ['All', ...this.contextCategories];
-            this.selectedCategory = 'All';
+
+        if (context === 'apps') {
+            this.activeContext = 'apps';
+            this.pageTitle = 'Application Development';
+            this.contextCategories = ['Web', 'Mobile'];
+            this.subtitleText = 'Showcasing my work in Web & Mobile';
+            this.categories = ['All', 'Web', 'Mobile'];
             this.applyContextFilter();
+            // Navigate if we're on systems route
+            if (this.router.url.includes('systems')) {
+                this.router.navigate(['/projects']);
+            }
             return;
         }
-        this.router.navigate([targetUrl]);
+
+        if (context === 'systems') {
+            this.activeContext = 'systems';
+            this.pageTitle = 'Systems & Infrastructure';
+            this.contextCategories = ['DevOps'];
+            this.subtitleText = 'Showcasing my work in DevOps & Infrastructure';
+            this.categories = ['All', 'DevOps'];
+            this.applyContextFilter();
+            // Navigate if we're on apps route
+            if (!this.router.url.includes('systems')) {
+                this.router.navigate(['/projects/systems']);
+            }
+            return;
+        }
     }
 }

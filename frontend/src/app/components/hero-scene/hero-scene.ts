@@ -15,6 +15,7 @@ interface QAPair {
 })
 export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   @ViewChild('sceneEl') canvasRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('chatMsgs') chatMsgsRef?: ElementRef<HTMLDivElement>;
 
   speechText = '';
   showSpeech = false;
@@ -117,9 +118,11 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     if (!qa) return;
     if (!this.chatOpen) this.toggleChat();
     this.messages.push({ type: 'q', text: qa.question });
+    this.scrollToBottom();
     this.playAnim('Thinking');
     setTimeout(() => {
       this.messages.push({ type: 'a', text: qa.answer });
+      this.scrollToBottom();
       this.playIdle();
     }, 600);
   }
@@ -129,18 +132,37 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     if (this.chatOpen && this.messages.length === 0) {
       this.messages.push({ type: 'a', text: 'Ask me anything about Pratyush.' });
     }
-    if (this.chatOpen) this.playAnim('Dance');
-    else this.playIdle();
+    if (this.chatOpen) {
+      this.playAnim('Dance');
+      this.scrollToBottom();
+    } else {
+      this.playIdle();
+    }
     setTimeout(() => this.playIdle(), 2000);
   }
 
   ask(qa: QAPair): void {
     this.messages.push({ type: 'q', text: qa.question });
+    this.scrollToBottom();
     this.playAnim('Thinking');
     setTimeout(() => {
       this.messages.push({ type: 'a', text: qa.answer });
+      this.scrollToBottom();
       this.playIdle();
     }, 600);
+  }
+
+  private scrollToBottom(): void {
+    setTimeout(() => {
+      if (this.chatMsgsRef?.nativeElement) {
+        this.chatMsgsRef.nativeElement.scrollTop = this.chatMsgsRef.nativeElement.scrollHeight;
+      }
+    }, 100);
+    setTimeout(() => {
+      if (this.chatMsgsRef?.nativeElement) {
+        this.chatMsgsRef.nativeElement.scrollTop = this.chatMsgsRef.nativeElement.scrollHeight;
+      }
+    }, 350);
   }
 
   private showPhrase(): void {

@@ -4,6 +4,177 @@
   overflow: hidden;
 }
 
+/* =====================================================
+   KEYFRAME ANIMATIONS
+   ===================================================== */
+
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroSlideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes heroSlideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes heroScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes wordmarkReveal {
+  from {
+    opacity: 0;
+    letter-spacing: 0.15em;
+  }
+  to {
+    opacity: 1;
+    letter-spacing: -0.04em;
+  }
+}
+
+@keyframes chipStagger {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes navItemReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes controlSlide {
+  from {
+    opacity: 0;
+    transform: translateY(50%) translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(50%) translateX(0);
+  }
+}
+
+@keyframes subtlePulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes chipGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(129, 140, 248, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(129, 140, 248, 0.15); }
+}
+
+/* Mobile animations */
+@keyframes mobHeaderSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mobContentFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mobChipPop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mobNavSlide {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mobBlink {
+  50% { opacity: 0; }
+}
+
+@keyframes typewriterGlow {
+  0%, 100% { text-shadow: none; }
+  50% { text-shadow: 0 0 20px rgba(129, 140, 248, 0.2); }
+}
+
+/* =====================================================
+   HERO SECTION
+   ===================================================== */
+
 .hero-section {
   position: relative;
   width: 100%;
@@ -19,10 +190,14 @@
 .hero-scene-bg {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 10;
+  pointer-events: none;
 }
 
-/* === Desktop / Mobile visibility === */
+/* =====================================================
+   DESKTOP / MOBILE VISIBILITY
+   ===================================================== */
+
 .desktop-only {
   @media (max-width: 768px) {
     display: none;
@@ -41,7 +216,10 @@
   }
 }
 
-/* === Desktop styles (unchanged) === */
+/* =====================================================
+   DESKTOP: WORDMARK
+   ===================================================== */
+
 .hero-wordmark {
   position: absolute;
   inset: 0;
@@ -59,14 +237,27 @@
     font-weight: 800;
     line-height: 0.9;
     letter-spacing: -0.04em;
-    color: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.035);
     text-transform: uppercase;
-    text-shadow: 0 0 60px rgba(129, 140, 248, 0.03);
+    text-shadow: 0 0 80px rgba(129, 140, 248, 0.04);
 
-    &:first-child { padding-right: 0.3em; }
-    &:last-child { padding-left: 0.3em; }
+    animation: wordmarkReveal 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards;
+
+    &:first-child {
+      padding-right: 0.3em;
+      animation-delay: 0.1s;
+    }
+
+    &:last-child {
+      padding-left: 0.3em;
+      animation-delay: 0.25s;
+    }
   }
 }
+
+/* =====================================================
+   DESKTOP: BRANDING (top-left)
+   ===================================================== */
 
 .hero-branding {
   position: absolute;
@@ -74,6 +265,8 @@
   left: 40px;
   z-index: 3;
   pointer-events: none;
+
+  animation: heroSlideRight 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s backwards;
 
   .brand-name {
     font-size: 1rem;
@@ -98,8 +291,25 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.06);
     letter-spacing: 0.02em;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(129, 140, 248, 0.08);
+      border-color: rgba(129, 140, 248, 0.15);
+      color: #c5ccfa;
+    }
+
+    @for $i from 1 through 4 {
+      &:nth-child(#{$i}) {
+        animation: chipStagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) #{0.55 + $i * 0.07}s backwards;
+      }
+    }
   }
 }
+
+/* =====================================================
+   DESKTOP: FLOATING NAV (top-right)
+   ===================================================== */
 
 .floating-nav {
   position: absolute;
@@ -116,6 +326,8 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 
+  animation: heroFadeDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.45s backwards;
+
   .nav-item {
     padding: 8px 18px;
     border-radius: 100px;
@@ -125,6 +337,12 @@
     text-decoration: none;
     transition: all 0.25s ease;
     letter-spacing: 0.01em;
+
+    @for $i from 1 through 5 {
+      &:nth-child(#{$i}) {
+        animation: navItemReveal 0.4s ease #{0.55 + $i * 0.06}s backwards;
+      }
+    }
 
     &:hover {
       color: #d0d0d0;
@@ -138,6 +356,10 @@
   }
 }
 
+/* =====================================================
+   DESKTOP: HERO MESSAGE (bottom-left)
+   ===================================================== */
+
 .hero-message {
   position: absolute;
   bottom: 140px;
@@ -145,6 +367,8 @@
   z-index: 3;
   pointer-events: none;
   max-width: 400px;
+
+  animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s backwards;
 
   .message-text {
     font-size: 1.15rem;
@@ -156,6 +380,10 @@
   }
 }
 
+/* =====================================================
+   DESKTOP: CHIPS (bottom-left, below message)
+   ===================================================== */
+
 .hero-chips {
   position: absolute;
   bottom: 40px;
@@ -165,6 +393,8 @@
   gap: 8px;
   flex-wrap: wrap;
 
+  animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.95s backwards;
+
   .chip {
     padding: 8px 18px;
     border-radius: 100px;
@@ -173,17 +403,33 @@
     color: #888;
     font-size: 0.72rem;
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     font-family: inherit;
     letter-spacing: 0.01em;
 
+    @for $i from 1 through 3 {
+      &:nth-child(#{$i}) {
+        animation: chipStagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) #{1.0 + $i * 0.08}s backwards;
+      }
+    }
+
     &:hover {
       background: rgba(129, 140, 248, 0.1);
-      border-color: rgba(129, 140, 248, 0.2);
+      border-color: rgba(129, 140, 248, 0.25);
       color: #a5b4fc;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(129, 140, 248, 0.12);
+    }
+
+    &:active {
+      transform: translateY(0);
     }
   }
 }
+
+/* =====================================================
+   DESKTOP: CONTROLS (right, vertical center)
+   ===================================================== */
 
 .hero-controls {
   position: absolute;
@@ -194,6 +440,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  animation: controlSlide 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.7s backwards;
 
   .ctrl-btn {
     width: 40px;
@@ -207,15 +455,31 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.25s ease;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+    @for $i from 1 through 3 {
+      &:nth-child(#{$i}) {
+        animation: heroScaleIn 0.4s ease #{0.75 + $i * 0.08}s backwards;
+      }
+    }
 
     &:hover {
       background: rgba(129, 140, 248, 0.12);
-      border-color: rgba(129, 140, 248, 0.2);
+      border-color: rgba(129, 140, 248, 0.25);
       color: #a5b4fc;
+      transform: scale(1.1);
+      box-shadow: 0 0 16px rgba(129, 140, 248, 0.15);
+    }
+
+    &:active {
+      transform: scale(0.96);
     }
   }
 }
+
+/* =====================================================
+   DESKTOP: IDEA LABEL (bottom-right)
+   ===================================================== */
 
 .idea-label {
   position: absolute;
@@ -225,6 +489,8 @@
   text-align: right;
   pointer-events: none;
 
+  animation: heroFadeUp 0.7s ease 1.1s backwards;
+
   .idea-title {
     display: block;
     font-size: 0.65rem;
@@ -232,6 +498,7 @@
     color: #666;
     letter-spacing: 0.1em;
     margin-bottom: 4px;
+    animation: subtlePulse 4s ease-in-out 2s infinite;
   }
 
   .idea-sub {
@@ -242,28 +509,48 @@
   }
 }
 
-/* === Mobile Layout (FUCH.AI inspired) === */
+/* =====================================================
+   MOBILE LAYOUT
+   ===================================================== */
+
+/* Gradient overlay so the scene blends into the nav area */
+.mobile-scene-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 260px;
+  background: linear-gradient(to bottom, transparent, rgba(6, 6, 14, 0.85) 60%, rgba(6, 6, 14, 1));
+  z-index: 3;
+  pointer-events: none;
+}
+
 .mob-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   padding: 16px 18px 0;
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
   flex-shrink: 0;
+  position: relative;
+  z-index: 6;
+
+  animation: mobHeaderSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards;
 
   .mob-header-left {
     .mob-name {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #e0e0e0;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #e8e8f0;
       letter-spacing: 0.01em;
     }
 
     .mob-status {
       font-size: 0.55rem;
-      font-weight: 600;
-      color: rgba(129, 140, 248, 0.5);
-      letter-spacing: 0.12em;
-      margin-top: 2px;
+      font-weight: 700;
+      color: rgba(129, 140, 248, 0.65);
+      letter-spacing: 0.14em;
+      margin-top: 3px;
     }
   }
 
@@ -275,19 +562,21 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      border: 1px solid rgba(129, 140, 248, 0.1);
-      background: rgba(10, 10, 20, 0.5);
-      backdrop-filter: blur(8px);
-      color: rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(129, 140, 248, 0.12);
+      background: rgba(10, 10, 20, 0.55);
+      backdrop-filter: blur(10px);
+      color: rgba(255, 255, 255, 0.45);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
-      &:hover {
-        background: rgba(129, 140, 248, 0.1);
-        color: rgba(255, 255, 255, 0.7);
+      &:hover, &:active {
+        background: rgba(129, 140, 248, 0.12);
+        border-color: rgba(129, 140, 248, 0.25);
+        color: rgba(255, 255, 255, 0.8);
+        transform: scale(1.05);
       }
     }
   }
@@ -297,65 +586,84 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 0 18px;
+  justify-content: flex-end;
+  padding: 0 20px 24px;
   min-height: 0;
+  position: relative;
+  z-index: 6;
 
-  .mob-label {
-    font-size: 0.55rem;
+  animation: mobContentFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s backwards;
+
+  .mob-eyebrow {
+    font-size: 0.58rem;
     font-weight: 700;
-    color: rgba(129, 140, 248, 0.4);
-    letter-spacing: 0.2em;
+    color: rgba(129, 140, 248, 0.5);
+    letter-spacing: 0.22em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .mob-headline {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: #f0f0fa;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
     margin-bottom: 10px;
   }
 
   .mob-typewriter {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    color: #c0c0d0;
-    margin-bottom: 24px;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: rgba(190, 190, 210, 0.75);
+    margin-bottom: 20px;
 
     .mob-cursor {
-      color: rgba(129, 140, 248, 0.6);
-      animation: mobBlink 0.8s step-end infinite;
+      color: rgba(129, 140, 248, 0.7);
+      animation: mobBlink 0.9s step-end infinite;
     }
   }
 
   .mob-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 7px;
     margin-bottom: 16px;
 
     .mob-chip {
-      padding: 8px 16px;
+      padding: 9px 16px;
       border-radius: 100px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      background: rgba(255, 255, 255, 0.02);
-      color: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(255, 255, 255, 0.55);
       font-size: 0.72rem;
       cursor: pointer;
       font-family: inherit;
-      transition: all 0.2s;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(4px);
 
-      &:hover {
-        background: rgba(129, 140, 248, 0.08);
-        border-color: rgba(129, 140, 248, 0.15);
+      @for $i from 1 through 3 {
+        &:nth-child(#{$i}) {
+          animation: mobChipPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) #{0.6 + $i * 0.08}s backwards;
+        }
+      }
+
+      &:hover, &:active {
+        background: rgba(129, 140, 248, 0.1);
+        border-color: rgba(129, 140, 248, 0.2);
         color: #a5b4fc;
+        transform: scale(1.03);
       }
     }
   }
 
-  .mob-hint {
-    font-size: 0.55rem;
-    color: rgba(255, 255, 255, 0.15);
-    letter-spacing: 0.05em;
+  .mob-cta {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
-}
-
-@keyframes mobBlink {
-  50% { opacity: 0; }
 }
 
 .mob-bottom-nav {
@@ -363,47 +671,53 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  margin: 12px 14px 20px;
+  margin: 8px 14px;
+  margin-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   padding: 6px 4px;
-  border-radius: 18px;
-  background: rgba(10, 10, 20, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  background: rgba(8, 8, 18, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 7;
+
+  animation: mobNavSlide 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s backwards;
 
   .mob-nav-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 6px 12px;
-    border-radius: 12px;
+    gap: 3px;
+    padding: 7px 12px;
+    border-radius: 14px;
     text-decoration: none;
     color: rgba(255, 255, 255, 0.3);
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
     svg {
-      opacity: 0.6;
+      opacity: 0.5;
+      transition: opacity 0.25s ease;
     }
 
     span {
-      font-size: 0.55rem;
-      font-weight: 500;
-      letter-spacing: 0.02em;
+      font-size: 0.54rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
     }
 
     &:hover {
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.55);
     }
 
     &.active {
       color: #818cf8;
+      background: rgba(129, 140, 248, 0.1);
 
       svg {
         opacity: 1;
       }
-
-      background: rgba(129, 140, 248, 0.08);
     }
   }
 }

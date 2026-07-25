@@ -1,8 +1,6 @@
 <div class="home-container">
   <section class="hero-section">
 
-    <app-hero-scene class="hero-scene-bg"></app-hero-scene>
-
     <!-- Desktop -->
     <div class="desktop-only">
       <div class="hero-wordmark" aria-hidden="true">
@@ -73,8 +71,12 @@
         </div>
       </header>
 
+      <!-- Gradient fade over 3D scene -->
+      <div class="mobile-scene-fade" aria-hidden="true"></div>
+
       <main class="mob-content">
-        <div class="mob-label">PRATYUSH</div>
+        <div class="mob-eyebrow">PORTFOLIO</div>
+        <div class="mob-headline">Backend<br>Engineer.</div>
         <div class="mob-typewriter">
           i'm bud. i know everything about pratyush.
           <span class="mob-cursor">|</span>
@@ -86,7 +88,7 @@
           <button class="mob-chip" (click)="triggerQnA('work')">is he open to work?</button>
         </div>
 
-        <div class="mob-hint">DOUBLE TAP TO LIKE OR PRESS L</div>
+        <div class="mob-cta">Tap a chip to learn more</div>
       </main>
 
       <nav class="mob-bottom-nav">
@@ -112,6 +114,8 @@
         </a>
       </nav>
     </div>
+
+    <app-hero-scene class="hero-scene-bg"></app-hero-scene>
 
   </section>
 </div>

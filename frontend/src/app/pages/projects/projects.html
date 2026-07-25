@@ -1,14 +1,14 @@
 <div class="projects-container container animate-fade-in">
     <header class="page-header">
         <div class="context-tabs">
-            <button class="context-pill" [class.active]="pageTitle === 'All Projects'" (click)="switchContext('all')">
-                All
-            </button>
-            <button class="context-pill" [class.active]="pageTitle === 'Application Development'" (click)="switchContext('apps')">
+            <button class="context-pill" [class.active]="activeContext === 'apps'" (click)="switchContext('apps')">
                 &#x1F4F1; Applications
             </button>
-            <button class="context-pill" [class.active]="pageTitle === 'Systems & Infrastructure'" (click)="switchContext('systems')">
-                &#x2699;&#xFE0F; Systems &amp; Infrastructure
+            <button class="context-pill" [class.active]="activeContext === 'systems'" (click)="switchContext('systems')">
+                &#x2699;&#xFE0F; Systems &amp; Infra
+            </button>
+            <button class="context-pill" [class.active]="activeContext === 'all'" (click)="switchContext('all')">
+                All
             </button>
         </div>
         <h1>{{ pageTitle }}</h1>
@@ -40,7 +40,7 @@
     <div class="empty-state">No projects found matching your filters.</div>
     } @else {
     <div class="projects-grid">
-        @for (project of filteredProjects; track project.title) {
+        @for (project of filteredProjects; track project._id) {
         <app-project-card [project]="project" class="animate-card"></app-project-card>
         }
     </div>

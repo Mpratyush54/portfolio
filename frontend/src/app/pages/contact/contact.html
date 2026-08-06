@@ -1,85 +1,45 @@
 <div class="contact-container container animate-fade-in">
-    <div class="header-section">
-        <h1 class="text-gradient">Get in Touch</h1>
-        <p class="subtitle">Have a project or opportunity? Let's connect and build something amazing.</p>
+  <div class="header-section">
+    <h1 class="text-gradient">Get in Touch</h1>
+    <p class="subtitle">Have a project or opportunity? Let's connect and build something amazing.</p>
+  </div>
+
+  <div class="contact-content">
+    <div class="form-card glass-panel">
+      <app-contact-form></app-contact-form>
     </div>
 
-    <div class="contact-content">
-        <!-- Contact Form -->
-        <div class="form-card glass-panel">
-            <form (ngSubmit)="onSubmit()" #contactForm="ngForm">
-                <div class="form-group">
-                    <label for="name">Name</label>
-                    <input type="text" id="name" name="name" [(ngModel)]="formData.name" required
-                        placeholder="Your Name">
-                </div>
-
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" [(ngModel)]="formData.email" required
-                        placeholder="your.email@example.com">
-                </div>
-
-                <div class="form-group">
-                    <label for="phone">Phone (Optional)</label>
-                    <input type="tel" id="phone" name="phone" [(ngModel)]="formData.phone"
-                        placeholder="+1 (555) 000-0000">
-                </div>
-
-                <div class="form-group">
-                    <label for="message">Message</label>
-                    <textarea id="message" name="message" rows="5" [(ngModel)]="formData.message" required
-                        placeholder="Tell me about your project..."></textarea>
-                </div>
-
-                <div *ngIf="status === 'success'" class="form-message success">
-                    {{ statusMessage }}
-                </div>
-                <div *ngIf="status === 'error'" class="form-message error">
-                    {{ statusMessage }}
-                </div>
-                <button type="submit" class="btn-primary full-width"
-                    [disabled]="!contactForm.form.valid || status === 'sending' || status === 'success'">
-                    <span *ngIf="status !== 'sending'">Send Message</span>
-                    <span *ngIf="status === 'sending'">Sending...</span>
-                </button>
-            </form>
+    <div class="info-column">
+      <div class="info-card glass-panel">
+        <div class="info-header">
+          <div class="icon-box">📧</div>
+          <h3>Email Me Directly</h3>
         </div>
+        <p class="info-text">Prefer email? Reach out anytime.</p>
+        <a href="mailto:mpratyush54@gmail.com" class="highlight-link">mpratyush54@gmail.com</a>
+        <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="highlight-link resume-link">📄 Download Resume</a>
+      </div>
 
-        <!-- Direct Contact Info -->
-        <div class="info-column">
-            <div class="info-card glass-panel">
-                <div class="info-header">
-                    <div class="icon-box">📧</div>
-                    <h3>Email Me Directly</h3>
-                </div>
-                <p class="info-text">Prefer email? Reach out anytime.</p>
-                <a href="mailto:mpratyush54@gmail.com"
-                    class="highlight-link">mpratyush54@gmail.com</a>
-                <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank"
-                    class="highlight-link resume-link">📄 Download Resume</a>
-            </div>
-
-            <div class="info-card glass-panel">
-                <div class="info-header">
-                    <div class="icon-box">🌐</div>
-                    <h3>Connect on Socials</h3>
-                </div>
-                <div class="social-links-vertical">
-                    <a href="https://www.linkedin.com/in/pratyushm07" target="_blank" class="social-item">
-                        <span>LinkedIn</span>
-                        <span class="arrow">↗</span>
-                    </a>
-                    <a href="https://github.com/Mpratyush54" target="_blank" class="social-item">
-                        <span>GitHub</span>
-                        <span class="arrow">↗</span>
-                    </a>
-                    <a href="https://gitlab.com/techtank.capskengeri" target="_blank" class="social-item">
-                        <span>GitLab</span>
-                        <span class="arrow">↗</span>
-                    </a>
-                </div>
-            </div>
+      <div class="info-card glass-panel">
+        <div class="info-header">
+          <div class="icon-box">🌐</div>
+          <h3>Connect on Socials</h3>
         </div>
+        <div class="social-links-vertical">
+          <a href="https://www.linkedin.com/in/pratyushm07" target="_blank" class="social-item">
+            <span>LinkedIn</span>
+            <span class="arrow">↗</span>
+          </a>
+          <a href="https://github.com/Mpratyush54" target="_blank" class="social-item">
+            <span>GitHub</span>
+            <span class="arrow">↗</span>
+          </a>
+          <a href="https://gitlab.com/techtank.capskengeri" target="_blank" class="social-item">
+            <span>GitLab</span>
+            <span class="arrow">↗</span>
+          </a>
+        </div>
+      </div>
     </div>
+  </div>
 </div>

@@ -1,0 +1,47 @@
+<form class="contact-form" (ngSubmit)="onSubmit()" #contactForm="ngForm">
+  <!-- Honeypot: hidden from users, bots often fill it -->
+  <div class="hp-field" aria-hidden="true">
+    <label for="website">Website</label>
+    <input type="text" id="website" name="website" [(ngModel)]="formData.website" tabindex="-1" autocomplete="off">
+  </div>
+
+  <div class="form-group">
+    <label for="cf-name">Name</label>
+    <input type="text" id="cf-name" name="name" [(ngModel)]="formData.name" required maxlength="100"
+      placeholder="Your Name">
+  </div>
+
+  <div class="form-group">
+    <label for="cf-email">Email</label>
+    <input type="email" id="cf-email" name="email" [(ngModel)]="formData.email" required maxlength="254"
+      placeholder="your.email@example.com">
+  </div>
+
+  <div class="form-group">
+    <label for="cf-phone">Phone (Optional)</label>
+    <input type="tel" id="cf-phone" name="phone" [(ngModel)]="formData.phone" maxlength="40"
+      placeholder="+1 (555) 000-0000">
+  </div>
+
+  <div class="form-group">
+    <label for="cf-message">Message</label>
+    <textarea id="cf-message" name="message" rows="5" [(ngModel)]="formData.message" required maxlength="5000"
+      placeholder="Tell me about your project..."></textarea>
+  </div>
+
+  @if (status === 'success') {
+    <div class="form-message success">{{ statusMessage }}</div>
+  }
+  @if (status === 'error') {
+    <div class="form-message error">{{ statusMessage }}</div>
+  }
+
+  <button type="submit" class="btn-primary full-width"
+    [disabled]="!contactForm.form.valid || status === 'sending' || status === 'success'">
+    @if (status !== 'sending') {
+      <span>Send Message</span>
+    } @else {
+      <span>Sending...</span>
+    }
+  </button>
+</form>

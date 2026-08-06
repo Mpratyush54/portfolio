@@ -7,16 +7,10 @@ export class ThemeService {
     isDarkMode = signal<boolean>(false);
 
     constructor() {
-        // Check system preference or local storage
+        // Dark-first product — only switch to light if user explicitly chose it
         const storedTheme = localStorage.getItem('theme');
-        if (storedTheme) {
-            this.isDarkMode.set(storedTheme === 'dark');
-        } else {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            this.isDarkMode.set(prefersDark);
-        }
+        this.isDarkMode.set(storedTheme !== 'light');
 
-        // Effect to apply theme class
         effect(() => {
             if (this.isDarkMode()) {
                 document.documentElement.classList.add('dark-mode');

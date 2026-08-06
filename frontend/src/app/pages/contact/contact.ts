@@ -1,44 +1,20 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { ContactFormComponent } from '../../components/contact-form/contact-form';
+import { RevealDirective } from '../../directives/reveal.directive';
+import { BudEventsService } from '../../services/bud-events.service';
 
 @Component({
-   selector: 'app-contact',
-   standalone: true,
-   imports: [CommonModule, FormsModule],
-   templateUrl: './contact.html',
-   styleUrl: './contact.scss'
+  selector: 'app-contact',
+  standalone: true,
+  imports: [CommonModule, ContactFormComponent, RevealDirective],
+  templateUrl: './contact.html',
+  styleUrl: './contact.scss'
 })
 export class ContactComponent {
-   formData = {
-      name: '',
-      email: '',
-      phone: '',
-      message: ''
-   };
+  private bud = inject(BudEventsService);
 
-   status: 'idle' | 'sending' | 'success' | 'error' = 'idle';
-   statusMessage = '';
-
-   constructor(private http: HttpClient) {}
-
-   onSubmit() {
-      if (this.status === 'sending') return;
-
-      this.status = 'sending';
-      this.statusMessage = '';
-
-      this.http.post<{ success: boolean; message: string }>('/api/contact', this.formData).subscribe({
-         next: (res) => {
-            this.status = 'success';
-            this.statusMessage = res.message;
-            this.formData = { name: '', email: '', phone: '', message: '' };
-         },
-         error: (err: HttpErrorResponse) => {
-            this.status = 'error';
-            this.statusMessage = err.error?.error || 'Something went wrong. Try again later.';
-         }
-      });
-   }
+  onSent(): void {
+    this.bud.celebrate();
+  }
 }

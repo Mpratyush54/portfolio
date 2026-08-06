@@ -180,27 +180,53 @@ app.post('/api/admin/sync', requireAdmin, async (req, res) => {
 
 // ===== CONTACT ROUTE =====
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CONTACT_LIMITS = { name: 100, email: 254, phone: 40, message: 5000 };
+
 app.post('/api/contact', async (req, res) => {
   try {
-    const { name, email, phone, message } = req.body;
+    const { name, email, phone, message, website } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
+
+    // Honeypot — bots fill hidden fields; humans leave them empty
+    if (website) {
+      return res.json({ success: true, message: 'Message sent — I\'ll reply soon.' });
+    }
 
     if (!name || !email || !message) {
       return res.status(400).json({ error: 'Name, email, and message are required.' });
     }
 
-    if (isRateLimited(ip, email.toLowerCase())) {
+    const trimmed = {
+      name: String(name).trim(),
+      email: String(email).trim(),
+      phone: phone ? String(phone).trim() : '',
+      message: String(message).trim(),
+    };
+
+    if (!EMAIL_RE.test(trimmed.email)) {
+      return res.status(400).json({ error: 'Please provide a valid email address.' });
+    }
+
+    if (trimmed.name.length > CONTACT_LIMITS.name ||
+        trimmed.email.length > CONTACT_LIMITS.email ||
+        trimmed.phone.length > CONTACT_LIMITS.phone ||
+        trimmed.message.length > CONTACT_LIMITS.message) {
+      return res.status(400).json({ error: 'One or more fields exceed the maximum length.' });
+    }
+
+    if (isRateLimited(ip, trimmed.email.toLowerCase())) {
       return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
     }
 
-    recordAttempt(ip, email.toLowerCase());
+    recordAttempt(ip, trimmed.email.toLowerCase());
 
     if (!process.env.SMTP_HOST) {
       return res.json({ success: true, message: 'Message received (email not configured).' });
     }
 
-    await sendContactNotification({ name, email, phone, message });
-    res.json({ success: true, message: 'Message sent! Check your email for a confirmation.' });
+    await sendContactNotification(trimmed);
+    res.json({ success: true, message: 'Message sent — I\'ll reply soon.' });
   } catch (err) {
     console.error('[Contact] Error:', err);
     res.status(500).json({ error: 'Failed to send message. Please try again later.' });

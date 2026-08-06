@@ -13,7 +13,7 @@ import { CommandPaletteComponent } from './components/command-palette/command-pa
     @if (!isHome) {
       <app-navbar></app-navbar>
     }
-    <main>
+    <main [class.home-main]="isHome">
       <router-outlet></router-outlet>
     </main>
     @if (!isHome) {
@@ -22,11 +22,11 @@ import { CommandPaletteComponent } from './components/command-palette/command-pa
     <app-command-palette></app-command-palette>
   `,
   styles: [`
-    :host.home-route main {
-       min-height: 100vh;
+    main:not(.home-main) {
+      min-height: calc(100vh - 80px);
     }
-    :host:not(.home-route) main {
-       min-height: calc(100vh - 80px);
+    main.home-main {
+      min-height: 100vh;
     }
   `]
 })
@@ -36,22 +36,18 @@ export class App {
   isHome = false;
 
   constructor() {
-    this.isHome = this.router.url === '/';
-    this.setBodyOverflow(this.isHome);
+    this.syncRoute(this.router.url);
 
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe((e: any) => {
-      this.isHome = e.urlAfterRedirects === '/';
-      this.setBodyOverflow(this.isHome);
+      this.syncRoute(e.urlAfterRedirects);
     });
   }
 
-  private setBodyOverflow(home: boolean): void {
-    if (home) {
-      this.renderer.setStyle(document.body, 'overflow', 'hidden');
-    } else {
-      this.renderer.removeStyle(document.body, 'overflow');
-    }
+  private syncRoute(url: string): void {
+    this.isHome = url === '/' || url.startsWith('/#') || url.startsWith('/?');
+    // Home manages its own immersive scroll; never lock body overflow
+    this.renderer.removeStyle(document.body, 'overflow');
   }
 }

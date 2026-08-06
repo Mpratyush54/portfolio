@@ -1,40 +1,48 @@
-<div class="about-container container animate-fade-in">
-    <section class="intro-section">
-        <h1 class="text-gradient">About the Developer</h1>
-        <p class="subtitle">Building production systems, leading teams, shipping products</p>
+<div class="about-page container">
+  <header class="page-head" appReveal>
+    <p class="eyebrow">about</p>
+    <h1 class="panel-title">systems, teams, products.</h1>
+    <p class="lead">building production backends, leading teams, shipping real products.</p>
+  </header>
 
-        <div class="bio-text">
-            <p>Hi, I'm <strong>Pratyush Mishra</strong> — a Computer Science undergraduate at CHRIST University, Bengaluru (GPA 3.51/4.0, expected May 2029). I build production backend systems, lead 14 developers across 8 concurrent projects at CAPS, and ship full-stack applications used by real organizations.</p>
-            <p>My work spans three layers: architecting internal PaaS platforms with multi-language SDKs (Angular, React, Node, Python) on Kubernetes, building real-time streaming infrastructure with DRM-protected video delivery, and designing AI-powered automation pipelines with RAG, structured LLM output, and computer vision.</p>
-            <p>I'm strongest as a Backend Developer — Redis caching, WebSocket scaling, containerization, observability — but equally comfortable shipping Angular PWAs, Flutter IoT dashboards, and React Native mobile apps to production.</p>
-        </div>
-    </section>
+  <div class="bio" appReveal [appRevealDelay]="80">
+    <p>
+      Hi, I'm <strong>Pratyush Mishra</strong> — a Computer Science undergraduate at CHRIST University, Bengaluru
+      (GPA 3.51/4.0, expected May 2029). I build production backend systems, lead 14 developers across 8 concurrent
+      projects at CAPS, and ship full-stack applications used by real organizations.
+    </p>
+    <p>
+      My work spans three layers: architecting internal PaaS platforms with multi-language SDKs on Kubernetes,
+      building real-time streaming infrastructure with DRM-protected video delivery, and designing AI-powered
+      automation pipelines with RAG, structured LLM output, and computer vision.
+    </p>
+    <p>
+      Strongest as a Backend Developer — Redis caching, WebSocket scaling, containerization, observability —
+      but equally comfortable shipping Angular PWAs, Flutter IoT dashboards, and React Native mobile apps to production.
+    </p>
+  </div>
 
-    <section class="values-section">
-        <div class="values-grid">
-            <div class="value-card">
-                <div class="icon">🎓</div>
-                <h3>Education</h3>
-                <p><strong>CHRIST University, Bengaluru</strong><br>B.Tech, Computer Science & Engineering<br>GPA 3.51/4.0 | Expected May 2029</p>
-            </div>
+  <ul class="facts" appReveal [appRevealDelay]="140">
+    <li>
+      <span>Education</span>
+      <div>CHRIST University · B.Tech CSE · GPA 3.51 · Expected May 2029</div>
+    </li>
+    <li>
+      <span>Role</span>
+      <div>Tech Lead @ CAPS — lead 14 developers across concurrent projects. Architect of the internal Platform PaaS.</div>
+    </li>
+    <li>
+      <span>Also</span>
+      <div>Student Flutter Developer @ COE — data viz &amp; IoT monitoring, one app in production at InnovMon.</div>
+    </li>
+    <li>
+      <span>Stack</span>
+      <div>Node · Express · Redis · MongoDB · Postgres · Docker · K8s · Angular · Python · Go · Rust</div>
+    </li>
+  </ul>
 
-            <div class="value-card">
-                <div class="icon">💼</div>
-                <h3>Current Roles</h3>
-                <p><strong>Tech Lead @ CAPS</strong> — Promoted from Backend Developer (Jul 2025). Lead 14 developers across 8 projects. Architect of the internal CAPS Platform PaaS.</p>
-                <p style="margin-top: 12px;"><strong>Student Flutter Developer @ COE</strong> — Data viz & IoT monitoring apps, one in production use by InnovMon Technologies.</p>
-            </div>
-
-            <div class="value-card">
-                <div class="icon">🛠️</div>
-                <h3>Tech Stack</h3>
-                <p><strong>Backend:</strong> Node.js, Express, Redis, MongoDB, PostgreSQL, MySQL, gRPC, WebSocket</p>
-                <p><strong>Frontend:</strong> Angular, React, React Native, Flutter, TypeScript, Tailwind</p>
-                <p><strong>Infra:</strong> Docker, Kubernetes, GitLab CI/CD, Prometheus, Grafana, AWS EC2</p>
-                <p><strong>Languages:</strong> JavaScript, TypeScript, Python, Rust, Go, SQL, C</p>
-            </div>
-        </div>
-    </section>
-
-    <div class="spacing"></div>
+  <div class="cta-row" appReveal [appRevealDelay]="180">
+    <a routerLink="/projects" class="text-link">see the work →</a>
+    <a routerLink="/contact" class="text-link">get in touch →</a>
+  </div>
 </div>

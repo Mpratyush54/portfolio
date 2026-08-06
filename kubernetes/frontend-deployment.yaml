@@ -21,8 +21,8 @@ spec:
         - name: ghcr-pull
       containers:
         - name: frontend
-          image: ghcr.io/mpratyush54/portfolio-frontend:latest
-          imagePullPolicy: Always
+          image: ghcr.io/mpratyush54/portfolio-frontend:arm64
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           resources:

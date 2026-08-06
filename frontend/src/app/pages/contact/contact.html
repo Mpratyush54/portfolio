@@ -1,45 +1,21 @@
-<div class="contact-container container animate-fade-in">
-  <div class="header-section">
-    <h1 class="text-gradient">Get in Touch</h1>
-    <p class="subtitle">Have a project or opportunity? Let's connect and build something amazing.</p>
-  </div>
+<div class="contact-page container">
+  <header class="page-head" appReveal>
+    <p class="eyebrow">contact</p>
+    <h1 class="panel-title">let's build something.</h1>
+    <p class="lead">have a project or opportunity? open to backend &amp; full stack roles.</p>
+  </header>
 
-  <div class="contact-content">
-    <div class="form-card glass-panel">
-      <app-contact-form></app-contact-form>
+  <div class="contact-layout">
+    <div class="form-shell" appReveal [appRevealDelay]="60">
+      <app-contact-form (sent)="onSent()"></app-contact-form>
     </div>
 
-    <div class="info-column">
-      <div class="info-card glass-panel">
-        <div class="info-header">
-          <div class="icon-box">📧</div>
-          <h3>Email Me Directly</h3>
-        </div>
-        <p class="info-text">Prefer email? Reach out anytime.</p>
-        <a href="mailto:mpratyush54@gmail.com" class="highlight-link">mpratyush54@gmail.com</a>
-        <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="highlight-link resume-link">📄 Download Resume</a>
-      </div>
-
-      <div class="info-card glass-panel">
-        <div class="info-header">
-          <div class="icon-box">🌐</div>
-          <h3>Connect on Socials</h3>
-        </div>
-        <div class="social-links-vertical">
-          <a href="https://www.linkedin.com/in/pratyushm07" target="_blank" class="social-item">
-            <span>LinkedIn</span>
-            <span class="arrow">↗</span>
-          </a>
-          <a href="https://github.com/Mpratyush54" target="_blank" class="social-item">
-            <span>GitHub</span>
-            <span class="arrow">↗</span>
-          </a>
-          <a href="https://gitlab.com/techtank.capskengeri" target="_blank" class="social-item">
-            <span>GitLab</span>
-            <span class="arrow">↗</span>
-          </a>
-        </div>
-      </div>
-    </div>
+    <aside class="aside" appReveal [appRevealDelay]="120">
+      <a href="mailto:mpratyush54@gmail.com" class="aside-link">mpratyush54@gmail.com</a>
+      <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="aside-link">resume ↗</a>
+      <a href="https://www.linkedin.com/in/pratyushm07" target="_blank" rel="noopener" class="aside-link">linkedin ↗</a>
+      <a href="https://github.com/Mpratyush54" target="_blank" rel="noopener" class="aside-link">github ↗</a>
+      <a href="https://gitlab.com/techtank.capskengeri" target="_blank" rel="noopener" class="aside-link">gitlab ↗</a>
+    </aside>
   </div>
 </div>

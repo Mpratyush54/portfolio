@@ -1,0 +1,20 @@
+<a
+  class="project-row"
+  [routerLink]="['/projects', project._id]"
+  (click)="onActivate()"
+>
+  <div class="row-main">
+    <span class="row-index">{{ indexLabel }}</span>
+    <div class="row-copy">
+      <div class="row-title-line">
+        <h3 class="row-title">{{ project.title }}</h3>
+        <span class="row-status">{{ statusLabel }}</span>
+      </div>
+      <p class="row-outcome">{{ project.shortDescription }}</p>
+      @if (stackLine) {
+        <p class="row-stack">{{ stackLine }}</p>
+      }
+    </div>
+  </div>
+  <span class="row-arrow" aria-hidden="true">→</span>
+</a>

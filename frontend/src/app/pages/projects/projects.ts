@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { Project } from '../../models/project.model';
-import { ProjectCardComponent } from '../../components/project-card/project-card';
+import { ProjectRowComponent } from '../../components/project-row/project-row';
+import { RevealDirective } from '../../directives/reveal.directive';
 
 @Component({
     selector: 'app-projects',
     standalone: true,
-    imports: [CommonModule, ProjectCardComponent],
+    imports: [CommonModule, ProjectRowComponent, RevealDirective],
     templateUrl: './projects.html',
     styleUrl: './projects.scss'
 })
@@ -26,9 +27,9 @@ export class ProjectsComponent implements OnInit {
     categories: string[] = ['All', 'Web', 'Mobile'];
     selectedCategory = 'All';
     sourceFilters = [
-        { value: 'all', label: 'All Sources' },
-        { value: 'github', label: 'GitHub' },
-        { value: 'gitlab', label: 'GitLab' }
+        { value: 'all', label: 'all sources' },
+        { value: 'github', label: 'github' },
+        { value: 'gitlab', label: 'gitlab' }
     ];
     selectedSource = 'all';
     filteredProjects: Project[] = [];

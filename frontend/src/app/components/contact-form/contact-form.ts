@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
@@ -11,12 +11,14 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
   styleUrl: './contact-form.scss'
 })
 export class ContactFormComponent {
+  @Output() sent = new EventEmitter<void>();
+
   formData = {
     name: '',
     email: '',
     phone: '',
     message: '',
-    website: '' // honeypot
+    website: ''
   };
 
   status: 'idle' | 'sending' | 'success' | 'error' = 'idle';
@@ -39,6 +41,7 @@ export class ContactFormComponent {
         this.status = 'success';
         this.statusMessage = res.message || 'Message sent — I\'ll reply soon.';
         this.formData = { name: '', email: '', phone: '', message: '', website: '' };
+        this.sent.emit();
       },
       error: (err: HttpErrorResponse) => {
         this.status = 'error';

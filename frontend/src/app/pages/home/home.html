@@ -1,26 +1,27 @@
 <div class="home-page">
 
-  <!-- Sticky robot companion (fuch-style) -->
   <div class="robot-stage" aria-hidden="false">
     <app-hero-scene [stageOnly]="true"></app-hero-scene>
   </div>
 
-  <!-- Floating chrome -->
+  <div class="progress-rail" aria-hidden="true">
+    <div class="progress-fill" [style.transform]="'scaleY(' + scrollProgress + ')'"></div>
+  </div>
+
   <header class="top-bar">
     <a routerLink="/" class="brand">pratyush mishra.</a>
     <nav class="top-nav">
-      <button type="button" class="nav-link" (click)="scrollTo('about')">About</button>
-      <button type="button" class="nav-link" (click)="scrollTo('projects')">Work</button>
-      <button type="button" class="nav-link" (click)="scrollTo('contact')">Contact</button>
+      <button type="button" class="nav-link" [class.active]="activeSection === 'about'" (click)="scrollTo('about')">About</button>
+      <button type="button" class="nav-link" [class.active]="activeSection === 'projects'" (click)="scrollTo('projects')">Work</button>
+      <button type="button" class="nav-link" [class.active]="activeSection === 'contact'" (click)="scrollTo('contact')">Contact</button>
       <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="nav-link">Resume</a>
     </nav>
   </header>
 
-  <!-- Scroll story -->
   <div class="story">
 
     <section class="panel panel-hero" id="hero" data-beat="hero">
-      <div class="panel-inner hero-inner">
+      <div class="panel-inner hero-inner" appReveal>
         <p class="eyebrow">portfolio</p>
         <h1 class="display-name">pratyush mishra.</h1>
         <p class="role-line">backend engineer · tech lead · full stack</p>
@@ -44,7 +45,7 @@
     </section>
 
     <section class="panel panel-about" id="about" data-beat="about">
-      <div class="panel-inner">
+      <div class="panel-inner" appReveal>
         <p class="eyebrow">about</p>
         <h2 class="panel-title">systems, teams, products.</h2>
         <div class="about-body">
@@ -68,7 +69,7 @@
     </section>
 
     <section class="panel panel-projects" id="projects" data-beat="projects">
-      <div class="panel-inner wide">
+      <div class="panel-inner wide" appReveal>
         <div class="panel-head">
           <div>
             <p class="eyebrow">work</p>
@@ -79,9 +80,9 @@
         @if (projectsLoading) {
           <p class="muted">loading…</p>
         } @else {
-          <div class="project-grid">
-            @for (project of featuredProjects; track project._id) {
-              <app-project-card [project]="project"></app-project-card>
+          <div class="case-list">
+            @for (project of featuredProjects; track project._id; let i = $index) {
+              <app-project-row [project]="project" [index]="i"></app-project-row>
             }
           </div>
         }
@@ -89,13 +90,13 @@
     </section>
 
     <section class="panel panel-contact" id="contact" data-beat="contact">
-      <div class="panel-inner">
+      <div class="panel-inner" appReveal>
         <p class="eyebrow">contact</p>
         <h2 class="panel-title">let's build something.</h2>
         <p class="lead tight">open to backend &amp; full stack roles. replies within 24h.</p>
         <div class="contact-grid">
           <div class="form-shell">
-            <app-contact-form></app-contact-form>
+            <app-contact-form (sent)="onContactSuccess()"></app-contact-form>
           </div>
           <div class="direct">
             <a href="mailto:mpratyush54@gmail.com">mpratyush54@gmail.com</a>

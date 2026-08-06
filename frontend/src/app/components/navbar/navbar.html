@@ -1,21 +1,21 @@
-<nav class="navbar glass-panel">
-    <a routerLink="/" class="logo">pratyush mishra.</a>
+<nav class="navbar">
+  <a routerLink="/" class="logo">pratyush mishra.</a>
 
-    <div class="nav-links">
-        <a routerLink="/" fragment="about" class="nav-item">About</a>
-        <a routerLink="/projects" routerLinkActive="active" class="nav-item">Projects</a>
-        <a routerLink="/" fragment="contact" class="nav-item">Contact</a>
-        <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="nav-item">Resume</a>
-    </div>
+  <div class="nav-links">
+    <a routerLink="/about" routerLinkActive="active" class="nav-item">About</a>
+    <a routerLink="/projects" routerLinkActive="active" class="nav-item">Work</a>
+    <a routerLink="/contact" routerLinkActive="active" class="nav-item">Contact</a>
+    <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="nav-item">Resume</a>
+  </div>
 
-    <div class="actions">
-        <button class="theme-toggle" (click)="toggleTheme()"
-            [attr.aria-label]="themeService.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-            @if (themeService.isDarkMode()) {
-            <span class="dot light"></span>
-            } @else {
-            <span class="dot dark"></span>
-            }
-        </button>
-    </div>
+  <div class="actions">
+    <button class="theme-toggle" (click)="toggleTheme()"
+      [attr.aria-label]="themeService.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+      @if (themeService.isDarkMode()) {
+        <span class="dot light"></span>
+      } @else {
+        <span class="dot dark"></span>
+      }
+    </button>
+  </div>
 </nav>

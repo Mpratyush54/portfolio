@@ -9,10 +9,6 @@
   min-height: 100vh;
 }
 
-/* =====================================================
-   STICKY ROBOT STAGE
-   ===================================================== */
-
 .robot-stage {
   position: fixed;
   inset: 0;
@@ -25,7 +21,6 @@
     height: 100%;
   }
 
-  // Soft vignette so copy on the left stays readable
   &::after {
     content: '';
     position: absolute;
@@ -44,9 +39,29 @@
   }
 }
 
-/* =====================================================
-   TOP BAR
-   ===================================================== */
+.progress-rail {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100vh;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+
+  .progress-fill {
+    width: 100%;
+    height: 100%;
+    background: rgba(232, 232, 240, 0.55);
+    transform-origin: top;
+    transform: scaleY(0);
+    transition: transform 0.1s linear;
+  }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
 
 .top-bar {
   position: fixed;
@@ -96,7 +111,8 @@
     border-radius: 999px;
     transition: color 0.2s, background 0.2s;
 
-    &:hover {
+    &:hover,
+    &.active {
       color: #f0f0f6;
       background: rgba(255, 255, 255, 0.05);
     }
@@ -105,20 +121,13 @@
   @media (max-width: 640px) {
     padding: 14px 16px;
 
-    .brand {
-      font-size: 0.85rem;
-    }
-
+    .brand { font-size: 0.85rem; }
     .top-nav .nav-link {
       padding: 7px 10px;
       font-size: 0.7rem;
     }
   }
 }
-
-/* =====================================================
-   STORY PANELS
-   ===================================================== */
 
 .story {
   position: relative;
@@ -165,15 +174,6 @@
   }
 }
 
-.eyebrow {
-  margin: 0 0 14px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(180, 185, 200, 0.45);
-}
-
 .display-name {
   margin: 0 0 12px;
   font-size: clamp(2.6rem, 7vw, 4.4rem);
@@ -203,15 +203,6 @@
   }
 }
 
-.panel-title {
-  margin: 0 0 24px;
-  font-size: clamp(1.85rem, 4vw, 2.6rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  color: #f2f2f8;
-}
-
 .ask-row {
   margin-bottom: 48px;
 }
@@ -232,25 +223,6 @@
   gap: 8px;
 }
 
-.chip {
-  font-family: inherit;
-  font-size: 0.78rem;
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(230, 230, 240, 0.7);
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    transform: translateY(-1px);
-  }
-}
-
 .scroll-hint {
   display: inline-flex;
   align-items: center;
@@ -259,7 +231,6 @@
   font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.06em;
-  text-transform: lowercase;
   color: rgba(180, 185, 200, 0.45);
   background: none;
   border: none;
@@ -267,9 +238,7 @@
   padding: 0;
   transition: color 0.2s;
 
-  &:hover {
-    color: rgba(230, 230, 240, 0.8);
-  }
+  &:hover { color: rgba(230, 230, 240, 0.8); }
 
   .scroll-arrow {
     animation: bob 1.6s ease-in-out infinite;
@@ -281,7 +250,6 @@
   50% { transform: translateY(4px); }
 }
 
-/* About */
 .about-body {
   p {
     margin: 0 0 16px;
@@ -324,46 +292,24 @@
   }
 }
 
-.text-link {
-  color: rgba(200, 205, 220, 0.7);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #fff;
-  }
-}
-
-/* Projects */
 .panel-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 12px;
 
-  .panel-title {
-    margin-bottom: 0;
-  }
+  .panel-title { margin-bottom: 0; }
 }
 
-.project-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-
-  @media (min-width: 900px) {
-    grid-template-columns: 1fr 1fr;
-  }
+.case-list {
+  margin-top: 8px;
 }
 
 .muted {
   color: rgba(180, 185, 200, 0.45);
 }
 
-/* Contact */
 .contact-grid {
   display: grid;
   gap: 28px;
@@ -371,10 +317,6 @@
 
 .form-shell {
   padding: 28px;
-  border-radius: 20px;
-  background: rgba(14, 14, 22, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
 }
 
 .direct {
@@ -390,17 +332,11 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     transition: color 0.2s;
 
-    &:hover {
-      color: #fff;
-    }
-
-    &:last-child {
-      border-bottom: none;
-    }
+    &:hover { color: #fff; }
+    &:last-child { border-bottom: none; }
   }
 }
 
-/* Mobile: give robot breathing room at top of hero */
 @media (max-width: 768px) {
   .panel-hero {
     padding-top: 52vh;
@@ -408,7 +344,6 @@
   }
 
   .robot-stage {
-    // Keep robot visible in upper half on mobile
     clip-path: inset(0 0 35% 0);
   }
 }

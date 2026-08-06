@@ -1,49 +1,35 @@
-<div class="projects-container container animate-fade-in">
-    <header class="page-header">
-        <div class="context-tabs">
-            <button class="context-pill" [class.active]="activeContext === 'apps'" (click)="switchContext('apps')">
-                &#x1F4F1; Applications
-            </button>
-            <button class="context-pill" [class.active]="activeContext === 'systems'" (click)="switchContext('systems')">
-                &#x2699;&#xFE0F; Systems &amp; Infra
-            </button>
-            <button class="context-pill" [class.active]="activeContext === 'all'" (click)="switchContext('all')">
-                All
-            </button>
-        </div>
-        <h1>{{ pageTitle }}</h1>
-        <p class="subtitle animate-slide-up">{{ subtitleText }}</p>
-    </header>
+<div class="projects-page container">
+  <header class="page-head" appReveal>
+    <p class="eyebrow">work</p>
+    <h1 class="panel-title">projects.</h1>
+    <p class="lead">systems i've shipped — apps, infra, and everything between.</p>
 
-    <!-- Filter Row -->
-    <div class="filter-row animate-slide-up" style="animation-delay: 0.1s;">
-        <div class="filter-tabs">
-            @for (category of categories; track category) {
-            <button class="filter-pill" [class.active]="selectedCategory === category" (click)="setCategory(category)">
-                {{ category }}
-            </button>
-            }
-        </div>
-        <div class="source-tabs">
-            @for (src of sourceFilters; track src.value) {
-            <button class="source-pill" [class.active]="selectedSource === src.value" (click)="setSource(src.value)">
-                {{ src.label }}
-            </button>
-            }
-        </div>
+    <div class="context-row">
+      <button type="button" class="chip" [class.active]="activeContext === 'apps'" (click)="switchContext('apps')">apps</button>
+      <button type="button" class="chip" [class.active]="activeContext === 'systems'" (click)="switchContext('systems')">systems</button>
+      <button type="button" class="chip" [class.active]="activeContext === 'all'" (click)="switchContext('all')">all</button>
     </div>
 
-    @if (isLoading) {
-    <div class="loading-spinner">Loading...</div>
-    } @else {
-    @if (filteredProjects.length === 0) {
-    <div class="empty-state">No projects found matching your filters.</div>
-    } @else {
-    <div class="projects-grid">
-        @for (project of filteredProjects; track project._id) {
-        <app-project-card [project]="project" class="animate-card"></app-project-card>
-        }
+    <div class="source-row">
+      @for (src of sourceFilters; track src.value) {
+        <button type="button" class="source-link" [class.active]="selectedSource === src.value" (click)="setSource(src.value)">
+          {{ src.label }}
+        </button>
+      }
     </div>
-    }
-    }
+  </header>
+
+  @if (isLoading) {
+    <p class="muted">loading…</p>
+  } @else if (filteredProjects.length === 0) {
+    <p class="muted">no projects match these filters.</p>
+  } @else {
+    <div class="case-list reveal-stagger">
+      @for (project of filteredProjects; track project._id; let i = $index) {
+        <div appReveal [appRevealDelay]="i * 40">
+          <app-project-row [project]="project" [index]="i"></app-project-row>
+        </div>
+      }
+    </div>
+  }
 </div>

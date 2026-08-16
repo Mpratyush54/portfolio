@@ -1,0 +1,59 @@
+@if (project) {
+  <div class="overlay-root" (click)="onBackdrop($event)" role="dialog" aria-modal="true">
+    <div class="overlay-panel animate-slide-up">
+      <header class="ov-head">
+        <div class="ov-meta">
+          <span>{{ (index + 1).toString().padStart(2, '0') }} / {{ total.toString().padStart(2, '0') }}</span>
+          <span>{{ project.category }}</span>
+        </div>
+        <button type="button" class="ov-close" (click)="close.emit()" aria-label="Close">✕</button>
+      </header>
+
+      <h2 class="ov-title">{{ project.title }}</h2>
+      <p class="ov-lead">{{ project.shortDescription }}</p>
+
+      @if (project.fullDescription) {
+        <section class="ov-section">
+          <p class="ov-label">01 · context</p>
+          <p>{{ project.fullDescription }}</p>
+        </section>
+      }
+
+      @if (features.length) {
+        <section class="ov-section">
+          <p class="ov-label">02 · highlights</p>
+          <ul>
+            @for (f of features; track f) {
+              <li>{{ f }}</li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (tags.length) {
+        <section class="ov-section">
+          <p class="ov-label">03 · stack</p>
+          <div class="ov-tags">
+            @for (t of tags; track t) {
+              <span>{{ t }}</span>
+            }
+          </div>
+        </section>
+      }
+
+      <div class="ov-links">
+        @if (project.link) {
+          <a [href]="project.link" target="_blank" rel="noopener">live site ↗</a>
+        }
+        @if (project.repo || project.frontendRepo) {
+          <a [href]="project.repo || project.frontendRepo" target="_blank" rel="noopener">source ↗</a>
+        }
+      </div>
+
+      <footer class="ov-nav">
+        <button type="button" (click)="prev.emit()">← prev</button>
+        <button type="button" (click)="next.emit()">next →</button>
+      </footer>
+    </div>
+  </div>
+}

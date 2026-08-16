@@ -1,5 +1,5 @@
 # 3D models
 
-- `robot.glb` — RobotExpressive by Tomás Laulhé (modifications by Don McCurdy)  
-  Source: https://github.com/mrdoob/three.js/tree/master/examples/models/gltf/RobotExpressive  
-  License: CC0 1.0 Universal
+- `robot.glb` — mascot (`mascot-anim`): idle, wave, lookaround, walking, …
+- `human.glb` — human character (`fuch-human-spin`): idle, walk, spin  
+  Used for the About “identity” soft-swap with Bud.

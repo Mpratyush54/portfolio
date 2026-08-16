@@ -1,5 +1,23 @@
 @use '../../../variables' as *;
 
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 640px) {
+  :host-context(.contact-view:has(.chat.is-chatting)) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    min-height: 0;
+  }
+}
+
 .hp-field {
   position: absolute;
   left: -9999px;
@@ -10,79 +28,463 @@
   pointer-events: none;
 }
 
-.contact-form {
+.chat {
   position: relative;
-}
-
-.form-group {
-  margin-bottom: 24px;
-
-  label {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text-color);
-    margin-left: 4px;
-  }
-
-  input,
-  textarea {
-    width: 100%;
-    padding: 16px 20px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    color: var(--text-color);
-    font-size: 1rem;
-    font-family: inherit;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
-
-    &:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      background: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-    }
-
-    &::placeholder {
-      color: rgba(255, 255, 255, 0.2);
-    }
-  }
-}
-
-.btn-primary.full-width {
-  width: 100%;
-  margin-top: 10px;
+  color: #e8e8f0;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 52px;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.chat.is-chatting {
+  min-height: 280px;
+}
+
+.intent-stage,
+.chat-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: stageIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes stageIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
     transform: none;
   }
 }
 
-.form-message {
-  padding: 14px 18px;
-  border-radius: 12px;
-  margin-bottom: 16px;
-  font-size: 0.9rem;
-  font-weight: 500;
+.chat-kicker {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(200, 205, 220, 0.55);
+  animation: stageIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
-  &.success {
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    color: #22c55e;
+.chat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.back {
+  border: none;
+  background: transparent;
+  color: rgba(210, 214, 228, 0.75);
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0 4px 0 0;
+
+  &:hover:not(:disabled) {
+    color: #fff;
   }
 
-  &.error {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.intent-chip {
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(220, 224, 236, 0.85);
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.intent-list.compact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.intent-btn.directed {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  animation: intentIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.26);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+
+    .intent-arrow {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+@keyframes intentIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.intent-emoji {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.intent-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.intent-label {
+  font-size: 1rem;
+  font-weight: 650;
+  color: #f4f4fa;
+  letter-spacing: -0.01em;
+}
+
+.intent-blurb {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(190, 196, 210, 0.74);
+}
+
+.intent-arrow {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(232, 236, 246, 0.9);
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 160px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.bubble {
+  max-width: 88%;
+  padding: 11px 13px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  &.bot {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom-left-radius: 4px;
+    color: rgba(236, 238, 246, 0.95);
+    animation: bubbleInBot 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  &.user {
+    align-self: flex-end;
+    background: #e8e8f0;
+    color: #0a0a10;
+    border-bottom-right-radius: 4px;
+    font-weight: 550;
+    animation: bubbleInUser 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  &.system {
+    align-self: center;
+    font-size: 0.72rem;
+    color: rgba(180, 186, 200, 0.65);
+    background: transparent;
+    padding: 2px 6px;
+    animation: stageIn 0.3s ease both;
+  }
+}
+
+@keyframes bubbleInBot {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bubbleInUser {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  animation: stageIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+
+  input {
+    width: 100%;
+    padding: 13px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    color: #f0f0f6;
+    font-size: 0.92rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    color-scheme: dark;
+
+    &:focus {
+      outline: none;
+      border-color: rgba(200, 205, 216, 0.45);
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 0 0 3px rgba(200, 205, 216, 0.1);
+    }
+
+    &::placeholder {
+      color: rgba(180, 185, 200, 0.35);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+    }
+
+    &[aria-invalid='true'] {
+      border-color: rgba(248, 113, 113, 0.55);
+    }
+
+    &:-webkit-autofill,
+    &:-webkit-autofill:hover,
+    &:-webkit-autofill:focus {
+      -webkit-text-fill-color: #f0f0f6;
+      -webkit-box-shadow: 0 0 0 1000px #12121a inset;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+  }
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.skip,
+.send,
+.restart {
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.skip {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(210, 214, 228, 0.8);
+  padding: 10px 14px;
+
+  &:hover:not(:disabled) {
+    color: #fff;
+  }
+}
+
+.send {
+  border: none;
+  background: #e8e8f0;
+  color: #0a0a10;
+  padding: 10px 16px;
+  min-width: 88px;
+
+  &:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+}
+
+.skip:disabled,
+.send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.field-error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #f87171;
+  line-height: 1.35;
+}
+
+.restart {
+  align-self: center;
+  margin-top: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(210, 214, 228, 0.85);
+  padding: 8px 14px;
+
+  &:hover {
+    color: #fff;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intent-stage,
+  .chat-stage,
+  .chat-kicker,
+  .intent-btn.directed,
+  .bubble.bot,
+  .bubble.user,
+  .bubble.system,
+  .composer {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .chat {
+    gap: 12px;
+  }
+
+  .chat.is-chatting {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat.is-chatting .chat-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-kicker {
+    font-size: 0.58rem;
+  }
+
+  .intent-list.compact {
+    gap: 8px;
+  }
+
+  .intent-btn.directed {
+    padding: 12px;
+    gap: 10px;
+    min-height: 52px;
+    border-radius: 12px;
+  }
+
+  .intent-emoji {
+    width: 34px;
+    height: 34px;
+    font-size: 1.05rem;
+    border-radius: 9px;
+  }
+
+  .intent-label {
+    font-size: 0.95rem;
+  }
+
+  .intent-blurb {
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+
+  .intent-arrow {
+    font-size: 1rem;
+  }
+
+  .thread {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    gap: 6px;
+  }
+
+  .chat.is-chatting .thread {
+    flex: 1;
+    min-height: 120px;
+    max-height: none;
+  }
+
+  .bubble {
+    font-size: 0.86rem;
+    padding: 10px 12px;
+    max-width: 92%;
+  }
+
+  .composer {
+    gap: 8px;
+    flex-shrink: 0;
+    margin-top: 8px;
+  }
+
+  .composer input {
+    font-size: 16px; /* avoid iOS zoom on focus */
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .composer-actions,
+  .composer .send,
+  .composer .skip {
+    min-height: 44px;
   }
 }

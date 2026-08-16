@@ -1,47 +1,82 @@
-<form class="contact-form" (ngSubmit)="onSubmit()" #contactForm="ngForm">
-  <!-- Honeypot: hidden from users, bots often fill it -->
-  <div class="hp-field" aria-hidden="true">
-    <label for="website">Website</label>
-    <input type="text" id="website" name="website" [(ngModel)]="formData.website" tabindex="-1" autocomplete="off">
-  </div>
+<div class="chat" [class.is-chatting]="step !== 'intent'" [class.is-done]="status === 'success'">
+  @if (step === 'intent') {
+    <div class="intent-stage">
+      <p class="chat-kicker">Why are you here?</p>
+      <div class="intent-list compact" role="group" aria-label="Choose an intent">
+        @for (opt of intents; track opt.id; let i = $index) {
+          <button
+            type="button"
+            class="intent-btn directed"
+            [style.animation-delay]="(i * 60) + 'ms'"
+            (click)="pickIntent(opt.id)"
+          >
+            <span class="intent-emoji" aria-hidden="true">{{ opt.emoji }}</span>
+            <span class="intent-copy">
+              <span class="intent-label">{{ opt.label }}</span>
+              <span class="intent-blurb">{{ opt.blurb }}</span>
+            </span>
+            <span class="intent-arrow" aria-hidden="true">→</span>
+          </button>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="chat-stage">
+      <div class="chat-top">
+        <button type="button" class="back" (click)="restart()" [disabled]="status === 'sending'">←</button>
+        <span class="intent-chip">{{ intentLabel }}</span>
+      </div>
 
-  <div class="form-group">
-    <label for="cf-name">Name</label>
-    <input type="text" id="cf-name" name="name" [(ngModel)]="formData.name" required maxlength="100"
-      placeholder="Your Name">
-  </div>
+      <!-- Honeypot -->
+      <div class="hp-field" aria-hidden="true">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off">
+      </div>
 
-  <div class="form-group">
-    <label for="cf-email">Email</label>
-    <input type="email" id="cf-email" name="email" [(ngModel)]="formData.email" required maxlength="254"
-      placeholder="your.email@example.com">
-  </div>
+      <div class="thread" #thread role="log" aria-live="polite">
+        @for (m of messages; track m.id) {
+          @if (m.from !== 'bot' || m.id > 1) {
+            <div
+              class="bubble"
+              [class.bot]="m.from === 'bot'"
+              [class.user]="m.from === 'user'"
+              [class.system]="m.from === 'system'"
+            >
+              {{ m.text }}
+            </div>
+          }
+        }
+      </div>
 
-  <div class="form-group">
-    <label for="cf-phone">Phone (Optional)</label>
-    <input type="tel" id="cf-phone" name="phone" [(ngModel)]="formData.phone" maxlength="40"
-      placeholder="+1 (555) 000-0000">
-  </div>
+      @if (showComposer) {
+        <form class="composer" (ngSubmit)="onSubmitDraft($event)">
+          <input
+            [type]="inputType"
+            name="draft"
+            [(ngModel)]="draft"
+            [placeholder]="placeholder"
+            maxlength="5000"
+            autocomplete="on"
+            [attr.aria-invalid]="inputError ? true : null"
+            [disabled]="status === 'sending'"
+          />
+          <div class="composer-actions">
+            @if (canSkip) {
+              <button type="button" class="skip" (click)="skip()" [disabled]="status === 'sending'">Not required</button>
+            }
+            <button type="submit" class="send" [disabled]="status === 'sending'">
+              {{ step === 'note' ? 'Send' : 'Next' }}
+            </button>
+          </div>
+        </form>
+        @if (inputError) {
+          <p class="field-error" role="alert">{{ inputError }}</p>
+        }
+      }
 
-  <div class="form-group">
-    <label for="cf-message">Message</label>
-    <textarea id="cf-message" name="message" rows="5" [(ngModel)]="formData.message" required maxlength="5000"
-      placeholder="Tell me about your project..."></textarea>
-  </div>
-
-  @if (status === 'success') {
-    <div class="form-message success">{{ statusMessage }}</div>
+      @if (status === 'success') {
+        <button type="button" class="restart" (click)="restart()">Another note</button>
+      }
+    </div>
   }
-  @if (status === 'error') {
-    <div class="form-message error">{{ statusMessage }}</div>
-  }
-
-  <button type="submit" class="btn-primary full-width"
-    [disabled]="!contactForm.form.valid || status === 'sending' || status === 'success'">
-    @if (status !== 'sending') {
-      <span>Send Message</span>
-    } @else {
-      <span>Sending...</span>
-    }
-  </button>
-</form>
+</div>

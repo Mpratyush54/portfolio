@@ -1,0 +1,68 @@
+@if (isOpen) {
+  <div class="ask-overlay" (click)="close()" role="presentation">
+    <div class="ask-modal" (click)="$event.stopPropagation()" role="dialog" aria-label="Ask Bud console">
+      <header class="ask-head">
+        <div>
+          <p class="ask-kicker">console</p>
+          <h2 class="ask-title">ask bud</h2>
+        </div>
+        <button type="button" class="ask-x" (click)="close()" aria-label="Close">×</button>
+      </header>
+
+      <div class="ask-body" #bodyEl>
+        @for (line of lines; track $index) {
+          <div class="ask-line" [attr.data-kind]="line.kind">
+            @if (line.kind === 'cmd') {
+              <div class="ask-row">
+                <span class="prompt">›</span>
+                <span class="cmd-text">{{ line.text }}</span>
+              </div>
+            } @else if (line.kind === 'you') {
+              <div class="ask-row you">
+                <span class="prompt">you</span>
+                <span>{{ line.text }}</span>
+              </div>
+            } @else if (line.kind === 'bud') {
+              <div class="ask-row bud">
+                <span class="avatar">B</span>
+                <span class="bubble" [innerHTML]="line.text"></span>
+              </div>
+            } @else {
+              <div class="ask-row" [class.err]="line.kind === 'err'" [innerHTML]="line.text"></div>
+            }
+          </div>
+        }
+
+        <div class="ask-input-row">
+          <span class="prompt">›</span>
+          <input
+            #inputEl
+            class="ask-field"
+            [value]="input"
+            (input)="onInput($any($event.target).value)"
+            (keydown.enter)="submit()"
+            placeholder="ask a question or type a command…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        @if (suggestions.length) {
+          <div class="ask-sugs">
+            @for (s of suggestions; track s.key; let i = $index) {
+              <button type="button" class="sug" [class.on]="i === selIdx" (click)="pickSuggestion(s.key)">
+                <span>{{ s.key }}</span>
+                <span class="sug-desc">{{ s.desc }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <footer class="ask-foot">
+        <span>questions + commands in one place</span>
+        <span><kbd>enter</kbd> run · <kbd>esc</kbd> close</span>
+      </footer>
+    </div>
+  </div>
+}

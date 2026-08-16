@@ -9,7 +9,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 
-const { sendContactNotification } = require('./services/mailer');
+const { sendApprovedContactEmails, INTENT_LABEL } = require('./services/mailer');
+const contactStore = require('./services/contactStore');
+const ContactMessage = require('./models/ContactMessage');
 
 // In-memory rate limiter
 const rateStore = new Map();
@@ -178,19 +180,109 @@ app.post('/api/admin/sync', requireAdmin, async (req, res) => {
   }
 });
 
+app.get('/api/admin/contacts', requireAdmin, async (req, res) => {
+  try {
+    const status = req.query.status;
+    let rows = [];
+    if (isMongoConnected) {
+      const q = status ? { status } : {};
+      rows = await ContactMessage.find(q).sort({ createdAt: -1 }).lean();
+    } else {
+      rows = contactStore.list();
+      if (status) rows = rows.filter(r => r.status === status);
+    }
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/contacts/:id/approve', requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    let msg = null;
+    if (isMongoConnected) {
+      msg = await ContactMessage.findById(id);
+      if (!msg) return res.status(404).json({ error: 'Not found' });
+      if (msg.status === 'approved' && msg.emailSentAt) {
+        return res.json({ success: true, message: 'Already approved and emailed.' });
+      }
+    } else {
+      msg = contactStore.findById(id);
+      if (!msg) return res.status(404).json({ error: 'Not found' });
+      if (msg.status === 'approved' && msg.emailSentAt) {
+        return res.json({ success: true, message: 'Already approved and emailed.' });
+      }
+    }
+
+    await sendApprovedContactEmails(msg);
+
+    const patch = {
+      status: 'approved',
+      approvedAt: new Date(),
+      emailSentAt: new Date(),
+    };
+
+    if (isMongoConnected) {
+      Object.assign(msg, patch);
+      await msg.save();
+      res.json({ success: true, message: 'Approved — owner + visitor emails sent.', item: msg });
+    } else {
+      const updated = contactStore.update(id, {
+        ...patch,
+        approvedAt: patch.approvedAt.toISOString(),
+        emailSentAt: patch.emailSentAt.toISOString(),
+      });
+      res.json({ success: true, message: 'Approved — owner + visitor emails sent.', item: updated });
+    }
+  } catch (err) {
+    console.error('[Contact approve]', err);
+    res.status(500).json({ error: err.message || 'Failed to approve' });
+  }
+});
+
+app.post('/api/admin/contacts/:id/reject', requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (isMongoConnected) {
+      const msg = await ContactMessage.findByIdAndUpdate(
+        id,
+        { $set: { status: 'rejected', rejectedAt: new Date() } },
+        { new: true }
+      );
+      if (!msg) return res.status(404).json({ error: 'Not found' });
+      return res.json({ success: true, item: msg });
+    }
+    const existing = contactStore.findById(id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+    const updated = contactStore.update(id, {
+      status: 'rejected',
+      rejectedAt: new Date().toISOString(),
+    });
+    res.json({ success: true, item: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===== CONTACT ROUTE =====
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CONTACT_LIMITS = { name: 100, email: 254, phone: 40, message: 5000 };
+const CONTACT_LIMITS = { name: 100, email: 254, phone: 40, company: 120, message: 5000 };
+const VALID_INTENTS = new Set(['hire', 'freelance', 'hi']);
 
 app.post('/api/contact', async (req, res) => {
   try {
-    const { name, email, phone, message, website } = req.body;
+    const { name, email, phone, company, message, website, intent } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
 
     // Honeypot — bots fill hidden fields; humans leave them empty
     if (website) {
-      return res.json({ success: true, message: 'Message sent — I\'ll reply soon.' });
+      return res.json({ success: true, message: 'Thanks — Pratyush will get back to you soon.' });
+    }
+
+    if (!VALID_INTENTS.has(intent)) {
+      return res.status(400).json({ error: 'Please choose Hire me, Freelance, or Just say hi.' });
     }
 
     if (!name || !email || !message) {
@@ -198,10 +290,13 @@ app.post('/api/contact', async (req, res) => {
     }
 
     const trimmed = {
+      intent,
       name: String(name).trim(),
       email: String(email).trim(),
       phone: phone ? String(phone).trim() : '',
+      company: company ? String(company).trim() : '',
       message: String(message).trim(),
+      ip: String(ip || ''),
     };
 
     if (!EMAIL_RE.test(trimmed.email)) {
@@ -211,6 +306,7 @@ app.post('/api/contact', async (req, res) => {
     if (trimmed.name.length > CONTACT_LIMITS.name ||
         trimmed.email.length > CONTACT_LIMITS.email ||
         trimmed.phone.length > CONTACT_LIMITS.phone ||
+        trimmed.company.length > CONTACT_LIMITS.company ||
         trimmed.message.length > CONTACT_LIMITS.message) {
       return res.status(400).json({ error: 'One or more fields exceed the maximum length.' });
     }
@@ -221,15 +317,21 @@ app.post('/api/contact', async (req, res) => {
 
     recordAttempt(ip, trimmed.email.toLowerCase());
 
-    if (!process.env.SMTP_HOST) {
-      return res.json({ success: true, message: 'Message received (email not configured).' });
+    // Store only — emails go out after admin approval
+    if (isMongoConnected) {
+      await ContactMessage.create(trimmed);
+    } else {
+      contactStore.create(trimmed);
     }
 
-    await sendContactNotification(trimmed);
-    res.json({ success: true, message: 'Message sent — I\'ll reply soon.' });
+    res.json({
+      success: true,
+      message: 'Thanks — Pratyush will get back to you soon.',
+      intentLabel: INTENT_LABEL[intent],
+    });
   } catch (err) {
     console.error('[Contact] Error:', err);
-    res.status(500).json({ error: 'Failed to send message. Please try again later.' });
+    res.status(500).json({ error: 'Failed to save message. Please try again later.' });
   }
 });
 

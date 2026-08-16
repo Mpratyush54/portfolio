@@ -39,6 +39,7 @@ html {
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   font-family: $font-family-base;
   color: var(--text-color);
@@ -46,6 +47,7 @@ body {
   overflow-x: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body::before,
@@ -258,4 +260,10 @@ app-root {
 
 .animate-slide-up {
   animation: slideUp 0.65s var(--ease-out) both;
+}
+
+/* Hide system cursor when custom cursor is active (desktop) */
+html.custom-cursor-on,
+html.custom-cursor-on * {
+  cursor: none !important;
 }

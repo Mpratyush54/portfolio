@@ -2,3 +2,6 @@
 node_modules/
 dist/
 .angular/
+fuch-clone/
+.opencode/
+backend/data/contacts.json

@@ -1,53 +1,51 @@
-import { Component, inject, Renderer2 } from '@angular/core';
+import { Component, inject, Renderer2, OnInit } from '@angular/core';
 import { RouterOutlet, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
-import { NavbarComponent } from './components/navbar/navbar';
-import { FooterComponent } from './components/footer/footer';
-import { CommandPaletteComponent } from './components/command-palette/command-palette';
+import { CustomCursorComponent } from './components/custom-cursor/custom-cursor';
+import { SfxService } from './services/sfx.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, FooterComponent, CommandPaletteComponent],
+  imports: [RouterOutlet, CustomCursorComponent],
   template: `
-    @if (!isHome) {
-      <app-navbar></app-navbar>
-    }
-    <main [class.home-main]="isHome">
+    <app-custom-cursor></app-custom-cursor>
+    <main class="shell-main">
       <router-outlet></router-outlet>
     </main>
-    @if (!isHome) {
-      <app-footer></app-footer>
-    }
-    <app-command-palette></app-command-palette>
   `,
   styles: [`
-    main:not(.home-main) {
-      min-height: calc(100vh - 80px);
-    }
-    main.home-main {
+    .shell-main {
       min-height: 100vh;
     }
   `]
 })
-export class App {
+export class App implements OnInit {
   private router = inject(Router);
   private renderer = inject(Renderer2);
-  isHome = false;
+  private sfx = inject(SfxService);
+
+  ngOnInit(): void {
+    this.renderer.addClass(document.documentElement, 'dark-mode');
+  }
 
   constructor() {
-    this.syncRoute(this.router.url);
-
+    this.lockBody(this.isShell(this.router.url));
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe((e: any) => {
-      this.syncRoute(e.urlAfterRedirects);
+      this.lockBody(this.isShell(e.urlAfterRedirects));
     });
   }
 
-  private syncRoute(url: string): void {
-    this.isHome = url === '/' || url.startsWith('/#') || url.startsWith('/?');
-    // Home manages its own immersive scroll; never lock body overflow
-    this.renderer.removeStyle(document.body, 'overflow');
+  private isShell(url: string): boolean {
+    const path = url.split('?')[0];
+    if (path.startsWith('/admin') || path.startsWith('/404')) return false;
+    return true;
+  }
+
+  private lockBody(shell: boolean): void {
+    if (shell) this.renderer.setStyle(document.body, 'overflow', 'hidden');
+    else this.renderer.removeStyle(document.body, 'overflow');
   }
 }

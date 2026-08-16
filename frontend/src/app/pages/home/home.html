@@ -1,112 +1,318 @@
-<div class="home-page">
+<div class="stage" [class.is-ready]="stageReady" [class.is-loading]="loading" [class.is-home]="view === 'home'" [class.is-contact]="view === 'contact'" [class.is-about]="view === 'about'" [class.is-work]="view === 'work'">
 
-  <div class="robot-stage" aria-hidden="false">
-    <app-hero-scene [stageOnly]="true"></app-hero-scene>
+  <!-- Loader — only while the model loads; walk-in is visible after -->
+  @if (loading) {
+    <div class="boot">
+      <p class="boot-brand">pratyush mishra.</p>
+      <p class="boot-status">loading bud…</p>
+      <div class="boot-bar"><div class="boot-fill indeterminate"></div></div>
+    </div>
+  }
+
+  <!-- Persistent robot -->
+  <div class="robot-stage" [class.interactive]="playMode">
+    <app-hero-scene
+      [stageOnly]="true"
+      [playIntro]="playIntro"
+      (loadingChange)="onLoading($event)"
+      (ready)="onReady()"
+    ></app-hero-scene>
   </div>
 
-  <div class="progress-rail" aria-hidden="true">
-    <div class="progress-fill" [style.transform]="'scaleY(' + scrollProgress + ')'"></div>
-  </div>
+  <!-- HUD -->
+  <header class="hud" [class.visible]="stageReady">
+    <div class="hud-left">
+      <button type="button" class="brand" (click)="setView('home')">pratyush mishra.</button>
+      <p class="hud-sub">backend engineer · tech lead · full stack</p>
+    </div>
 
-  <header class="top-bar">
-    <a routerLink="/" class="brand">pratyush mishra.</a>
-    <nav class="top-nav">
-      <button type="button" class="nav-link" [class.active]="activeSection === 'about'" (click)="scrollTo('about')">About</button>
-      <button type="button" class="nav-link" [class.active]="activeSection === 'projects'" (click)="scrollTo('projects')">Work</button>
-      <button type="button" class="nav-link" [class.active]="activeSection === 'contact'" (click)="scrollTo('contact')">Contact</button>
-      <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="nav-link">Resume</a>
-    </nav>
+    <div class="hud-tools" aria-label="Quick actions">
+      <button type="button" class="hud-tool" [class.on]="!muted" (click)="toggleMute()"
+        [attr.title]="muted ? 'Sound off' : 'Sound on'" [attr.aria-pressed]="!muted" aria-label="Sound">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          @if (muted) {
+            <path d="M11 5 L6 9 H3 v6 h3 l5 4 V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+          } @else {
+            <path d="M11 5 L6 9 H3 v6 h3 l5 4 V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+          }
+        </svg>
+      </button>
+      <a class="hud-tool" href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" rel="noopener" title="Resume" aria-label="Resume">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="8" y1="13" x2="16" y2="13"/>
+          <line x1="8" y1="17" x2="14" y2="17"/>
+        </svg>
+      </a>
+    </div>
+
+    <div class="hud-right">
+      <span class="mood">state · {{ mood }}</span>
+      <nav class="menu-pill desktop-nav" aria-label="Primary">
+        <button type="button" [class.active]="view === 'home'" (click)="setView('home')">Home</button>
+        <button type="button" [class.active]="view === 'work'" (click)="setView('work')">Work</button>
+        <button type="button" [class.active]="view === 'about'" (click)="setView('about')">About</button>
+        <button type="button" [class.active]="view === 'contact'" (click)="setView('contact')">Contact</button>
+        <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" rel="noopener">Resume</a>
+      </nav>
+    </div>
   </header>
 
-  <div class="story">
+  <!-- Phone bottom navigator -->
+  <nav class="bottom-nav" [class.visible]="stageReady" aria-label="Primary">
+    <button type="button" [class.active]="view === 'home'" (click)="setView('home')">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>
+      </svg>
+      <span>Home</span>
+    </button>
+    <button type="button" [class.active]="view === 'work'" (click)="setView('work')">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      </svg>
+      <span>Work</span>
+    </button>
+    <button type="button" [class.active]="view === 'about'" (click)="setView('about')">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>
+      </svg>
+      <span>About</span>
+    </button>
+    <button type="button" [class.active]="view === 'contact'" (click)="setView('contact')">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/>
+      </svg>
+      <span>Contact</span>
+    </button>
+  </nav>
 
-    <section class="panel panel-hero" id="hero" data-beat="hero">
-      <div class="panel-inner hero-inner" appReveal>
-        <p class="eyebrow">portfolio</p>
-        <h1 class="display-name">pratyush mishra.</h1>
-        <p class="role-line">backend engineer · tech lead · full stack</p>
-        <p class="lead">
-          building systems that scale.<br>
-          one deploy at a time.
-        </p>
-        <div class="ask-row">
-          <span class="ask-label">ask bud</span>
-          <div class="chips">
-            <button type="button" class="chip" (click)="triggerQnA('who')">who is pratyush?</button>
-            <button type="button" class="chip" (click)="triggerQnA('built')">what has he built?</button>
-            <button type="button" class="chip" (click)="triggerQnA('work')">is he open to work?</button>
-          </div>
+  <!-- Right control rail (desktop / tablet) -->
+  <div class="right-cluster" [class.visible]="stageReady">
+    <aside class="side-rail" aria-label="Stage controls">
+      <button type="button" class="rail-btn rail-sound" [class.on]="!muted" (click)="toggleMute()"
+        [attr.title]="muted ? 'Sound off' : 'Sound on'" [attr.aria-pressed]="!muted">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          @if (muted) {
+            <path d="M11 5 L6 9 H3 v6 h3 l5 4 V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+          } @else {
+            <path d="M11 5 L6 9 H3 v6 h3 l5 4 V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+          }
+        </svg>
+        <span class="rail-label">sound</span>
+      </button>
+
+      <button type="button" class="rail-btn robot-only" [class.on]="playMode" (click)="togglePlayMode()"
+        title="Drag to rotate Bud" [attr.aria-pressed]="playMode">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3a9 9 0 1 0 9 9"/><path d="M21 3v6h-6"/><circle cx="12" cy="12" r="2"/>
+        </svg>
+        <span class="rail-label">orbit</span>
+      </button>
+
+      <button type="button" class="rail-btn robot-only" [class.on]="randomMode" (click)="toggleRandomMode()"
+        title="Random animations" [attr.aria-pressed]="randomMode">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+          <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+          <line x1="4" y1="4" x2="9" y2="9"/>
+        </svg>
+        <span class="rail-label">random</span>
+      </button>
+
+      <button type="button" class="rail-btn robot-only" [class.on]="showNowPlaying" (click)="toggleNowPlaying()"
+        title="Last played" [attr.aria-pressed]="showNowPlaying">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/>
+        </svg>
+        <span class="rail-label">listen</span>
+      </button>
+
+      <button type="button" class="rail-btn" [class.on]="ask.open()" (click)="toggleAsk()" title="Ask Bud / terminal (L)">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16M4 12h10M4 18h14"/>
+        </svg>
+        <span class="rail-label">ask</span>
+      </button>
+    </aside>
+  </div>
+
+  <app-ask-console></app-ask-console>
+
+  @if (showNowPlaying) {
+    <div class="now-playing" role="dialog" aria-label="Last played">
+      <div class="np-head">
+        <div>
+          <p class="np-kicker">{{ nowPlaying.note }}</p>
+          <p class="np-title">{{ nowPlaying.title }}</p>
+          <p class="np-artist">{{ nowPlaying.artist }}</p>
         </div>
-        <button type="button" class="scroll-hint" (click)="scrollTo('about')">
-          scroll to meet him
-          <span class="scroll-arrow">↓</span>
-        </button>
+        <button type="button" class="np-close" (click)="closeNowPlaying()" aria-label="Close">×</button>
       </div>
-    </section>
+      <iframe
+        [src]="spotifyEmbed"
+        title="Spotify player"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+      ></iframe>
+      <a class="np-open" [href]="nowPlaying.spotifyUrl" target="_blank" rel="noopener">Open in Spotify ↗</a>
+    </div>
+  }
 
-    <section class="panel panel-about" id="about" data-beat="about">
-      <div class="panel-inner" appReveal>
-        <p class="eyebrow">about</p>
-        <h2 class="panel-title">systems, teams, products.</h2>
-        <div class="about-body">
+  <!-- Views -->
+  <div class="views" [class.visible]="stageReady">
+
+    @if (view === 'home') {
+      <div class="view home-view animate-fade-in">
+        <div class="view-copy">
+          <p class="eyebrow">portfolio</p>
+          <h1 class="display-name">pratyush mishra.</h1>
+          <p class="role-line">backend engineer · tech lead · full stack</p>
+          <p class="lead">
+            building systems that scale.<br>
+            one deploy at a time.
+          </p>
+          <div class="ask-row">
+            <span class="ask-label">ask bud</span>
+            <div class="chips">
+              <button type="button" class="chip" (click)="triggerQnA('who')">who is pratyush?</button>
+              <button type="button" class="chip" (click)="triggerQnA('built')">what has he built?</button>
+              <button type="button" class="chip" (click)="triggerQnA('work')">is he open to work?</button>
+            </div>
+          </div>
+          <p class="hint">press <kbd>L</kbd> or use Ask on the right · or open Work</p>
+        </div>
+      </div>
+    }
+
+    @if (view === 'work') {
+      <div class="view work-view animate-fade-in" [class.is-scrolled]="workScrolled">
+        <div class="work-sticky">
+          <header class="work-head">
+            <span class="section-label">02 / work</span>
+            <p class="work-blurb">
+              Shipping platforms used by real orgs — from campus PaaS to live DRM streaming.
+            </p>
+          </header>
+          <aside class="career">
+            <div class="career-label">
+              <span>career</span>
+              <span>{{ career.length.toString().padStart(2, '0') }}</span>
+            </div>
+            <div class="timeline">
+              @for (e of career; track e.company + e.role; let i = $index) {
+                <div class="tl-item" [class.first]="i === 0">
+                  <span class="tl-dot"></span>
+                  <div class="tl-date">{{ e.date }}</div>
+                  <div class="tl-co">{{ e.company }}</div>
+                  <div class="tl-role">{{ e.role }}</div>
+                </div>
+              }
+            </div>
+          </aside>
+        </div>
+        <div class="work-body">
+          <section class="selected" (scroll)="onWorkScroll($event)">
+            <div class="career-label">
+              <span>selected work</span>
+              <span>{{ projects.length.toString().padStart(2, '0') }}</span>
+            </div>
+            <div class="card-list">
+              @for (p of projects; track p._id; let i = $index) {
+                <app-work-card [project]="p" [index]="i" (open)="openProject($event)"></app-work-card>
+              }
+            </div>
+          </section>
+        </div>
+      </div>
+    }
+
+    @if (view === 'about') {
+      <div class="view about-view animate-fade-in">
+        <div class="view-copy">
+          <p class="eyebrow">about</p>
+          <h2 class="panel-title">systems, teams, products.</h2>
           <p>
             CS undergrad at <strong>CHRIST University</strong>. Tech Lead at CAPS —
             leading 14 developers across concurrent projects, shipping platforms
-            used by real orgs.
+            used by real organizations.
           </p>
           <p>
             Strongest on the backend — Redis, WebSockets, containers, observability —
             and comfortable taking Angular, Flutter, and React Native to production.
           </p>
-          <ul class="facts">
-            <li><span>GPA</span> 3.51 / 4.0</li>
-            <li><span>Role</span> Tech Lead @ CAPS</li>
-            <li><span>Stack</span> Node · Python · K8s · Redis</li>
-          </ul>
-          <a routerLink="/about" class="text-link">full bio →</a>
+          <div class="about-facts">
+            <ul class="facts">
+              <li><span>GPA</span> 3.51 / 4.0</li>
+              <li><span>Role</span> Tech Lead @ CAPS</li>
+              <li><span>Stack</span> Node · Python · K8s · Redis</li>
+            </ul>
+          </div>
         </div>
       </div>
-    </section>
+    }
 
-    <section class="panel panel-projects" id="projects" data-beat="projects">
-      <div class="panel-inner wide" appReveal>
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">work</p>
-            <h2 class="panel-title">selected projects</h2>
+    @if (view === 'contact') {
+      <div class="view contact-view animate-fade-in">
+        <aside class="contact-identity">
+          <div class="identity-head">
+            <div class="identity-photo">
+              <img
+                src="https://github.com/Mpratyush54.png?size=200"
+                alt="Pratyush Mishra"
+                width="200"
+                height="200"
+                loading="lazy"
+              />
+            </div>
+            <div class="identity-copy">
+              <p class="identity-name">pratyush mishra</p>
+              <p class="identity-meta">backend · tech lead</p>
+            </div>
           </div>
-          <a routerLink="/projects" class="text-link">see all →</a>
-        </div>
-        @if (projectsLoading) {
-          <p class="muted">loading…</p>
-        } @else {
-          <div class="case-list">
-            @for (project of featuredProjects; track project._id; let i = $index) {
-              <app-project-row [project]="project" [index]="i"></app-project-row>
-            }
-          </div>
-        }
-      </div>
-    </section>
 
-    <section class="panel panel-contact" id="contact" data-beat="contact">
-      <div class="panel-inner" appReveal>
-        <p class="eyebrow">contact</p>
-        <h2 class="panel-title">let's build something.</h2>
-        <p class="lead tight">open to backend &amp; full stack roles. replies within 24h.</p>
-        <div class="contact-grid">
-          <div class="form-shell">
+          <nav class="connect-list" aria-label="Connect">
+            <p class="connect-label">connect</p>
+            <a class="connect-link" href="mailto:mpratyush54@gmail.com">
+              <span class="connect-kind">email</span>
+              <span class="connect-value">mpratyush54@gmail.com</span>
+            </a>
+            <a class="connect-link" href="https://www.linkedin.com/in/pratyushm07" target="_blank" rel="noopener">
+              <span class="connect-kind">linkedin</span>
+              <span class="connect-value">pratyushm07 ↗</span>
+            </a>
+            <a class="connect-link" href="https://github.com/Mpratyush54" target="_blank" rel="noopener">
+              <span class="connect-kind">github</span>
+              <span class="connect-value">Mpratyush54 ↗</span>
+            </a>
+          </nav>
+        </aside>
+
+        <section class="contact-panel" aria-label="Contact chat">
+          <header class="contact-panel-head">
+            <div>
+              <p class="eyebrow">contact</p>
+              <h2 class="panel-title">say hello.</h2>
+              <p class="panel-sub">Tell me what you need — I’ll take it from there.</p>
+            </div>
+          </header>
+          <div class="contact-panel-body">
             <app-contact-form (sent)="onContactSuccess()"></app-contact-form>
           </div>
-          <div class="direct">
-            <a href="mailto:mpratyush54@gmail.com">mpratyush54@gmail.com</a>
-            <a href="https://www.linkedin.com/in/pratyushm07" target="_blank" rel="noopener">linkedin ↗</a>
-            <a href="https://github.com/Mpratyush54" target="_blank" rel="noopener">github ↗</a>
-            <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank">resume ↗</a>
-          </div>
-        </div>
+        </section>
       </div>
-    </section>
+    }
 
   </div>
+
+  @if (activeProject) {
+    <app-project-overlay
+      [project]="activeProject"
+      [index]="activeProjectIndex"
+      [total]="projects.length"
+      (close)="closeProject()"
+      (prev)="prevProject()"
+      (next)="nextProject()"
+    ></app-project-overlay>
+  }
 </div>

@@ -25,9 +25,10 @@
 
 .speech-bubble {
   position: absolute;
-  top: 18%;
+  top: 36%;
   left: 58%;
-  transform: translateX(-50%) translateY(10px);
+  /* Clear air above the head */
+  transform: translate(-50%, calc(-100% - 28px)) translateY(6px);
   padding: 12px 20px;
   border-radius: 16px;
   background: rgba(10, 10, 18, 0.9);
@@ -46,10 +47,11 @@
               transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   z-index: 2;
+  will-change: left, top;
 
   &.show {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translate(-50%, calc(-100% - 28px));
   }
 
   &::after {
@@ -66,13 +68,16 @@
   }
 
   @media (max-width: 768px) {
-    top: 12%;
-    left: 50%;
-    font-size: 0.75rem;
-    padding: 8px 14px;
+    font-size: 0.78rem;
+    padding: 9px 12px;
     white-space: normal;
     text-align: center;
-    max-width: calc(100% - 48px);
+    max-width: min(280px, calc(100% - 72px));
+    transform: translate(-50%, calc(-100% - 16px)) translateY(4px);
+
+    &.show {
+      transform: translate(-50%, calc(-100% - 16px));
+    }
   }
 }
 

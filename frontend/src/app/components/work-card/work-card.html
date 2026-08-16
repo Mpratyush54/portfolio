@@ -1,0 +1,23 @@
+<button type="button" class="work-card" (click)="activate()">
+  <div class="thumb">
+    @if (thumb) {
+      <img [src]="thumb" [alt]="project.title" loading="lazy" />
+    } @else {
+      <div class="thumb-fallback" [attr.data-cat]="category"></div>
+    }
+  </div>
+  <div class="body">
+    <div class="meta">
+      <span class="meta-left">{{ num }} · {{ category }}</span>
+      <span class="meta-hint">{{ hint }}</span>
+    </div>
+    <h3 class="title">{{ project.title }}</h3>
+    <p class="desc">{{ project.shortDescription }}</p>
+    <div class="tags">
+      @for (t of techs; track t) {
+        <span class="tag">{{ t }}</span>
+      }
+    </div>
+  </div>
+  <span class="arrow" aria-hidden="true">→</span>
+</button>

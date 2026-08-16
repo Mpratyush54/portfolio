@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Frontend</title>
+  <title>Pratyush Mishra</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <!-- Warm models early so About glitch / cold loads hitch less -->
+  <link rel="preload" href="/models/robot.glb" as="fetch" type="model/gltf-binary" crossorigin>
+  <link rel="preload" href="/models/human.glb" as="fetch" type="model/gltf-binary" crossorigin>
 </head>
 <body>
   <app-root></app-root>

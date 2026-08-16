@@ -21,6 +21,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -56,6 +58,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -84,3 +88,35 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  # Pin k8s manifests to the new SHA so Argo sees a git change and rolls pods
+  bump-manifests:
+    name: Bump Argo image tags
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Point deployments at this commit's images
+        env:
+          SHORT_SHA: ${{ github.sha }}
+        run: |
+          TAG="${SHORT_SHA:0:7}"
+          OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          sed -i "s|image: ghcr.io/.*/portfolio-frontend:.*|image: ghcr.io/${OWNER}/portfolio-frontend:${TAG}|" kubernetes/frontend-deployment.yaml
+          sed -i "s|image: ghcr.io/.*/portfolio-backend:.*|image: ghcr.io/${OWNER}/portfolio-backend:${TAG}|" kubernetes/backend-deployment.yaml
+          echo "Pinned manifests to :${TAG}"
+          grep 'image:' kubernetes/frontend-deployment.yaml kubernetes/backend-deployment.yaml
+
+      - name: Commit manifest pin
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: pin k8s images to ${{ github.sha }}"
+          file_pattern: 'kubernetes/*-deployment.yaml'
+          skip_dirty_check: false

@@ -21,8 +21,9 @@ spec:
         - name: ghcr-pull
       containers:
         - name: backend
-          image: ghcr.io/mpratyush54/portfolio-backend:arm64
-          imagePullPolicy: IfNotPresent
+          # Tag is rewritten by CI to the short git SHA after each build
+          image: ghcr.io/mpratyush54/portfolio-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           env:

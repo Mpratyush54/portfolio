@@ -22,7 +22,7 @@ spec:
       containers:
         - name: backend
           # Tag is rewritten by CI to the short git SHA after each build
-          image: ghcr.io/mpratyush54/portfolio-backend:ac258a8
+          image: ghcr.io/mpratyush54/portfolio-backend:6a9b159
           imagePullPolicy: Always
           ports:
             - containerPort: 5000

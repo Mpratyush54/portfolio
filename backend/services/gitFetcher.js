@@ -33,11 +33,17 @@ async function syncMetaOnly() {
   const results = [];
 
   const ghRepos = [
-    'Mpratyush54/classstream-frontend', 'Mpratyush54/classstream-backend', 'Mpratyush54/Phone-Proctor',
-    'Mpratyush54/CAPS-Automation', 'Mpratyush54/Battery-AAdhar', 'Mpratyush54/recommendation-_system',
+    'Mpratyush54/server-automation',
+    'Mpratyush54/classstream-frontend',
+    'Mpratyush54/classstream-backend',
+    'Mpratyush54/dayflow',
+    'Mpratyush54/Phone-Proctor',
     'Mpratyush54/exam-protector-mobile',
-    'Mpratyush54/RTMP-Server', 'Mpratyush54/Ambue-pharmacutical-scanner-android-web-backend', 'Mpratyush54/Caps',
-    'dauntless-arcane/Forum', 'dauntless-arcane/Competency-Mapping'
+    'Mpratyush54/Ambue-pharmacutical-scanner-android-web-backend',
+    'Mpratyush54/Vision-You',
+    'Mpratyush54/Battery-AAdhar',
+    'Mpratyush54/CAPS-Automation',
+    'dauntless-arcane/Forum'
   ];
 
   for (const full of ghRepos) {

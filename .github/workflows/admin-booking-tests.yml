@@ -1,0 +1,49 @@
+name: Admin and booking tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/admin-booking-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/admin-booking-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - run: npm test
+        working-directory: backend
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - name: Test checkout and admin flows
+        run: node node_modules/@angular/cli/bin/ng.js test --watch=false --include=src/app/components/discovery-book/discovery-book.spec.ts --include=src/app/pages/admin/admin.spec.ts
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend

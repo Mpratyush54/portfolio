@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,21 @@ type ContactRow = {
   emailSentAt?: string;
 };
 
+type BookingRow = {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  note?: string;
+  date: string;
+  slot: string;
+  amountPaise: number;
+  status: 'pending_payment' | 'paid' | 'payment_review' | 'cancelled' | 'completed';
+  razorpayPaymentId?: string;
+  createdAt: string;
+  paidAt?: string;
+};
+
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -26,14 +41,16 @@ type ContactRow = {
       <div class="login-container">
         <div class="login-card glass-panel">
           <h2>Admin Access</h2>
-          <p class="login-desc">Enter the admin password to manage inbox &amp; sync.</p>
-          <div class="input-group">
+          <p class="login-desc">Sign in with your admin email and password.</p>
+          <div class="login-stack">
+            <input type="email" [(ngModel)]="email" placeholder="Email"
+              autocomplete="username" (keyup.enter)="login()" />
             <input type="password" [(ngModel)]="password" placeholder="Password"
-              (keyup.enter)="login()" />
-            <button class="login-btn" (click)="login()">Unlock</button>
+              autocomplete="current-password" (keyup.enter)="login()" />
+            <button class="login-btn" (click)="login()" [disabled]="loggingIn">{{ loggingIn ? 'Signing in…' : 'Sign in' }}</button>
           </div>
           @if (loginError) {
-            <p class="login-error">Incorrect password</p>
+            <p class="login-error">{{ loginError }}</p>
           }
         </div>
       </div>
@@ -41,10 +58,105 @@ type ContactRow = {
       <div class="admin-container container">
         <header class="admin-header">
           <h1>Admin Panel</h1>
-          <p class="subtitle">Approve contact notes before any email goes out</p>
+          <button type="button" class="ghost" (click)="logout()">Sign out</button>
+          <p class="subtitle">Daily digest emails you when there are submissions. Tap Send yes to email the visitor.</p>
         </header>
 
         <div class="admin-grid">
+          <div class="admin-card glass-panel span-2">
+            <div class="card-head">
+              <h2>Booking settings</h2>
+              <button type="button" class="ghost save-btn" (click)="saveBookingSettings()" [disabled]="savingSettings || !settingsLoaded">
+                {{ savingSettings ? 'Saving…' : 'Save' }}
+              </button>
+            </div>
+            <p class="card-desc">
+              Dynamic price stays between min and max. Blocked dates are closed on the calendar.
+            </p>
+            <button type="button" class="ghost" (click)="loadBookingSettings()" [disabled]="savingSettings">Reload settings</button>
+            <div class="settings-row">
+              <label>
+                <span>Min fee (₹)</span>
+                <input type="number" [(ngModel)]="settingsMinRupees" min="1" max="100000" step="0.01" />
+              </label>
+              <label>
+                <span>Max fee (₹)</span>
+                <input type="number" [(ngModel)]="settingsMaxRupees" min="1" max="100000" step="0.01" />
+              </label>
+            </div>
+            <div class="blocked-block">
+              <p class="blocked-label">Unavailable dates</p>
+              <div class="blocked-add">
+                <input type="date" [(ngModel)]="newBlockedDate" />
+                <button type="button" class="add-date" (click)="addBlockedDate()">Add</button>
+              </div>
+              @if (!blockedDates.length) {
+                <p class="empty-inline">No blocked dates.</p>
+              } @else {
+                <ul class="blocked-list">
+                  @for (d of blockedDates; track d) {
+                    <li>
+                      <span>{{ d }}</span>
+                      <button type="button" (click)="removeBlockedDate(d)">Remove</button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+            @if (settingsMsg) {
+              <p class="settings-ok">{{ settingsMsg }}</p>
+            }
+            @if (settingsError) {
+              <p class="login-error">{{ settingsError }}</p>
+            }
+          </div>
+
+          <div class="admin-card glass-panel span-2">
+            <div class="card-head">
+              <h2>Discovery bookings</h2>
+              <div class="filters">
+                <button type="button" [class.on]="bookFilter === 'paid'" (click)="setBookFilter('paid')">Paid</button>
+                <button type="button" [class.on]="bookFilter === 'all'" (click)="setBookFilter('all')">All</button>
+                <button type="button" [class.on]="bookFilter === 'payment_review'" (click)="setBookFilter('payment_review')">Payment review</button>
+                <button type="button" class="ghost" (click)="loadBookings()" [disabled]="loadingBookings">Refresh</button>
+              </div>
+            </div>
+            @if (loadingBookings) {
+              <div class="loading">Loading bookings…</div>
+            } @else if (!bookings.length) {
+              <div class="empty">No {{ bookFilter === 'paid' ? 'paid ' : '' }}bookings yet.</div>
+            } @else {
+              <div class="inbox">
+                @for (b of bookings; track b._id) {
+                  <article class="msg" [class.pending]="b.status === 'paid'">
+                    <header>
+                      <div>
+                        <p class="msg-intent">{{ b.date }} · {{ b.slot }} IST</p>
+                        <h3>{{ b.name }} · {{ b.email }}</h3>
+                        <p class="msg-meta">
+                          ₹{{ (b.amountPaise / 100) | number:'1.0-2' }}
+                          · {{ b.createdAt | date: 'medium' }}
+                          @if (b.phone) { · {{ b.phone }} }
+                          @if (b.razorpayPaymentId) { · {{ b.razorpayPaymentId }} }
+                        </p>
+                      </div>
+                      <span class="status" [attr.data-s]="b.status === 'paid' ? 'approved' : 'pending'">{{ b.status }}</span>
+                    </header>
+                    @if (b.note) {
+                      <p class="msg-body">{{ b.note }}</p>
+                    }
+                    @if (b.status === 'payment_review') {
+                      <p class="login-error">Payment received; this time could not be confirmed. Contact the customer to arrange a refund or another slot.</p>
+                    }
+                  </article>
+                }
+              </div>
+            }
+            @if (bookingsError) {
+              <p class="login-error">{{ bookingsError }}</p>
+            }
+          </div>
+
           <div class="admin-card glass-panel span-2">
             <div class="card-head">
               <h2>Contact inbox</h2>
@@ -78,10 +190,10 @@ type ContactRow = {
                     <p class="msg-body">{{ c.message }}</p>
                     @if (c.status === 'pending') {
                       <div class="msg-actions">
-                        <button type="button" class="approve" (click)="approve(c)" [disabled]="busyId === c._id">
-                          {{ busyId === c._id ? 'Sending…' : 'Approve & email' }}
+                        <button type="button" class="approve" (click)="approve(c)" [disabled]="busyId !== null">
+                          {{ busyId === c._id ? 'Sending…' : 'Send yes' }}
                         </button>
-                        <button type="button" class="reject" (click)="reject(c)" [disabled]="busyId === c._id">
+                        <button type="button" class="reject" (click)="reject(c)" [disabled]="busyId !== null">
                           Reject
                         </button>
                       </div>
@@ -149,8 +261,8 @@ type ContactRow = {
     .login-card { padding: 40px; max-width: 380px; width: 100%; text-align: center; }
     .login-card h2 { margin: 0 0 8px; font-size: 1.5rem; }
     .login-desc { color: var(--text-secondary, #9aa); font-size: 0.9rem; margin-bottom: 24px; }
-    .input-group { display: flex; gap: 8px; }
-    .input-group input { flex: 1; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.12); color: inherit; font-size: 1rem; outline: none; font-family: inherit; }
+    .login-stack { display: flex; flex-direction: column; gap: 10px; }
+    .login-stack input { width: 100%; box-sizing: border-box; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.12); color: inherit; font-size: 1rem; outline: none; font-family: inherit; }
     .login-btn { padding: 12px 24px; border-radius: 12px; border: none; background: #e8e8f0; color: #0a0a10; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
     .login-error { color: #fca5a5; font-size: 0.85rem; margin-top: 12px; }
 
@@ -200,19 +312,35 @@ type ContactRow = {
     .approve { background: #e8e8f0; color: #0a0a10; }
     .reject { background: transparent; color: #fca5a5; border: 1px solid rgba(239,68,68,0.35) !important; }
     .msg-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .save-btn { border: 1px solid rgba(255,255,255,0.12); background: #e8e8f0; color: #0a0a10; border-radius: 999px; padding: 6px 14px; font-family: inherit; cursor: pointer; font-size: 0.78rem; font-weight: 650; }
+    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+    .settings-row label, .blocked-block { display: flex; flex-direction: column; gap: 6px; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(180,186,200,0.65); }
+    .settings-row input, .blocked-add input { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); color: inherit; font-family: inherit; font-size: 1rem; outline: none; }
+    .blocked-label { margin: 0 0 8px; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(180,186,200,0.65); }
+    .blocked-add { display: flex; gap: 8px; margin-bottom: 12px; }
+    .blocked-add input { flex: 1; }
+    .add-date { border: none; border-radius: 12px; padding: 0 16px; background: rgba(255,255,255,0.1); color: inherit; font-family: inherit; font-weight: 650; cursor: pointer; }
+    .blocked-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .blocked-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 0.9rem; text-transform: none; letter-spacing: 0; color: #e8e8f0; }
+    .blocked-list button { border: none; background: transparent; color: #fca5a5; cursor: pointer; font-family: inherit; font-size: 0.78rem; font-weight: 650; }
+    .empty-inline { margin: 0; color: rgba(180,186,200,0.55); font-size: 0.85rem; text-transform: none; letter-spacing: 0; }
+    .settings-ok { color: #86efac; font-size: 0.85rem; margin: 12px 0 0; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @media (max-width: 800px) { .admin-grid { grid-template-columns: 1fr; } .span-2 { grid-column: auto; } }
+    @media (max-width: 800px) { .admin-grid { grid-template-columns: 1fr; } .span-2 { grid-column: auto; } .settings-row { grid-template-columns: 1fr; } }
   `]
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private apiUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
     : '/api';
 
   isAuthenticated = false;
+  email = 'mpratyush54@gmail.com';
   password = '';
-  loginError = false;
+  loginError = '';
+  loggingIn = false;
 
   syncStatus: any = null;
   isSyncing = false;
@@ -225,10 +353,33 @@ export class AdminComponent implements OnInit {
   busyId: string | null = null;
   inboxError = '';
 
+  bookings: BookingRow[] = [];
+  bookFilter: 'paid' | 'all' | 'payment_review' = 'paid';
+  loadingBookings = false;
+  bookingsError = '';
+
+  settingsMinRupees = 299;
+  settingsMaxRupees = 1499;
+  blockedDates: string[] = [];
+  newBlockedDate = '';
+  savingSettings = false;
+  settingsMsg = '';
+  settingsError = '';
+  settingsLoaded = false;
+  private settingsVersion = 0;
+  private contactRequest = 0;
+  private bookingRequest = 0;
+  private session = 0;
+  private settingsRequest = 0;
+
   ngOnInit() {}
+  ngOnDestroy() { this.logout(); }
 
   private headers(): HttpHeaders {
-    return new HttpHeaders({ 'x-admin-password': this.password });
+    return new HttpHeaders({
+      'x-admin-email': this.email.trim().toLowerCase(),
+      'x-admin-password': this.password,
+    });
   }
 
   intentLabel(intent: string): string {
@@ -239,14 +390,132 @@ export class AdminComponent implements OnInit {
   }
 
   login() {
-    this.loginError = false;
+    if (this.loggingIn || !this.email.trim() || !this.password) return;
+    this.loginError = '';
+    this.loggingIn = true;
+    const session = this.session;
     this.http.get(`${this.apiUrl}/admin/status`, { headers: this.headers() }).subscribe({
       next: (s) => {
+        if (session !== this.session) return;
+        this.loggingIn = false;
         this.isAuthenticated = true;
         this.syncStatus = s;
         this.loadContacts();
+        this.loadBookings();
+        this.loadBookingSettings();
       },
-      error: () => { this.loginError = true; }
+      error: (e) => {
+        if (session !== this.session) return;
+        this.loggingIn = false; this.loginError = e.error?.error || 'Could not sign in. Please try again.';
+      }
+    });
+  }
+
+  logout() {
+    this.session++;
+    this.contactRequest++;
+    this.bookingRequest++;
+    this.settingsRequest++;
+    this.isAuthenticated = false;
+    this.password = '';
+    this.contacts = [];
+    this.bookings = [];
+    this.settingsLoaded = false;
+    this.busyId = null;
+    this.syncStatus = null;
+    this.syncResult = '';
+    this.loggingIn = false;
+    this.savingSettings = false;
+    this.isSyncing = false;
+    this.loadingContacts = false;
+    this.loadingBookings = false;
+    this.blockedDates = [];
+    this.settingsError = '';
+    this.settingsMsg = '';
+  }
+
+  loadBookingSettings() {
+    if (!this.isAuthenticated) return;
+    const request = ++this.settingsRequest;
+    const session = this.session;
+    this.settingsLoaded = false;
+    this.settingsError = '';
+    this.http.get<{ minRupees: number; maxRupees: number; blockedDates: string[]; version: number }>(
+      `${this.apiUrl}/admin/booking-settings`,
+      { headers: this.headers() }
+    ).subscribe({
+      next: (s) => {
+        if (session !== this.session || request !== this.settingsRequest || !this.isAuthenticated) return;
+        this.settingsVersion = s.version;
+        this.settingsLoaded = true;
+        this.settingsMinRupees = s.minRupees;
+        this.settingsMaxRupees = s.maxRupees;
+        this.blockedDates = [...(s.blockedDates || [])];
+      },
+      error: (e) => {
+        if (session !== this.session || request !== this.settingsRequest || !this.isAuthenticated) return;
+        this.settingsError = e.error?.error || 'Failed to load booking settings';
+      }
+    });
+  }
+
+  addBlockedDate() {
+    const d = (this.newBlockedDate || '').trim();
+    const parsed = new Date(`${d}T12:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== d) {
+      this.settingsError = 'Pick a valid date.';
+      return;
+    }
+    if (!this.blockedDates.includes(d)) {
+      this.blockedDates = [...this.blockedDates, d].sort();
+    }
+    this.newBlockedDate = '';
+    this.settingsError = '';
+  }
+
+  removeBlockedDate(d: string) {
+    this.blockedDates = this.blockedDates.filter((x) => x !== d);
+  }
+
+  saveBookingSettings() {
+    if (this.savingSettings || !this.settingsLoaded) return;
+    const session = this.session;
+    const min = this.settingsMinRupees;
+    const max = this.settingsMaxRupees;
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min < 1 || max > 100000 || max < min
+      || Math.abs(min * 100 - Math.round(min * 100)) > 0.000001
+      || Math.abs(max * 100 - Math.round(max * 100)) > 0.000001) {
+      this.settingsError = 'Enter valid fees from ₹1 to ₹100,000, with max at least min.';
+      return;
+    }
+    this.savingSettings = true;
+    this.settingsMsg = '';
+    this.settingsError = '';
+    this.http.put(
+      `${this.apiUrl}/admin/booking-settings`,
+      {
+        version: this.settingsVersion,
+        minRupees: Number(this.settingsMinRupees),
+        maxRupees: Number(this.settingsMaxRupees),
+        blockedDates: this.blockedDates,
+      },
+      { headers: this.headers() }
+    ).subscribe({
+      next: (s: any) => {
+        if (session !== this.session || !this.isAuthenticated) return;
+        this.settingsVersion = s.version;
+        this.savingSettings = false;
+        this.settingsMinRupees = s.minRupees;
+        this.settingsMaxRupees = s.maxRupees;
+        this.blockedDates = [...(s.blockedDates || [])];
+        this.settingsMsg = 'Booking settings saved.';
+      },
+      error: (e) => {
+        if (session !== this.session || !this.isAuthenticated) return;
+        if (e.status === 409) this.settingsLoaded = false;
+        this.savingSettings = false;
+        this.settingsError = e.error?.error || 'Save failed';
+      }
     });
   }
 
@@ -255,16 +524,45 @@ export class AdminComponent implements OnInit {
     this.loadContacts();
   }
 
+  setBookFilter(f: 'paid' | 'all' | 'payment_review') {
+    this.bookFilter = f;
+    this.loadBookings();
+  }
+
+  loadBookings() {
+    if (!this.isAuthenticated) return;
+    const request = ++this.bookingRequest;
+    this.loadingBookings = true;
+    this.bookingsError = '';
+    const q = this.bookFilter === 'all' ? '' : `?status=${this.bookFilter}`;
+    this.http.get<BookingRow[]>(`${this.apiUrl}/admin/bookings${q}`, { headers: this.headers() }).subscribe({
+      next: (rows) => {
+        if (request !== this.bookingRequest || !this.isAuthenticated) return;
+        this.bookings = rows || [];
+        this.loadingBookings = false;
+      },
+      error: (e) => {
+        if (request !== this.bookingRequest || !this.isAuthenticated) return;
+        this.loadingBookings = false;
+        this.bookingsError = e.error?.error || 'Failed to load bookings';
+      }
+    });
+  }
+
   loadContacts() {
+    if (!this.isAuthenticated) return;
+    const request = ++this.contactRequest;
     this.loadingContacts = true;
     this.inboxError = '';
     const q = this.filter === 'pending' ? '?status=pending' : '';
     this.http.get<ContactRow[]>(`${this.apiUrl}/admin/contacts${q}`, { headers: this.headers() }).subscribe({
       next: (rows) => {
+        if (request !== this.contactRequest || !this.isAuthenticated) return;
         this.contacts = rows || [];
         this.loadingContacts = false;
       },
       error: (e) => {
+        if (request !== this.contactRequest || !this.isAuthenticated) return;
         this.loadingContacts = false;
         this.inboxError = e.error?.error || 'Failed to load inbox';
       }
@@ -272,6 +570,8 @@ export class AdminComponent implements OnInit {
   }
 
   approve(c: ContactRow) {
+    if (this.busyId || !this.isAuthenticated) return;
+    const session = this.session;
     this.busyId = c._id;
     this.inboxError = '';
     this.http.post<{ success: boolean; message: string }>(
@@ -280,24 +580,30 @@ export class AdminComponent implements OnInit {
       { headers: this.headers() }
     ).subscribe({
       next: () => {
+        if (session !== this.session || !this.isAuthenticated) return;
         this.busyId = null;
         this.loadContacts();
       },
       error: (e) => {
+        if (session !== this.session || !this.isAuthenticated) return;
         this.busyId = null;
-        this.inboxError = e.error?.error || 'Approve failed (check SMTP config)';
+        this.inboxError = e.error?.error || 'Send yes failed (check SMTP config)';
       }
     });
   }
 
   reject(c: ContactRow) {
+    if (this.busyId || !this.isAuthenticated) return;
+    const session = this.session;
     this.busyId = c._id;
     this.http.post(`${this.apiUrl}/admin/contacts/${c._id}/reject`, {}, { headers: this.headers() }).subscribe({
       next: () => {
+        if (session !== this.session || !this.isAuthenticated) return;
         this.busyId = null;
         this.loadContacts();
       },
       error: (e) => {
+        if (session !== this.session || !this.isAuthenticated) return;
         this.busyId = null;
         this.inboxError = e.error?.error || 'Reject failed';
       }
@@ -305,16 +611,23 @@ export class AdminComponent implements OnInit {
   }
 
   triggerSync() {
+    if (this.isSyncing || !this.isAuthenticated) return;
+    const session = this.session;
     this.isSyncing = true;
     this.syncResult = '';
     this.http.post<any>(`${this.apiUrl}/admin/sync`, {}, { headers: this.headers() }).subscribe({
       next: (r) => {
+        if (session !== this.session || !this.isAuthenticated) return;
         this.isSyncing = false;
         this.syncResult = r.message;
         this.syncResultError = false;
-        this.http.get(`${this.apiUrl}/admin/status`, { headers: this.headers() }).subscribe(s => this.syncStatus = s);
+        this.http.get(`${this.apiUrl}/admin/status`, { headers: this.headers() }).subscribe({
+          next: s => { if (session === this.session && this.isAuthenticated) this.syncStatus = s; },
+          error: () => {},
+        });
       },
       error: () => {
+        if (session !== this.session || !this.isAuthenticated) return;
         this.isSyncing = false;
         this.syncResult = 'Sync failed. Check backend logs.';
         this.syncResultError = true;

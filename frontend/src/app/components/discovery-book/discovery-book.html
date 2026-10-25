@@ -1,0 +1,214 @@
+<div class="book">
+  <div class="book-top">
+    <button type="button" class="back" (click)="onBack()" [disabled]="paying || !!pendingVerification" aria-label="Back">←</button>
+    <div>
+      @if (paymentsReady || loading || done) {
+        <p class="eyebrow">step {{ stepNum }} of 3</p>
+      } @else {
+        <p class="eyebrow">discovery call</p>
+      }
+      <h3 class="book-title">{{ title }}</h3>
+    </div>
+    @if (paymentsReady && (step === 'details' || step === 'checkout') && priceLabel) {
+      <span class="fee">{{ priceLabel }}</span>
+    }
+  </div>
+
+  @if (done) {
+    <div class="done">
+      <p class="done-kicker">All set</p>
+      <p>Thanks — I’ll send a meeting link to your email before we talk.</p>
+    </div>
+  } @else if (loading) {
+    <p class="muted">Loading times…</p>
+  } @else if (!cfg) {
+    <p class="err">{{ error || 'Could not load booking.' }}</p>
+  } @else if (!paymentsReady) {
+    <div class="unavailable">
+      <p class="unavailable-kicker">Unavailable at the moment</p>
+      <p>
+        Online booking isn’t open yet. Email your preferred times and a short note about
+        what you need — I’ll get back to you.
+      </p>
+      <a class="mail-cta" [href]="'mailto:' + bookingEmail + '?subject=Discovery%20call%20request'">
+        {{ bookingEmail }}
+      </a>
+    </div>
+  } @else if (step === 'time') {
+    @if (cfg.pricingNote) {
+      <p class="lede quiet">{{ cfg.pricingNote }}</p>
+    }
+
+    <div class="cal-panel">
+      <div class="cal-nav">
+        <button type="button" class="cal-nav-btn" (click)="prevMonth()" [disabled]="!canPrevMonth" aria-label="Previous month">‹</button>
+        <p class="cal-month">{{ monthLabel }}</p>
+        <button type="button" class="cal-nav-btn" (click)="nextMonth()" [disabled]="!canNextMonth" aria-label="Next month">›</button>
+      </div>
+
+      <div class="cal-scroll">
+        <div class="cal-grid dow" aria-hidden="true">
+          @for (w of weekdays; track w) {
+            <span class="cal-dow">{{ w }}</span>
+          }
+        </div>
+
+        <div class="cal-grid" role="grid" [attr.aria-label]="monthLabel">
+          @for (c of calendarCells; track $index) {
+            @if (!c.inMonth) {
+              <span class="cal-cell empty"></span>
+            } @else {
+              <button
+                type="button"
+                class="cal-cell"
+                role="gridcell"
+                [class.bookable]="c.bookable"
+                [class.on]="c.selected"
+                [disabled]="!c.bookable"
+                (click)="pickDate(c)"
+              >
+                {{ c.dayNum }}
+              </button>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="cal-times">
+        <p class="section-label">
+          @if (day) {
+            Evening · {{ day.label }}
+            @if (day.amountLabel) {
+              <span class="price-chip">{{ day.amountLabel }} · {{ day.demand }}</span>
+            }
+          } @else {
+            Select a day
+          }
+        </p>
+        <div class="slot-row">
+          @if (!day) {
+            <p class="cal-hint">Lit days have open evening slots.</p>
+          } @else {
+            @for (s of day.slots; track s.slot) {
+              <button
+                type="button"
+                class="slot"
+                [class.on]="selectedSlot === s.slot"
+                [disabled]="!s.available"
+                (click)="pickSlot(s.slot)"
+              >
+                <span>{{ s.label }}</span>
+                @if (s.amountLabel) {
+                  <em>{{ s.amountLabel }}</em>
+                }
+              </button>
+            }
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (error) {
+      <p class="err">{{ error }}</p>
+    }
+
+    <button type="button" class="pay" (click)="continueToDetails()" [disabled]="!selectedSlot">
+      Continue
+    </button>
+  } @else if (step === 'details') {
+    <p class="lede summary">{{ selectedSummary }} · {{ priceLabel }}</p>
+
+    <div class="hp" aria-hidden="true">
+      <input type="text" name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off" />
+    </div>
+
+    <div class="fields">
+      <label>
+        <span>Name</span>
+        <input type="text" [(ngModel)]="name" name="name" autocomplete="name" maxlength="100" />
+      </label>
+      <label>
+        <span>Email</span>
+        <input type="email" [(ngModel)]="email" name="email" autocomplete="email" maxlength="254" />
+      </label>
+      <label>
+        <span>Phone <em>optional</em></span>
+        <input type="tel" [(ngModel)]="phone" name="phone" autocomplete="tel" maxlength="40" />
+      </label>
+      <label class="wide">
+        <span>Anything I should know? <em>optional</em></span>
+        <textarea [(ngModel)]="note" name="note" rows="3" maxlength="2000"></textarea>
+      </label>
+    </div>
+
+    @if (error) {
+      <p class="err">{{ error }}</p>
+    }
+
+    <button type="button" class="pay" (click)="continueToCheckout()">
+      Continue to checkout
+    </button>
+  } @else {
+    <div class="checkout">
+      <div class="checkout-summary">
+        <p class="section-label">Order</p>
+        <p class="checkout-line"><span>Call</span><strong>Discovery · 30 min</strong></p>
+        <p class="checkout-line"><span>When</span><strong>{{ selectedSummary }}</strong></p>
+        <p class="checkout-line"><span>Demand</span><strong>{{ demandLabel }}</strong></p>
+        <p class="checkout-line total"><span>Total</span><strong>{{ priceLabel }}</strong></p>
+        <p class="checkout-line soft"><span>Name</span><strong>{{ name }}</strong></p>
+        <p class="checkout-line soft"><span>Email</span><strong>{{ email }}</strong></p>
+      </div>
+
+      <div class="legal">
+        <p class="section-label">Terms <em class="scroll-hint">scroll</em></p>
+        <div class="legal-scroll" tabindex="0">
+          <h4>Terms of service</h4>
+          <p>
+            Paid 30-minute discovery call with Pratyush Mishra. The fee holds the slot
+            and does not guarantee project work or employment.
+          </p>
+          <h4>Cancellation</h4>
+          <p>
+            Cancel/reschedule ≥24h before via
+            <a [href]="'mailto:' + bookingEmail">{{ bookingEmail }}</a>.
+            Inside 24h or no-show: no refund.
+          </p>
+          <h4>Refunds</h4>
+          <p>
+            If I cancel or miss the call: full refund in 5–7 business days.
+            Partial attendance after start is not refundable.
+          </p>
+          <h4>Pricing &amp; privacy</h4>
+          <p>
+            Fee is demand-based; checkout amount is final. Payment via Razorpay —
+            card details are not stored here. Contact details are only for this booking.
+            Questions:
+            <a [href]="'mailto:' + bookingEmail">{{ bookingEmail }}</a>.
+          </p>
+        </div>
+
+        <label class="terms-check">
+          <input type="checkbox" [(ngModel)]="acceptTerms" name="acceptTerms" />
+          <span>I agree to the terms, cancellation, and refund policy.</span>
+        </label>
+      </div>
+
+      @if (error) {
+        <p class="err">{{ error }}</p>
+      }
+
+      <button
+        type="button"
+        class="pay"
+        (click)="pay()"
+        [disabled]="paying || (!acceptTerms && !pendingVerification) || paymentNeedsReview"
+      >
+        {{ paymentNeedsReview ? 'Contact me to resolve payment' : paying ? 'Processing…' : pendingVerification ? 'Retry payment confirmation' : ('Confirm & pay · ' + priceLabel) }}
+      </button>
+      @if (paymentNeedsReview) {
+        <a [href]="'mailto:' + bookingEmail">{{ bookingEmail }}</a>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,26 @@
+<div class="book-page">
+  <header class="book-page-bar">
+    <a routerLink="/" class="brand" (click)="goHome()">pratyush mishra.</a>
+    <nav class="book-page-nav" aria-label="Book page">
+      <a routerLink="/contact" (click)="goContact()">Contact</a>
+      <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" rel="noopener">Resume</a>
+    </nav>
+  </header>
+
+  <main class="book-page-main">
+    <div class="book-page-copy">
+      <p class="eyebrow">discovery call</p>
+      <h1>Let’s talk.</h1>
+      <p class="lead">
+        Thirty minutes. Pick a time, leave a few details, and we’ll take it from there.
+      </p>
+    </div>
+
+    <section class="book-page-card" aria-label="Book a discovery call">
+      <app-discovery-book
+        (back)="goContact()"
+        (booked)="onBooked()"
+      ></app-discovery-book>
+    </section>
+  </main>
+</div>

@@ -21,6 +21,8 @@ const ContactMessageSchema = new mongoose.Schema({
   approvedAt: Date,
   rejectedAt: Date,
   emailSentAt: Date,
+  approvalClaim: String,
+  approvalClaimAt: Date,
 }, { timestamps: true });
 
 module.exports = mongoose.model('ContactMessage', ContactMessageSchema);

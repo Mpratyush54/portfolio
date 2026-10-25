@@ -20,6 +20,31 @@
   }
 }
 
+.page-book {
+  margin-top: 16px;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #e8e8f0;
+  color: #0a0a10;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.aside-link.as-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+}
+
 .contact-layout {
   display: grid;
   grid-template-columns: 1.35fr 0.75fr;

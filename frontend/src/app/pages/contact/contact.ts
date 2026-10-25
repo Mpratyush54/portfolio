@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ContactFormComponent } from '../../components/contact-form/contact-form';
 import { RevealDirective } from '../../directives/reveal.directive';
 import { BudEventsService } from '../../services/bud-events.service';
+import { ShellService } from '../../services/shell.service';
 
 @Component({
   selector: 'app-contact',
@@ -13,8 +14,13 @@ import { BudEventsService } from '../../services/bud-events.service';
 })
 export class ContactComponent {
   private bud = inject(BudEventsService);
+  private shell = inject(ShellService);
 
   onSent(): void {
     this.bud.celebrate();
+  }
+
+  openBook(): void {
+    this.shell.openDiscovery();
   }
 }

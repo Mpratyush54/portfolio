@@ -7,6 +7,11 @@ metadata:
     tier: backend
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: portfolio
@@ -16,6 +21,9 @@ spec:
       labels:
         app: portfolio
         tier: backend
+      annotations:
+        # Rewritten by CI on every main build so the pod template always changes
+        portfolio.pratyushes.dev/deploy-sha: "82cb288"
     spec:
       imagePullSecrets:
         - name: ghcr-pull
@@ -34,6 +42,12 @@ spec:
                 secretKeyRef:
                   name: portfolio-secrets
                   key: MONGO_URI
+                  optional: true
+            - name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: ADMIN_EMAIL
                   optional: true
             - name: ADMIN_PASSWORD
               valueFrom:
@@ -76,6 +90,30 @@ spec:
                 secretKeyRef:
                   name: portfolio-secrets
                   key: CONTACT_EMAIL
+                  optional: true
+            - name: BOOKING_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: BOOKING_EMAIL
+                  optional: true
+            - name: RAZORPAY_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: RAZORPAY_KEY_ID
+                  optional: true
+            - name: RAZORPAY_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: RAZORPAY_KEY_SECRET
+                  optional: true
+            - name: DISCOVERY_FEE_PAISE
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: DISCOVERY_FEE_PAISE
                   optional: true
           resources:
             requests:

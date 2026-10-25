@@ -1,8 +1,12 @@
+# Apply once into the argocd namespace (not synced by the app itself):
+#   kubectl apply -n argocd -f kubernetes/argocd-app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: portfolio
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   destination:
@@ -12,9 +16,22 @@ spec:
     repoURL: https://github.com/Mpratyush54/portfolio/
     path: kubernetes
     targetRevision: HEAD
+    directory:
+      recurse: false
+      # Don't try to sync this Application CR into the portfolio namespace
+      exclude: 'argocd-app.yaml'
   syncPolicy:
     automated:
       prune: false
       selfHeal: true
+      allowEmpty: false
     syncOptions:
-      - ApplyOutOfSyncOnly=true
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=false
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 2m

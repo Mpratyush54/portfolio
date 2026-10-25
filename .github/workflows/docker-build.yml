@@ -123,12 +123,24 @@ jobs:
         env:
           SHORT_SHA: ${{ github.sha }}
         run: |
+          set -euo pipefail
           TAG="${SHORT_SHA:0:7}"
           OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+
+          # Immutable image tags
           sed -i "s|image: ghcr.io/.*/portfolio-frontend:.*|image: ghcr.io/${OWNER}/portfolio-frontend:${TAG}|" kubernetes/frontend-deployment.yaml
           sed -i "s|image: ghcr.io/.*/portfolio-backend:.*|image: ghcr.io/${OWNER}/portfolio-backend:${TAG}|" kubernetes/backend-deployment.yaml
+
+          # Force pod-template change even if something else matches (Argo/k8s must roll)
+          sed -i "s|portfolio.pratyushes.dev/deploy-sha: \".*\"|portfolio.pratyushes.dev/deploy-sha: \"${TAG}\"|" kubernetes/frontend-deployment.yaml
+          sed -i "s|portfolio.pratyushes.dev/deploy-sha: \".*\"|portfolio.pratyushes.dev/deploy-sha: \"${TAG}\"|" kubernetes/backend-deployment.yaml
+
+          # Ensure Always so nodes don't keep a stale digest for a retagged name
+          sed -i 's|imagePullPolicy: .*|imagePullPolicy: Always|' kubernetes/frontend-deployment.yaml
+          sed -i 's|imagePullPolicy: .*|imagePullPolicy: Always|' kubernetes/backend-deployment.yaml
+
           echo "Pinned manifests to :${TAG} (linux/arm64)"
-          grep 'image:' kubernetes/frontend-deployment.yaml kubernetes/backend-deployment.yaml
+          grep -E 'image:|deploy-sha:|imagePullPolicy:' kubernetes/frontend-deployment.yaml kubernetes/backend-deployment.yaml
 
       - name: Commit manifest pin
         uses: stefanzweifel/git-auto-commit-action@v5
@@ -136,3 +148,26 @@ jobs:
           commit_message: "chore: pin k8s images to ${{ github.sha }}"
           file_pattern: 'kubernetes/*-deployment.yaml'
           skip_dirty_check: false
+          disable_globbing: true
+
+      # Optional hard refresh if repo secrets ARGOCD_SERVER + ARGOCD_AUTH_TOKEN are set
+      - name: Kick Argo CD sync
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ARGOCD_SERVER}" ] || [ -z "${ARGOCD_AUTH_TOKEN}" ]; then
+            echo "No ARGOCD_SERVER / ARGOCD_AUTH_TOKEN secrets — Argo will pick up on its next poll."
+            exit 0
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://${ARGOCD_SERVER}/api/v1/applications/portfolio?refresh=hard" >/dev/null || true
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"revision":"HEAD","prune":false,"dryRun":false,"strategy":{"hook":{}}}' \
+            "https://${ARGOCD_SERVER}/api/v1/applications/portfolio/sync"
+          echo "Argo sync requested"

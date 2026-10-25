@@ -24,6 +24,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
   padding: 20px clamp(20px, 4vw, 40px);
   padding-top: max(20px, env(safe-area-inset-top));
 }
@@ -41,6 +42,9 @@
   gap: 18px;
 
   a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     font-size: 0.82rem;
     font-weight: 550;
     color: rgba(200, 205, 220, 0.65);

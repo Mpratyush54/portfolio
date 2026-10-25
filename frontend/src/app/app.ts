@@ -39,9 +39,9 @@ export class App implements OnInit {
   }
 
   private isShell(url: string): boolean {
-    const path = url.split('?')[0];
-    if (path.startsWith('/admin') || path.startsWith('/404')) return false;
-    return true;
+    const path = url.split(/[?#]/)[0].replace(/\/$/, '') || '/';
+    return ['/', '/work', '/about', '/contact', '/projects'].includes(path)
+      || path.startsWith('/projects/');
   }
 
   private lockBody(shell: boolean): void {

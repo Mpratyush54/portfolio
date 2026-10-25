@@ -8,13 +8,14 @@ import { AskService } from '../../services/ask.service';
 import { ShellService, ShellView } from '../../services/shell.service';
 import { BudEventsService } from '../../services/bud-events.service';
 import { SfxService } from '../../services/sfx.service';
+import { DialogFocusDirective } from '../../directives/dialog-focus.directive';
 
 type Line = { kind: 'sys' | 'you' | 'bud' | 'cmd' | 'out' | 'err'; text: string };
 
 @Component({
   selector: 'app-ask-console',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DialogFocusDirective],
   templateUrl: './ask-console.html',
   styleUrl: './ask-console.scss',
 })
@@ -44,7 +45,7 @@ export class AskConsoleComponent implements OnDestroy {
     },
     work: {
       q: 'is he open to work?',
-      a: 'Yes — Backend / Full Stack roles. Resume via <span class="cmd">resume</span> or the Contact view.',
+      a: 'Yes. Book a paid discovery call with <span class="cmd">book</span>, or write via <span class="cmd">contact</span>. Resume: <span class="cmd">resume</span>.',
     },
     stack: {
       q: 'what is his tech stack?',
@@ -52,22 +53,24 @@ export class AskConsoleComponent implements OnDestroy {
     },
     experience: {
       q: 'what is his experience?',
-      a: 'Coding since <b>2022</b>. Tech Lead at CAPS — DRM streaming, AI proctoring, CI/CD on Kubernetes.',
+      a: 'Coding since <b>2022</b>. Team Lead at CAPS — DRM streaming, AI proctoring, CI/CD on Kubernetes.',
     },
     contact: {
       q: 'how to contact him?',
-      a: 'Email <a href="mailto:mpratyush54@gmail.com">mpratyush54@gmail.com</a> · <a href="https://www.linkedin.com/in/pratyushm07" target="_blank" rel="noopener">LinkedIn</a> · or type <span class="cmd">contact</span>.',
+      a: 'Book a discovery call with <span class="cmd">book</span>, email <a href="mailto:mpratyush54@gmail.com">mpratyush54@gmail.com</a>, or type <span class="cmd">contact</span>.',
     },
   };
 
   readonly commands: Record<string, { desc: string; run: () => void }> = {
     help: { desc: 'list commands & questions', run: () => this.showHelp() },
     clear: { desc: 'clear the console', run: () => { this.lines = []; } },
-    whoami: { desc: 'short bio', run: () => this.push('out', 'Pratyush Mishra — Backend Engineer · Tech Lead · Full Stack.') },
+    whoami: { desc: 'short bio', run: () => this.push('out', 'Pratyush Mishra — Backend Engineer · Team Lead · Full Stack.') },
     home: { desc: 'go home', run: () => this.go('home') },
     work: { desc: 'open work', run: () => this.go('work') },
     about: { desc: 'open about', run: () => this.go('about') },
     contact: { desc: 'open contact', run: () => this.go('contact') },
+    book: { desc: 'book a discovery call', run: () => this.goBook() },
+    discovery: { desc: 'alias for book', run: () => this.goBook() },
     resume: { desc: 'open resume PDF', run: () => { window.open('/resume/Pratyush_mishra_SDE.pdf', '_blank'); this.push('out', 'Opening resume…'); } },
     who: { desc: 'ask: who is pratyush?', run: () => this.askQa('who') },
     built: { desc: 'ask: what has he built?', run: () => this.askQa('built') },
@@ -214,6 +217,7 @@ export class AskConsoleComponent implements OnDestroy {
     if (t.includes('open to work') || t.includes('hiring')) return 'work';
     if (t.includes('stack') || t.includes('tech')) return 'stack';
     if (t.includes('experience') || t.includes('gpa')) return 'experience';
+    if (t.includes('book') || t.includes('discovery') || t.includes('call')) return 'contact';
     if (t.includes('contact') || t.includes('email')) return 'contact';
     return null;
   }
@@ -230,6 +234,12 @@ export class AskConsoleComponent implements OnDestroy {
     const path = view === 'home' ? '/' : view === 'work' ? '/projects' : `/${view}`;
     this.router.navigateByUrl(path, { replaceUrl: true });
     this.push('out', `Opening ${view}…`);
+    setTimeout(() => this.close(), 350);
+  }
+
+  private goBook(): void {
+    this.shell.openDiscovery();
+    this.push('out', 'Opening discovery booking…');
     setTimeout(() => this.close(), 350);
   }
 

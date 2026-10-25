@@ -1,5 +1,6 @@
 @use 'variables' as *;
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;750&display=swap');
+
+/* Outfit loaded async from index.html — system stack until then */
 
 /* =====================================================
    THEME — dark-first fuch language
@@ -53,6 +54,17 @@ body {
 body::before,
 body::after {
   display: none;
+}
+
+/* Component inputs often remove the browser outline; keep keyboard focus clear. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #7dd3fc !important;
+  outline-offset: 3px;
 }
 
 .container {

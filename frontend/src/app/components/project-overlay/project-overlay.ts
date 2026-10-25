@@ -1,11 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Project } from '../../models/project.model';
+import { DialogFocusDirective } from '../../directives/dialog-focus.directive';
 
 @Component({
   selector: 'app-project-overlay',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DialogFocusDirective],
   templateUrl: './project-overlay.html',
   styleUrl: './project-overlay.scss'
 })

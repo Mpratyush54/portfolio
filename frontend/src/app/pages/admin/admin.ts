@@ -270,7 +270,19 @@ type BookingRow = {
     .admin-header { text-align: center; margin-bottom: 40px; }
     .admin-header h1 { font-size: 2.2rem; margin-bottom: 8px; }
     .admin-header .subtitle { color: rgba(180,186,200,0.7); font-size: 1rem; }
-    .admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+    .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+    .admin-grid > *, .msg, .msg header > div, .settings-row label { min-width: 0; }
+    .admin-card, .msg { overflow-wrap: anywhere; }
+    .msg header { flex-wrap: wrap; }
+    .msg header > div { flex: 1 1 220px; }
+    .status { flex: 0 0 auto; max-width: 100%; box-sizing: border-box; }
+    .login-card { box-sizing: border-box; }
+    .settings-row input, .blocked-add input { min-width: 0; width: 100%; box-sizing: border-box; color-scheme: dark; }
+    .blocked-add input { flex: 1 1 0; }
+    .admin-container > .admin-header .ghost, .admin-card > .ghost { border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: #e8e8f0; border-radius: 10px; padding: 10px 14px; min-height: 44px; font: inherit; cursor: pointer; }
+    .admin-card > .ghost { margin-bottom: 16px; }
+    .filters button, .save-btn, .blocked-list button { min-height: 40px; }
+    @media (max-width: 480px) { .admin-card, .glass-panel { padding: 18px; } .login-card { padding: 28px 20px; } }
     .span-2 { grid-column: 1 / -1; }
     .admin-card, .glass-panel { padding: 24px; border-radius: 16px; background: rgba(18,18,26,0.85); border: 1px solid rgba(255,255,255,0.08); }
     .admin-card h2 { margin: 0 0 16px; font-size: 1.15rem; }

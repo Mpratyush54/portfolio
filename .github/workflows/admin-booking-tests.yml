@@ -42,8 +42,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
         working-directory: frontend
-      - name: Test checkout and admin flows
-        run: node node_modules/@angular/cli/bin/ng.js test --watch=false --include=src/app/components/discovery-book/discovery-book.spec.ts --include=src/app/pages/admin/admin.spec.ts
+      - name: Test UI, checkout and admin flows
+        run: node node_modules/@angular/cli/bin/ng.js test --watch=false
         working-directory: frontend
       - run: npm run build
         working-directory: frontend

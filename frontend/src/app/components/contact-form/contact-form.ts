@@ -1,6 +1,6 @@
 import {
   Component, ElementRef, EventEmitter, Output, ViewChild,
-  AfterViewChecked, OnDestroy,
+  AfterViewChecked, OnDestroy, ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -60,7 +60,15 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   website = '';
   botTyping = false;
 
-  private data = { name: '', email: '', phone: '', message: '' };
+  data = { name: '', email: '', phone: '', message: '' };
+  simpleUi = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 900px), (pointer: coarse)')?.matches);
+  sendSimple(): void {
+    if (!this.intent || this.validateName(this.data.name.trim()) || this.validateEmail(this.data.email.trim()) || !this.data.message.trim()) {
+      this.statusMessage = 'Choose a reason and enter your name, valid email and project details.'; return;
+    }
+    this.data = { ...this.data, name: this.data.name.trim(), email: this.data.email.trim().toLowerCase(), message: this.data.message.trim() };
+    this.submit();
+  }
   private msgId = 0;
   private shouldScroll = false;
   private shouldFocus = false;
@@ -72,7 +80,7 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
 
   private readonly emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
   ngAfterViewChecked(): void {
     if (this.shouldScroll) {
@@ -359,6 +367,7 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
         this.statusMessage = res.message || 'Got it — Pratyush will reply soon.';
         this.push('bot', this.statusMessage);
         this.sent.emit();
+        this.cdr.markForCheck();
       },
       error: (err: HttpErrorResponse) => {
         this.botTyping = false;
@@ -367,6 +376,7 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
         this.push('bot', this.statusMessage);
         this.step = 'note';
         this.shouldFocus = true;
+        this.cdr.markForCheck();
       },
     });
   }

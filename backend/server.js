@@ -16,13 +16,21 @@ app.post('/api/bookings/webhook', express.raw({ type: 'application/json', limit:
   try { res.json(await bookingService.webhook(req.body, req.headers['x-razorpay-signature'])); }
   catch (error) { handleBookingError(res, error); }
 });
-app.use(express.json({ limit: '10kb' }));
+app.post('/api/quotations/webhook', express.raw({ type: 'application/json', limit: '64kb' }), async (req, res) => {
+  try {
+    res.json(await quotationService.webhook(req.body, req.get('x-razorpay-signature')));
+  } catch (error) { handleBookingError(res, error); }
+});
+app.use(express.json({ limit: '48kb' }));
 
 const Razorpay = require('razorpay');
 const { sendVisitorApprovalEmail, sendBookingPaidEmails, INTENT_LABEL } = require('./services/mailer');
 const contactStore = require('./services/contactStore');
 const ContactMessage = require('./models/ContactMessage');
 const { createBookingService } = require('./services/bookingService');
+const { createQuotationService } = require('./services/quotationService');
+const { createQuotationRouter } = require('./services/quotationRoutes');
+const quotationService = createQuotationService({ gateway: getRazorpay });
 const { createBookingRouter, handleBookingError } = require('./services/bookingRoutes');
 const { createAdminAuth } = require('./services/adminAuth');
 const { bookingSmtpReady } = require('./services/mailer');
@@ -327,6 +335,7 @@ app.post('/api/admin/digest/run', requireAdmin, async (req, res) => {
 });
 
 app.use('/api', createBookingRouter(bookingService, requireAdmin, getRazorpay));
+app.use('/api', createQuotationRouter(quotationService, requireAdmin));
 
 // Malformed JSON and invalid Mongo IDs are client errors, not HTML error pages.
 app.use((error, req, res, next) => {

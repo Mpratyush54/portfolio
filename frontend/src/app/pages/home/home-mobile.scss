@@ -1,0 +1,179 @@
+.booking-summary {
+  max-width: 440px;
+  font-size: 0.87rem;
+  line-height: 1.7;
+  color: #b8c6d8;
+}
+.mobile-title {
+  display: none;
+}
+@media (max-width: 900px), (pointer: coarse) {
+  .stage {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    padding-bottom: 90px;
+    box-sizing: border-box;
+  }
+  .stage .hud {
+    position: relative;
+    inset: auto;
+  }
+  .stage .views {
+    position: relative;
+    inset: auto !important;
+  }
+  .stage .view {
+    position: relative;
+    inset: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+  .stage .home-view {
+    padding: 24px 20px !important;
+  }
+  .stage .home-view .view-copy {
+    background: none;
+    backdrop-filter: none;
+    text-shadow: none;
+  }
+  .stage .home-view .view-copy .eyebrow,
+  .stage .home-view .view-copy .display-name,
+  .stage .home-view .view-copy .role-line {
+    display: block !important;
+  }
+  .stage .desktop-title {
+    display: none;
+  }
+  .stage .mobile-title {
+    display: inline;
+  }
+  .stage .robot-stage,
+  .stage .right-cluster,
+  .stage .ask-row,
+  .stage .hint,
+  .stage .about-stickers,
+  .stage .contact-stickers,
+  .stage .mood,
+  .stage .hud-tool:not(.hud-book) {
+    display: none !important;
+  }
+  .stage .hud {
+    padding: 16px 20px;
+    background: #07070c;
+    align-items: center;
+    gap: 12px;
+  }
+  .stage .hud-tools {
+    display: flex !important;
+  }
+  .stage .hud-book {
+    width: auto;
+    min-width: 80px;
+    padding: 10px 14px;
+    background: #d3eaff;
+    color: #10131a;
+    border-radius: 8px;
+    font-weight: 650;
+  }
+  .stage .hud-book svg {
+    display: none;
+  }
+  .stage .hud-book::after {
+    content: 'Book a call';
+  }
+  .stage .hud-right {
+    display: none;
+  }
+  .stage .bottom-nav {
+    display: flex !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    transform: none;
+    border-radius: 0;
+    background: #10131a;
+    box-sizing: border-box;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .stage .bottom-nav button {
+    flex: 1;
+    min-height: 48px;
+  }
+  .stage .views {
+    top: 90px;
+    bottom: 76px;
+  }
+  .stage .view {
+    padding: 22px 20px 28px;
+    box-sizing: border-box;
+    pointer-events: auto;
+  }
+  .stage .home-view {
+    display: block;
+  }
+  .stage .home-view .view-copy {
+    margin: 20px 0 0;
+    width: 100%;
+    max-width: 600px;
+    padding: 0;
+  }
+  .stage .display-name {
+    font-size: clamp(2.1rem, 8vw, 3.6rem);
+  }
+  .stage .home-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .stage .home-cta button {
+    min-height: 48px;
+    border-radius: 8px;
+  }
+  .stage .booking-summary {
+    font-size: 0.94rem;
+  }
+  .stage .about-view .view-copy {
+    width: 100%;
+    max-width: none;
+  }
+  .stage .contact-view {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: visible !important;
+    padding: 20px;
+  }
+  .stage .contact-identity {
+    order: 1;
+    margin-top: 24px;
+    margin-bottom: 0;
+  }
+  .stage .contact-panel {
+    order: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    padding: 18px;
+  }
+  .stage .contact-panel-body {
+    height: auto;
+    overflow: visible;
+  }
+  .stage .contact-panel-head {
+    display: none;
+  }
+  .stage .work-view {
+    display: block;
+  }
+  .stage .career {
+    display: none;
+  }
+  .stage .selected {
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+  }
+}

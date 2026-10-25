@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { QuotationAdminComponent } from '../quotation/quotation-admin';
 
 type ContactRow = {
   _id: string;
@@ -35,7 +36,7 @@ type BookingRow = {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, QuotationAdminComponent],
   template: `
     @if (!isAuthenticated) {
       <div class="login-container">
@@ -63,6 +64,7 @@ type BookingRow = {
         </header>
 
         <div class="admin-grid">
+          <div class="admin-card span-2"><app-quotation-admin [headers]="headers()" /></div>
           <div class="admin-card glass-panel span-2">
             <div class="card-head">
               <h2>Booking settings</h2>
@@ -387,7 +389,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   ngOnInit() {}
   ngOnDestroy() { this.logout(); }
 
-  private headers(): HttpHeaders {
+  headers(): HttpHeaders {
     return new HttpHeaders({
       'x-admin-email': this.email.trim().toLowerCase(),
       'x-admin-password': this.password,

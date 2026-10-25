@@ -28,7 +28,7 @@ import { Project } from '../../models/project.model';
     AskConsoleComponent,
   ],
   templateUrl: './home.html',
-  styleUrl: './home.scss'
+  styleUrls: ['./home.scss', './home-mobile.scss']
 })
 export class HomeComponent implements OnInit, OnDestroy {
   @ViewChild(HeroSceneComponent) heroScene?: HeroSceneComponent;
@@ -400,6 +400,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   /** Explicit start (Save-Data tap, or resume when returning to Home). */
   loadBud(fromUser = true): void {
+    if (typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 900px), (pointer: coarse)')?.matches)) return;
     if (this.enable3d) return;
     this.needsBudOptIn = false;
     this.enable3d = true;
@@ -413,6 +414,7 @@ export class HomeComponent implements OnInit, OnDestroy {
    * Slow-4G waits longer so the landing stays snappy; Save-Data waits for a tap.
    */
   private scheduleBudAutoLoad(): void {
+    if (typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 900px), (pointer: coarse)')?.matches)) return;
     if (this.net.saveData()) {
       this.needsBudOptIn = true;
       return;

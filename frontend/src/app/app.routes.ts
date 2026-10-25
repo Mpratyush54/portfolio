@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { HomeComponent } from './pages/home/home';
 
 export const routes: Routes = [
+  { path: 'proposal', loadComponent: () => import('./pages/quotation/quotation').then(m => m.QuotationComponent) },
   { path: '', component: HomeComponent },
   { path: 'work', component: HomeComponent },
   { path: 'projects', component: HomeComponent },

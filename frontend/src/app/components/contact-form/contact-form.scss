@@ -588,3 +588,9 @@
     display: none;
   }
 }
+
+.simple-contact { display:block; color:#e8edf5; }
+.simple-contact label { display:block; margin:16px 0; line-height:1.6; }
+.simple-contact input,.simple-contact textarea,.simple-contact select { display:block; width:100%; box-sizing:border-box; min-width:0; padding:12px; margin-top:6px; background:#151b26; color:#fff; border:1px solid #617188; border-radius:8px; font:inherit; color-scheme:dark; }
+.simple-contact button { display:block; width:100%; min-height:48px; margin:12px 0; padding:12px; border:0; border-radius:8px; background:#d3eaff; color:#10131a; font:inherit; }
+.simple-contact button:disabled { opacity:.5; }

@@ -9,7 +9,7 @@ import { SfxService } from './services/sfx.service';
   standalone: true,
   imports: [RouterOutlet, CustomCursorComponent],
   template: `
-    <app-custom-cursor></app-custom-cursor>
+    @if (showCursor) { <app-custom-cursor></app-custom-cursor> }
     <main class="shell-main">
       <router-outlet></router-outlet>
     </main>
@@ -21,9 +21,11 @@ import { SfxService } from './services/sfx.service';
   `]
 })
 export class App implements OnInit {
+  simpleUi = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 900px), (pointer: coarse)')?.matches);
   private router = inject(Router);
   private renderer = inject(Renderer2);
   private sfx = inject(SfxService);
+  get showCursor(): boolean { return !this.simpleUi && this.isShell(this.router.url); }
 
   ngOnInit(): void {
     this.renderer.addClass(document.documentElement, 'dark-mode');
@@ -45,7 +47,7 @@ export class App implements OnInit {
   }
 
   private lockBody(shell: boolean): void {
-    if (shell) this.renderer.setStyle(document.body, 'overflow', 'hidden');
+    if (shell && !this.simpleUi) this.renderer.setStyle(document.body, 'overflow', 'hidden');
     else this.renderer.removeStyle(document.body, 'overflow');
   }
 }

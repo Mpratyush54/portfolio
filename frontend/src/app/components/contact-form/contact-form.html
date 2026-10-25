@@ -1,3 +1,20 @@
+@if (simpleUi) {
+  <form class="simple-contact" (ngSubmit)="sendSimple()">
+    @if (status === 'success') { <p role="status">{{statusMessage}}</p> }
+    @else {
+      <h2>Tell me about your project</h2>
+      <label>What do you need?<select name="intent" [(ngModel)]="intent" required><option [ngValue]="null" disabled>Choose one</option>@for (opt of intents; track opt.id) { <option [value]="opt.id">{{opt.label}}</option> }</select></label>
+      <label>Your name<input name="name" [(ngModel)]="data.name" required maxlength="100" autocomplete="name"></label>
+      <label>Email<input name="email" type="email" [(ngModel)]="data.email" required maxlength="254" autocomplete="email"></label>
+      <label>Phone (optional)<input name="phone" type="tel" [(ngModel)]="data.phone" maxlength="40" autocomplete="tel"></label>
+      <label>Project or message<textarea name="message" [(ngModel)]="data.message" required maxlength="5000" rows="5"></textarea></label>
+      <div class="hp-field" aria-hidden="true"><input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></div>
+      @if(statusMessage) { <p role="alert">{{statusMessage}}</p> }
+      <button type="submit" [disabled]="status === 'sending'">{{status === 'sending' ? 'Sending…' : 'Send message'}}</button>
+      <button type="button" (click)="bookCall.emit()">Book a discovery call instead</button>
+    }
+  </form>
+} @else {
 <div class="chat" [class.is-chatting]="step !== 'intent'" [class.is-done]="status === 'success'">
   @if (step === 'intent') {
     <div class="intent-stage">
@@ -153,3 +170,5 @@
     </div>
   }
 </div>
+
+}

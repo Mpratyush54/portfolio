@@ -69,7 +69,17 @@ Before live use, enter your actual privacy contact, retention/deletion process, 
 
 ## Validation completed
 
-- Backend: 40 passing tests using a temporary real MongoDB and fake Razorpay/email adapters, including all four phase payments, exact paise totals, expired/stale acceptance, terms freeze, invite rotation/revocation, concurrent order preparation, crashed lock recovery and duplicate/tampered webhooks.
-- Frontend: 20 passing tests, including all required acceptance acknowledgements and retrying payment verification without opening another charge.
+- Backend: 47 passing tests using a temporary real MongoDB and fake Razorpay/email adapters, including all four phase payments, exact paise totals, expired/stale acceptance, terms freeze, invite rotation/revocation, concurrent order preparation, crashed lock recovery and duplicate/tampered webhooks.
+- Frontend: 24 passing tests, including all required acceptance acknowledgements and retrying payment verification without opening another charge.
 - Angular production build passes. Existing `home.scss` budget warning remains (37.18 kB against a 32 kB warning threshold; below the 40 kB error threshold).
 - Browser QA: 58 states across 1440×900, 768×1024, 390×844, 320×568 and 844×390. Covers home, work/project detail, about, contact, booking, private quotation, acceptance, simulated payment, editor and invitation. No detected horizontal overflow or browser runtime errors. Mobile checks assert no mascot/cursor mount and exercise the ordinary contact form. Screenshots were visually inspected. Physical iOS/Android and real Razorpay Test Mode were not exercised.
+
+## Guided editor update
+
+New quotations now use a structured builder. Provider name, contact email, address, tax status/GSTIN and dispute venue have individual fields. Valid provider details are prefilled from the latest guided quotation when available. Deliverables have checkboxes with generated acceptance criteria; exclusions and client responsibilities have their own checkboxes. Revision rounds, project weeks and review business days use bounded numeric controls. Project-specific pages/flows and acceptance details still need a short description so standard choices cannot accidentally promise an undefined project.
+
+The full agreement starts with 16 populated editable sections: parties/scope; phase payments; price/taxes/payment processing; review; revisions/change requests; schedule/dependencies; third-party services; deployment/operations; 30-day support; cancellation/refunds; ownership/licensing/handover; confidentiality/portfolio permission; privacy/security; quality/mandatory rights; events beyond control; communication/law/disputes. Portfolio permission defaults to off. The default support clause covers defects reported during the 30-day window even if the correction finishes later.
+
+Preview and save generate the contract on the server from validated selections, inserting review/revision counts, duration, provider contact, venue and portfolio permission. Unknown choices/placeholders, omitted clauses, missing provider details and invalid tax/numeric selections are rejected. Preview is a snapshot of the current choices when clicked; save always regenerates current choices. Exact clause edits and builder selections persist through reload/revision, while invited/accepted documents remain frozen. Existing text-only drafts retain their negotiated wording and original editor.
+
+Additional validation: six template-generation/validation tests, one MongoDB persistence/revision test and four guided editor tests. Desktop, 390px and 320px browser checks exercise checkbox changes, clause edits, server preview, save and reopening without lost selections or wording. No real invitations or payments were sent.

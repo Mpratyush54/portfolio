@@ -25,7 +25,12 @@ function createQuotationRouter(service, admin) {
   router.get(
     '/admin/quotations/defaults',
     admin,
-    run(() => ({ terms: service.defaults })),
+    run(() => service.template()),
+  );
+  router.post(
+    '/admin/quotations/preview',
+    admin,
+    run((r) => service.preview(r.body.builder)),
   );
   router.post(
     '/admin/quotations',

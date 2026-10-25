@@ -5,21 +5,10 @@ const { httpError } = require('./bookingValidation');
 const { validSignature } = require('./bookingService');
 const LABELS = ['Onboarding', 'MVP', 'Development complete', 'Deployment'];
 const ACKS = ['scope', 'payments', 'terms', 'authority'];
-const DEFAULT_TERMS = `Deliverables and acceptance: Only the written scope is included. Each delivered milestone is available for review against that scope; report specific defects or approve it in this portal. Silence does not count as acceptance.
-
-Payments: 25% is due before onboarding, 25% after MVP approval, 40% after development approval, and 10% after deployment approval. Work on the next phase begins after the preceding payment is captured. The quotation total is the final amount payable, including any applicable taxes specified by the provider. A quotation is not a tax invoice.
-
-Changes and dependencies: New features, extra revisions, content entry, hosting, domains and third-party subscriptions are excluded unless listed in scope. Changes require a separate written quotation accepted by both parties before work starts. The client supplies content, access and timely feedback; client or third-party delays may change the written timeline.
-
-Cancellation and refunds: Either party may request cancellation by email. Completed and accepted work remains payable. Unperformed work and unused advances are reconciled in writing, with any agreed refund initiated within 7 business days; bank processing may take longer. Mandatory legal rights remain unaffected. No automatic blanket non-refundable deposit applies.
-
-Handover and intellectual property: Agreed project-specific source and deliverables transfer after full payment. Pre-existing tools and third-party components retain their existing ownership and licences. Production access and secrets are handed over securely; hosting and ongoing operations require a separate agreement.
-
-Support: 30 calendar days from the recorded production deployment date cover reproducible defects in the agreed scope. New features, design changes, third-party outages, new platform requirements and changes by others are excluded. Report issues to the provider contact in this quotation. No ongoing maintenance or uptime promise is included.
-
-Privacy and confidentiality: Client contact details, quotation acceptance and payment references are used to administer this project and resolve disputes. Razorpay handles payment credentials; this site does not store card details. Both parties protect confidential project information. Contact the provider for access, correction or deletion requests, subject to required record retention.
-
-Disputes: Contact the provider first to seek a written resolution. Applicable law, venue, business identity, tax treatment and any additional project-specific commitments must be stated by the provider before inviting acceptance.`;
+const quotationTemplate = require('./quotationTemplate');
+const DEFAULT_TERMS = quotationTemplate.clauses
+  .map((c, i) => `${i + 1}. ${c.title}\n${c.text}`)
+  .join('\n\n');
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 function snapshot(q) {
   return {
@@ -46,12 +35,14 @@ function digest(q) {
   return hash(JSON.stringify(snapshot(q)));
 }
 function validate(body) {
-  const data = {};
+  if (body.builder)
+    body = { ...body, ...quotationTemplate.compile(body.builder) };
+  const data = { builder: body.builder || null };
   for (const [key, max] of Object.entries({
     title: 160,
     clientName: 120,
     clientEmail: 254,
-    seller: 1500,
+    seller: 2500,
     scope: 7000,
     exclusions: 3000,
     timeline: 3000,
@@ -174,6 +165,7 @@ function createQuotationService({ gateway }) {
         'Payments have started. Create a separate change quotation.',
       );
     const data = snapshot(q);
+    if (q.builder) data.builder = q.builder;
     delete data.milestones;
     data.validUntil = new Date(Date.now() + 14 * 86400000);
     const revised = await Quote.create({
@@ -496,6 +488,12 @@ function createQuotationService({ gateway }) {
     portal,
     get,
     defaults: DEFAULT_TERMS,
+    template: () => ({
+      terms: DEFAULT_TERMS,
+      catalog: quotationTemplate.catalog,
+      builder: quotationTemplate.defaults(),
+    }),
+    preview: (builder) => quotationTemplate.compile(builder),
     list: async () => {
       ready();
       return (await Quote.find().sort({ createdAt: -1 }).limit(100)).map(view);

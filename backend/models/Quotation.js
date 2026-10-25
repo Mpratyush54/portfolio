@@ -23,6 +23,7 @@ const schema = new mongoose.Schema(
     clientName: String,
     clientEmail: String,
     seller: String,
+    builder: mongoose.Schema.Types.Mixed,
     scope: String,
     exclusions: String,
     timeline: String,

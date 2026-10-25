@@ -25,6 +25,7 @@ export type Quotation = {
   clientName: string;
   clientEmail: string;
   seller: string;
+  builder?: any;
   scope: string;
   exclusions: string;
   timeline: string;

@@ -88,6 +88,28 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
         .digest('hex'),
     });
   }
+  it('persists guided choices and exact edited clauses through draft reload and revision', async () => {
+    const template = require('../services/quotationTemplate');
+    const builder = template.defaults();
+    Object.assign(builder.provider, {
+      name: 'Provider',
+      email: 'provider@example.com',
+      address: 'Example address',
+      taxStatus: 'not_registered',
+      venue: 'Bengaluru, Karnataka',
+    });
+    builder.scopeNotes =
+      'Two named pages with working forms on mobile and desktop.';
+    builder.clauses[0].text += ' One handover call is included.';
+    const created = await service.create({ ...body(), builder });
+    assert.match(created.terms, /One handover call/);
+    const loaded = service.view(await service.get(created._id));
+    assert.deepEqual(loaded.builder.features, builder.features);
+    assert.equal(loaded.terms, created.terms);
+    const replacement = await service.revise(created._id);
+    assert.equal(replacement.builder.clauses[0].text, builder.clauses[0].text);
+    assert.equal(replacement.terms, created.terms);
+  });
   it('allocates fractional rupees without losing or adding paise', () => {
     const q = validate(body());
     assert.equal(

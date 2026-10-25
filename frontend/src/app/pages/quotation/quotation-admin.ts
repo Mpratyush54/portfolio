@@ -1,4 +1,4 @@
-import { Component, Input, inject, signal } from '@angular/core';
+import { Component, Input, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -50,35 +50,247 @@ import { quoteApi, Quotation } from './quotation';
                 [(ngModel)]="editor.totalRupees" /></label
             ><label>Valid until<input type="date" [(ngModel)]="editor.validDate" /></label>
           </div>
-          <label
-            >Provider legal name, contact email, address, GST/tax treatment and dispute
-            venue<textarea [(ngModel)]="editor.seller" maxlength="1500"></textarea>
-          </label>
-          <label
-            >Scope, deliverables and measurable acceptance criteria<textarea
-              [(ngModel)]="editor.scope"
-              maxlength="7000"
-            ></textarea>
-          </label>
-          <label
-            >Exclusions, revision limits and third-party costs<textarea
-              [(ngModel)]="editor.exclusions"
-              maxlength="3000"
-            ></textarea>
-          </label>
-          <label
-            >Timeline, dependencies and client responsibilities<textarea
-              [(ngModel)]="editor.timeline"
-              maxlength="3000"
-            ></textarea>
-          </label>
-          <label
-            >Full agreement (editable per client)<textarea
-              class="terms-edit"
-              [(ngModel)]="editor.terms"
-              maxlength="14000"
-            ></textarea>
-          </label>
+          @if (editor.builder; as b) {
+            <fieldset>
+              <legend>Provider details</legend>
+              <p>
+                These are prefilled from your latest guided quotation when available. Check they are
+                current.
+              </p>
+              <div class="fields">
+                <label
+                  >Provider legal name<input
+                    [(ngModel)]="b.provider.name"
+                    maxlength="120"
+                    autocomplete="organization"
+                /></label>
+                <label
+                  >Provider contact email<input
+                    type="email"
+                    [(ngModel)]="b.provider.email"
+                    maxlength="254"
+                    autocomplete="email"
+                /></label>
+              </div>
+              <label
+                >Provider address<textarea
+                  [(ngModel)]="b.provider.address"
+                  maxlength="500"
+                  autocomplete="street-address"
+                ></textarea>
+              </label>
+              <div class="fields">
+                <label
+                  >GST / tax status<select
+                    aria-label="GST / tax status"
+                    [(ngModel)]="b.provider.taxStatus"
+                  >
+                    <option value="" disabled>Choose your status</option>
+                    <option value="not_registered">Not GST registered � no GST charged</option>
+                    <option value="registered">GST registered � tax included in final price</option>
+                    <option value="other">Other tax treatment � describe below</option>
+                  </select></label
+                >
+                <label
+                  >Dispute venue (city and state)<input
+                    [(ngModel)]="b.provider.venue"
+                    maxlength="160"
+                    placeholder="Enter the agreed city and state"
+                /></label>
+              </div>
+              @if (b.provider.taxStatus === 'registered') {
+                <label
+                  >GSTIN<input
+                    [(ngModel)]="b.provider.gstin"
+                    maxlength="15"
+                    (ngModelChange)="b.provider.gstin = $event.toUpperCase()"
+                /></label>
+              }
+              <label
+                >Tax details
+                {{ b.provider.taxStatus === 'not_registered' ? '(optional)' : '(required)'
+                }}<input
+                  [(ngModel)]="b.provider.taxNote"
+                  maxlength="500"
+                  placeholder="Describe applicable tax and its inclusion in the quoted total"
+              /></label>
+            </fieldset>
+            <fieldset>
+              <legend>What is included?</legend>
+              <p>
+                Tick the deliverables. Each includes a starting acceptance criterion; add the exact
+                pages, flows and limits below.
+              </p>
+              <div class="checks">
+                @for (f of catalog.features; track f.id) {
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      [ngModel]="b.features.includes(f.id)"
+                      (ngModelChange)="toggle('features', f.id, $event)"
+                    /><span
+                      >{{ f.label }}<small>{{ f.acceptance }}</small></span
+                    ></label
+                  >
+                }
+              </div>
+              <label
+                >Project-specific deliverables and acceptance criteria<textarea
+                  [(ngModel)]="b.scopeNotes"
+                  maxlength="3000"
+                  placeholder="Example: Home, Services and Contact pages; two booking types; confirmation email. MVP includes the working booking flow. Completion includes all agreed pages and successful mobile tests."
+                ></textarea>
+              </label>
+            </fieldset>
+            <fieldset>
+              <legend>Exclusions and revisions</legend>
+              <div class="checks">
+                @for (f of catalog.exclusions; track f.id) {
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      [ngModel]="b.exclusions.includes(f.id)"
+                      (ngModelChange)="toggle('exclusions', f.id, $event)"
+                    /><span>{{ f.label }}</span></label
+                  >
+                }
+              </div>
+              <label
+                >Included revision rounds per milestone<input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="1"
+                  [(ngModel)]="b.revisionRounds"
+              /></label>
+              <p>
+                Agreed-scope defect corrections do not consume a revision round. New features
+                require a separate accepted change quotation.
+              </p>
+              <label
+                >Other exclusions or cost arrangements (optional)<textarea
+                  [(ngModel)]="b.exclusionNotes"
+                  maxlength="1000"
+                ></textarea>
+              </label>
+            </fieldset>
+            <fieldset>
+              <legend>Timeline and client responsibilities</legend>
+              <div class="fields">
+                <label
+                  >Estimated project duration (weeks)<input
+                    type="number"
+                    min="1"
+                    max="52"
+                    step="1"
+                    [(ngModel)]="b.weeks" /></label
+                ><label
+                  >Client review target (business days)<input
+                    type="number"
+                    min="1"
+                    max="30"
+                    step="1"
+                    [(ngModel)]="b.reviewDays"
+                /></label>
+              </div>
+              <div class="checks">
+                @for (f of catalog.responsibilities; track f.id) {
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      [ngModel]="b.responsibilities.includes(f.id)"
+                      (ngModelChange)="toggle('responsibilities', f.id, $event)"
+                    /><span>{{ f.label }}</span></label
+                  >
+                }
+              </div>
+              <label
+                >Phase dates and special dependencies (optional)<textarea
+                  [(ngModel)]="b.timelineNotes"
+                  maxlength="1000"
+                ></textarea>
+              </label>
+              <label class="check"
+                ><input type="checkbox" [(ngModel)]="b.portfolio" /><span
+                  >Request client permission to show publicly released work in my portfolio.
+                  Confidential data stays private.</span
+                ></label
+              >
+            </fieldset>
+            <section class="agreement-editor">
+              <h3>Full agreement � {{ b.clauses.length }} editable sections</h3>
+              <p>
+                Complete standard clauses are already filled in. Expand a section to customise it.
+                The preview fills in the review period, revisions, schedule, contact, venue and
+                portfolio choice.
+              </p>
+              @for (clause of b.clauses; track clause.id; let i = $index) {
+                <details>
+                  <summary>{{ i + 1 }}. {{ clause.title }}</summary>
+                  <label
+                    >{{ clause.title
+                    }}<textarea [(ngModel)]="clause.text" maxlength="2500" rows="8"></textarea>
+                  </label>
+                </details>
+              }
+              <label
+                >Additional project-specific agreement terms (optional)<textarea
+                  [(ngModel)]="b.additionalTerms"
+                  maxlength="1800"
+                ></textarea>
+              </label>
+            </section>
+            <button type="button" [disabled]="busy()" (click)="preview()">
+              Preview generated quotation
+            </button>
+            @if (previewText(); as preview) {
+              <section class="generated-preview" aria-live="polite">
+                <h3>Quotation preview</h3>
+                <p>
+                  Generated from the choices at the time you clicked Preview. Saving regenerates
+                  from your current choices.
+                </p>
+                @for (section of preview; track section.title) {
+                  <h4>{{ section.title }}</h4>
+                  <p class="preserve">{{ section.text }}</p>
+                }
+              </section>
+            }
+          } @else {
+            <p>
+              This draft uses the original text editor. Existing wording is preserved; new
+              quotations use the guided builder.
+            </p>
+            <label
+              >Provider legal name, contact email, address, GST/tax treatment and dispute
+              venue<textarea [(ngModel)]="editor.seller" maxlength="2500"></textarea>
+            </label>
+            <label
+              >Scope, deliverables and measurable acceptance criteria<textarea
+                [(ngModel)]="editor.scope"
+                maxlength="7000"
+              ></textarea>
+            </label>
+            <label
+              >Exclusions, revision limits and third-party costs<textarea
+                [(ngModel)]="editor.exclusions"
+                maxlength="3000"
+              ></textarea>
+            </label>
+            <label
+              >Timeline, dependencies and client responsibilities<textarea
+                [(ngModel)]="editor.timeline"
+                maxlength="3000"
+              ></textarea>
+            </label>
+            <label
+              >Full agreement (editable per client)<textarea
+                class="terms-edit"
+                [(ngModel)]="editor.terms"
+                maxlength="14000"
+              ></textarea>
+            </label>
+          }
           <p>
             Default support: 30 calendar days of agreed-scope bug fixes from deployment. Review
             every clause and your business/tax details before sharing. The final price is split 25%
@@ -196,6 +408,7 @@ import { quoteApi, Quotation } from './quotation';
         line-height: 1.6;
       }
       input,
+      select,
       textarea {
         display: block;
         box-sizing: border-box;
@@ -212,6 +425,56 @@ import { quoteApi, Quotation } from './quotation';
       textarea {
         min-height: 100px;
         resize: vertical;
+      }
+      fieldset {
+        border: 1px solid #465064;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 20px 0;
+        min-width: 0;
+      }
+      legend {
+        font-weight: 650;
+        padding: 0 8px;
+      }
+      .checks {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 8px 20px;
+      }
+      label.check {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        margin: 8px 0;
+        padding: 8px 0;
+      }
+      .check input {
+        width: 22px;
+        height: 22px;
+        flex: 0 0 22px;
+        margin-top: 2px;
+      }
+      .check small {
+        display: block;
+        line-height: 1.5;
+        color: #b8c8db;
+        margin-top: 6px;
+      }
+      .agreement-editor details {
+        border-bottom: 1px solid #465064;
+        padding: 8px 0;
+      }
+      .agreement-editor summary {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+      }
+      .generated-preview {
+        border: 1px solid #617188;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px 0;
       }
       .terms-edit {
         min-height: 360px;
@@ -248,6 +511,7 @@ import { quoteApi, Quotation } from './quotation';
         min-height: 44px;
       }
       @media (max-width: 600px) {
+        .checks,
         .fields {
           grid-template-columns: minmax(0, 1fr);
         }
@@ -258,6 +522,7 @@ import { quoteApi, Quotation } from './quotation';
 export class QuotationAdminComponent {
   @Input({ required: true }) headers!: HttpHeaders;
   private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
   rows = signal<Quotation[]>([]);
   busy = signal(false);
   error = signal('');
@@ -265,6 +530,8 @@ export class QuotationAdminComponent {
   copied = signal(false);
   editor: any = null;
   editingId = '';
+  catalog: any = { features: [], exclusions: [], responsibilities: [] };
+  previewText = signal<{ title: string; text: string }[] | null>(null);
   evidence: Record<string, string> = {};
   ngOnInit() {
     void this.load();
@@ -295,6 +562,10 @@ export class QuotationAdminComponent {
   async newDraft() {
     await this.run(async () => {
       const d = await this.request('get', '/defaults');
+      this.catalog = d.catalog;
+      const previous = this.rows().find((q) => q.builder)?.builder;
+      if (previous) d.builder.provider = structuredClone(previous.provider);
+      this.previewText.set(null);
       this.editingId = '';
       this.editor = {
         title: '',
@@ -304,31 +575,70 @@ export class QuotationAdminComponent {
         scope: '',
         exclusions: '',
         timeline: '',
-        terms: d.terms,
+        terms: '',
+        builder: d.builder,
         totalRupees: 0,
         validDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
       };
     });
   }
   edit(q: Quotation) {
+    this.previewText.set(null);
+    if (q.builder && !this.catalog.features.length) void this.loadCatalog();
     this.editingId = q._id;
     this.editor = {
-      ...q,
+      ...structuredClone(q),
       version: q.__v,
       totalRupees: q.totalPaise / 100,
       validDate: q.validUntil.slice(0, 10),
     };
+  }
+  private async loadCatalog() {
+    try {
+      const d = await this.request('get', '/defaults');
+      this.catalog = d.catalog;
+      this.cdr.markForCheck();
+    } catch {
+      this.error.set('Could not load the builder choices. Close and reopen this draft.');
+    }
+  }
+  toggle(key: 'features' | 'exclusions' | 'responsibilities', id: string, enabled: boolean) {
+    const selected: string[] = this.editor.builder[key];
+    this.editor.builder[key] = enabled
+      ? [...new Set([...selected, id])]
+      : selected.filter((x) => x !== id);
+  }
+  async preview() {
+    await this.run(async () => {
+      const p = await this.request('post', '/preview', { builder: this.editor.builder });
+      this.previewText.set(
+        ['seller', 'scope', 'exclusions', 'timeline', 'terms'].map((key, i) => ({
+          title: [
+            'Provider',
+            'Scope and acceptance',
+            'Exclusions and revisions',
+            'Timeline and responsibilities',
+            'Full agreement',
+          ][i],
+          text: p[key],
+        })),
+      );
+    });
   }
   async save() {
     await this.run(async () => {
       const paise = this.editor.totalRupees * 100;
       if (!Number.isFinite(paise) || Math.abs(paise - Math.round(paise)) > 0.000001)
         throw { error: { error: 'Enter a price with at most two decimal places.' } };
+      const payload = { ...this.editor };
+      if (payload.builder)
+        for (const key of ['seller', 'scope', 'exclusions', 'timeline', 'terms'])
+          delete payload[key];
       await this.request(
         this.editingId ? 'put' : 'post',
         this.editingId ? `/${this.editingId}` : '',
         {
-          ...this.editor,
+          ...payload,
           totalPaise: Math.round(paise),
           validUntil: `${this.editor.validDate}T23:59:59+05:30`,
         },

@@ -2,6 +2,31 @@
   display: block;
 }
 
+/* Short landscape screens need the same content-first behavior as phones. */
+@media (min-width: 641px) and (max-height: 600px) {
+  .stage {
+    .hud { padding: 12px 20px; align-items: center; gap: 12px; background: rgba(7, 7, 12, 0.94); }
+    .hud-left { flex: 1; }
+    .hud-sub, .mood, .right-cluster { display: none; }
+    .hud-tools { display: inline-flex; }
+    .views { top: 68px; }
+    .view { padding: 18px 20px 32px; pointer-events: auto; }
+    .home-view .view-copy { margin-top: 0; width: min(480px, 65%); }
+    .display-name { font-size: 2.2rem; }
+    .role-line { margin-bottom: 12px !important; }
+    .lead { margin-bottom: 14px !important; }
+    .work-view { display: block; overflow-y: auto; }
+    .career { display: none; }
+    .work-head { margin-bottom: 16px; }
+    .selected { width: 100%; overflow: visible; max-height: none; }
+    .about-view .view-copy { width: 100%; max-width: none; }
+    .about-stickers, .contact-stickers { position: relative; inset: auto; display: flex; flex-wrap: wrap; gap: 16px; margin-top: 20px; touch-action: pan-y; }
+    .about-stickers .sticker, .contact-stickers .sticker { position: relative; width: min(210px, 100%); transform: none !important; box-sizing: border-box; touch-action: auto; }
+    .sticker-grip, .sticker-preview { display: none; }
+  }
+  .stage.is-about .robot-stage, .stage.is-contact .robot-stage { display: none; }
+}
+
 .stage {
   position: relative;
   width: 100vw;
@@ -39,6 +64,13 @@
 
   &.boot-fade {
     opacity: 0.85;
+  }
+
+  /* Phone: HUD already usable — soften boot so nav isn't trapped */
+  &.boot-soft {
+    background: rgba(7, 7, 12, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 }
 
@@ -92,10 +124,64 @@
   z-index: 1;
   pointer-events: none;
 
+  &.is-pending {
+    pointer-events: none;
+  }
+
   app-hero-scene {
     display: block;
     width: 100%;
     height: 100%;
+  }
+
+  .bud-optin {
+    pointer-events: auto;
+    position: absolute;
+    left: 50%;
+    bottom: max(96px, calc(72px + env(safe-area-inset-bottom)));
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(12, 12, 20, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #f0f0f6;
+    font-family: inherit;
+    cursor: pointer;
+    min-width: 180px;
+
+    &:active {
+      transform: translateX(-50%) scale(0.98);
+    }
+  }
+
+  .bud-optin-title {
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  .bud-optin-sub {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    color: rgba(200, 205, 220, 0.55);
+  }
+
+  .bud-softload {
+    position: absolute;
+    left: 50%;
+    bottom: max(96px, calc(72px + env(safe-area-inset-bottom)));
+    transform: translateX(-50%);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(200, 205, 220, 0.45);
   }
 
   &.interactive {
@@ -263,6 +349,17 @@
     opacity: 0.7;
     font-size: 0.65rem;
   }
+
+  .nav-book {
+    color: #0a0a10 !important;
+    background: #e8e8f0 !important;
+    font-weight: 650;
+
+    &:hover {
+      background: #fff !important;
+      color: #0a0a10 !important;
+    }
+  }
 }
 
 /* =====================================================
@@ -324,6 +421,21 @@
   &.on {
     color: #fff;
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  &.rail-book {
+    color: #0a0a10;
+    background: #e8e8f0;
+
+    &:hover,
+    &.on {
+      color: #0a0a10;
+      background: #fff;
+    }
+
+    .rail-label {
+      color: inherit;
+    }
   }
 
   svg {
@@ -532,6 +644,17 @@
         display: block;
       }
 
+      &.book-nav {
+        color: #0a0a10;
+        background: #e8e8f0;
+
+        &.active,
+        &:hover {
+          color: #0a0a10;
+          background: #fff;
+        }
+      }
+
       &.active {
         color: #f0f0f6;
         background: rgba(255, 255, 255, 0.1);
@@ -683,6 +806,401 @@
       padding-top: 3px;
     }
   }
+}
+
+.home-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0 22px;
+}
+
+.cta-book {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #e8e8f0;
+  color: #0a0a10;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.cta-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: transparent;
+  color: #f0f0f6;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.inline-book {
+  display: inline-flex;
+  margin-top: 14px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: #e8e8f0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  pointer-events: auto;
+
+  &.about-book {
+    margin-top: 22px;
+  }
+}
+
+/* About / Contact: stickers float freely over the whole view */
+.about-view {
+  display: block;
+  width: 100%;
+}
+
+.about-view .view-copy {
+  position: relative;
+  z-index: 5;
+  width: min(480px, 100%);
+}
+
+.about-stickers,
+.contact-stickers {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none; /* only stickers catch events */
+  touch-action: none;
+  user-select: none;
+}
+
+.sticker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(210px, 70vw);
+  padding: 14px 14px 12px;
+  border-radius: 18px;
+  background: rgba(16, 16, 24, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto; /* critical — .view is pointer-events: none */
+  will-change: transform;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+
+  &.dragging {
+    cursor: grabbing;
+    box-shadow: 0 28px 56px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+
+  &.azure {
+    background:
+      linear-gradient(145deg, rgba(0, 120, 212, 0.2), transparent 55%),
+      rgba(14, 16, 24, 0.96);
+  }
+
+  &.odoo {
+    background:
+      linear-gradient(145deg, rgba(113, 75, 103, 0.32), transparent 55%),
+      rgba(14, 16, 24, 0.96);
+  }
+
+  &.dive {
+    background:
+      linear-gradient(145deg, rgba(40, 120, 100, 0.22), transparent 55%),
+      rgba(14, 16, 24, 0.96);
+  }
+
+  &.caps {
+    background:
+      linear-gradient(145deg, rgba(70, 100, 160, 0.2), transparent 55%),
+      rgba(14, 16, 24, 0.96);
+  }
+
+  &.brand-sticker {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: 6px 8px;
+    gap: 0;
+    align-items: center;
+  }
+
+  &.dive.brand-sticker {
+    background: rgba(8, 8, 12, 0.92);
+    padding: 4px 6px;
+  }
+
+  &.caps.brand-sticker {
+    padding: 4px;
+  }
+}
+
+.sticker-brand-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 132px;
+  max-height: 72px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.sticker.dive .sticker-brand-img {
+  max-width: 128px;
+  max-height: 74px;
+}
+
+.sticker-brand-plate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fff;
+  pointer-events: none;
+  line-height: 0;
+
+  .sticker-brand-img {
+    max-width: 136px;
+    max-height: 36px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+  }
+}
+
+.sticker-preview.brand-preview {
+  width: min(200px, 70vw);
+  padding: 10px 12px;
+
+  img {
+    display: none;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: rgba(230, 234, 245, 0.9);
+  }
+}
+
+.sticker-grip {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(200, 205, 220, 0.4);
+}
+
+.sticker-badge {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+}
+
+.sticker-logo-wrap {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: fit-content;
+  pointer-events: none;
+}
+
+.odoo-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  i {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: block;
+
+    &:nth-child(1) { background: #714B67; }
+    &:nth-child(2) { background: #017E84; }
+    &:nth-child(3) { background: #C3BEAF; }
+    &:nth-child(4) { background: #A7DB4E; }
+  }
+}
+
+.odoo-word {
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  color: #f4f4fa;
+  line-height: 1;
+}
+
+.sticker-copy {
+  h3 {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #f4f4fa;
+  }
+}
+
+.sticker-kicker {
+  margin: 0 0 4px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(180, 186, 200, 0.55);
+}
+
+.sticker-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: rgba(200, 205, 220, 0.72);
+}
+
+.sticker-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: rgba(232, 236, 246, 0.9);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  pointer-events: auto;
+
+  &:hover {
+    color: #fff;
+  }
+}
+
+.sticker-hint {
+  margin: 18px 0 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(160, 165, 185, 0.45);
+}
+
+/* Hover preview — docks to the side with room (never clips off-screen) */
+.sticker-preview {
+  position: absolute;
+  width: min(280px, 70vw);
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(10, 10, 16, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  p {
+    margin: 8px 4px 2px;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    color: rgba(210, 214, 228, 0.75);
+  }
+}
+
+.sticker.preview-right .sticker-preview {
+  left: calc(100% + 12px);
+  right: auto;
+  top: 0;
+  bottom: auto;
+  transform: translateX(6px) scale(0.96);
+}
+
+.sticker.preview-left .sticker-preview {
+  left: auto;
+  right: calc(100% + 12px);
+  top: 0;
+  bottom: auto;
+  transform: translateX(-6px) scale(0.96);
+}
+
+.sticker.preview-below .sticker-preview {
+  left: 50%;
+  right: auto;
+  top: calc(100% + 10px);
+  bottom: auto;
+  transform: translateX(calc(-50% + var(--preview-shift, 0px))) translateY(4px) scale(0.96);
+}
+
+.sticker.preview-above .sticker-preview {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: calc(100% + 10px);
+  transform: translateX(calc(-50% + var(--preview-shift, 0px))) translateY(-4px) scale(0.96);
+}
+
+.sticker.azure .sticker-preview img {
+  width: 120px;
+  height: 120px;
+  margin: 8px auto;
+  object-fit: contain;
+}
+
+.sticker.hovering:not(.dragging) .sticker-preview,
+.sticker:hover:not(.dragging) .sticker-preview {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sticker.hovering:not(.dragging).preview-right .sticker-preview,
+.sticker:hover:not(.dragging).preview-right .sticker-preview,
+.sticker.hovering:not(.dragging).preview-left .sticker-preview,
+.sticker:hover:not(.dragging).preview-left .sticker-preview {
+  transform: none;
+}
+
+.sticker.hovering:not(.dragging).preview-below .sticker-preview,
+.sticker:hover:not(.dragging).preview-below .sticker-preview {
+  transform: translateX(calc(-50% + var(--preview-shift, 0px)));
+}
+
+.sticker.hovering:not(.dragging).preview-above .sticker-preview,
+.sticker:hover:not(.dragging).preview-above .sticker-preview {
+  transform: translateX(calc(-50% + var(--preview-shift, 0px)));
 }
 
 /* Work */
@@ -886,8 +1404,13 @@
 
 .contact-view {
   position: relative;
-  /* Leave right gutter clear of sound/orbit/random/listen/ask */
-  padding: 100px 124px 40px 28px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(28px, 4vw, 56px);
+  /* Clear rail on the right; no absolute x/y offsets on the form */
+  padding: 100px 100px 40px 40px;
   box-sizing: border-box;
   overflow: auto;
   height: 100%;
@@ -901,16 +1424,18 @@
   gap: 14px;
   pointer-events: auto;
   width: 200px;
+  flex-shrink: 0;
 }
 
 .contact-panel {
-  /* Right side, vertically centered (same idea as the control rail) */
-  position: absolute;
-  top: 50%;
-  right: 124px;
-  transform: translateY(-50%);
+  position: relative;
+  top: auto;
+  right: auto;
+  left: auto;
+  transform: none;
   pointer-events: auto;
-  width: min(400px, calc(100% - 200px - 124px - 48px));
+  width: min(420px, 100%);
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -925,7 +1450,7 @@
     0 24px 60px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   color-scheme: dark;
-  max-height: calc(100vh - 80px);
+  max-height: calc(100vh - 140px);
   overflow: hidden;
 
   /* Hide “say hello” heading once the chat thread starts */
@@ -1011,6 +1536,15 @@
   text-decoration: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   transition: opacity 0.15s;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
 
   &:last-child {
     border-bottom: none;
@@ -1020,6 +1554,10 @@
     .connect-value {
       color: #fff;
     }
+  }
+
+  &.as-button {
+    cursor: pointer;
   }
 }
 
@@ -1074,12 +1612,12 @@
 
 @media (max-width: 1100px) and (min-width: 901px) {
   .contact-view {
-    padding-right: 112px;
+    padding-right: 96px;
+    gap: 32px;
   }
 
   .contact-panel {
-    right: 112px;
-    width: min(360px, calc(100% - 180px - 112px - 40px));
+    width: min(380px, 100%);
   }
 }
 
@@ -1087,7 +1625,8 @@
   .contact-view {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
+    justify-content: flex-start;
     padding: 96px 16px 40px;
     gap: 20px;
     overflow-x: hidden;
@@ -1117,6 +1656,7 @@
     width: 100%;
     max-width: 440px;
     max-height: none;
+    align-self: center;
     align-self: center;
     overflow: visible;
   }
@@ -1199,6 +1739,8 @@
     padding-bottom: max(58px, calc(48px + env(safe-area-inset-bottom))) !important;
 
     .view-copy {
+      box-sizing: border-box;
+      min-width: 0;
       display: block;
       width: 100%;
       max-width: none;
@@ -1263,8 +1805,7 @@
   }
 
   .about-view {
-    display: flex;
-    flex-direction: column;
+    display: block;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
 
@@ -1274,6 +1815,9 @@
       margin: 0;
       padding: 4px 0 8px;
       text-shadow: 0 1px 14px rgba(7, 7, 12, 0.9);
+      /* Keep text above stickers when they overlap */
+      z-index: 6;
+      background: linear-gradient(180deg, rgba(7, 7, 12, 0.55), rgba(7, 7, 12, 0.2) 80%, transparent);
 
       .eyebrow {
         margin-bottom: 10px;
@@ -1294,7 +1838,75 @@
         max-width: 36ch;
       }
     }
+
+    .about-stickers,
+    .contact-stickers {
+      position: relative;
+      inset: auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+      pointer-events: auto;
+    }
+
+    .sticker {
+      width: min(180px, 56vw);
+      padding: 12px;
+    }
+
+    .sticker-badge {
+      width: 72px;
+      height: 72px;
+    }
+
+    .sticker-preview {
+      width: min(260px, 78vw);
+    }
+
+    .sticker-hint {
+      margin: 14px 0 80px;
+    }
   }
+
+  /* Touch layouts keep credentials and brands in flow so they cannot cover
+     copy, form controls, or the fixed navigation. Desktop retains dragging. */
+  .about-view .about-stickers,
+  .contact-view .contact-stickers {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+    min-height: 0;
+    width: 100%;
+    pointer-events: auto;
+    touch-action: pan-y;
+    user-select: auto;
+
+    .sticker {
+      position: relative;
+      left: auto;
+      top: auto;
+      transform: none !important;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      cursor: default;
+      touch-action: auto;
+    }
+
+    .sticker-grip, .sticker-preview { display: none; }
+    .sticker-logo-wrap { max-width: 100%; box-sizing: border-box; }
+    .sticker-brand-plate { max-width: 100%; box-sizing: border-box; }
+    .sticker-brand-img { max-width: 100%; }
+    .sticker-sub, .sticker-copy h3 { overflow-wrap: anywhere; }
+    .sticker-link { display: inline-flex; align-items: center; min-height: 40px; }
+  }
+
+  .contact-view:has(.chat.is-chatting) .contact-stickers { display: none; }
 
   .about-facts {
     margin-top: 8px;
@@ -1344,6 +1956,7 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    justify-content: flex-start;
     gap: 16px;
     width: 100%;
     max-width: 100%;
@@ -1732,12 +2345,15 @@
     }
   }
 
-  /* Chatting: full-screen chat on phone (hide chrome) */
+  /* Chatting: full-screen chat on phone (hide chrome) — single scroll = thread */
   .contact-view:has(.chat.is-chatting) {
     gap: 0;
     padding: 0;
-    overflow: hidden;
+    overflow: hidden !important;
     height: 100%;
+    max-height: 100%;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: auto;
 
     .contact-identity {
       display: none !important;
@@ -1747,7 +2363,7 @@
       flex: 1;
       min-height: 0;
       height: 100%;
-      max-height: none;
+      max-height: 100%;
       border-radius: 0;
       border: none !important;
       box-shadow: none;
@@ -1758,6 +2374,10 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+    }
+
+    .contact-panel-head {
+      display: none; /* more room for the chat thread */
     }
 
     .contact-panel-body {

@@ -25,15 +25,35 @@ spec:
         # Rewritten by CI on every main build so the pod template always changes
         portfolio.pratyushes.dev/deploy-sha: "4fd968a"
     spec:
+      volumes:
+        - name: analytics-config
+          configMap:
+            name: portfolio-analytics
+            optional: true
       imagePullSecrets:
         - name: ghcr-pull
       containers:
         - name: frontend
+          volumeMounts:
+            - name: analytics-config
+              mountPath: /usr/share/nginx/html/browser/runtime
+              readOnly: true
           # Tag is rewritten by CI to the short git SHA after each build
           image: ghcr.io/mpratyush54/portfolio-frontend:4fd968a
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
           resources:
             requests:
               cpu: 50m

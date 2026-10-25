@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 export type ShellView = 'home' | 'work' | 'about' | 'contact';
 
@@ -11,6 +12,7 @@ const MOODS: Record<ShellView, string> = {
 
 @Injectable({ providedIn: 'root' })
 export class ShellService {
+  private router = inject(Router);
   private _view = signal<ShellView>('home');
   private _projectId = signal<string | null>(null);
   private _introDone = signal(false);
@@ -26,6 +28,11 @@ export class ShellService {
   setView(v: ShellView): void {
     this._view.set(v);
     if (v !== 'work') this._projectId.set(null);
+  }
+
+  /** Quiet dedicated booking page — `/book` (not in primary chrome). */
+  openDiscovery(): void {
+    this.router.navigateByUrl('/book');
   }
 
   openProject(id: string): void {

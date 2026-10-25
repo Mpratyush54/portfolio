@@ -1,6 +1,7 @@
 :host { display: contents; }
 
 .ask-overlay {
+  box-sizing: border-box;
   position: fixed;
   inset: 0;
   z-index: 80;
@@ -20,6 +21,7 @@
 }
 
 .ask-modal {
+  box-sizing: border-box;
   width: min(560px, 100%);
   max-height: min(70vh, 620px);
   display: flex;
@@ -62,8 +64,8 @@
 }
 
 .ask-x {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
@@ -115,6 +117,16 @@
     color: #f87171;
   }
 }
+
+/* Rich text output is prose, rather than a flex item per inline code/span. */
+.ask-line[data-kind="sys"] .ask-row,
+.ask-line[data-kind="out"] .ask-row,
+.ask-line[data-kind="err"] .ask-row {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.ask-row .bubble { min-width: 0; overflow-wrap: anywhere; }
 
 .prompt {
   flex-shrink: 0;
@@ -176,6 +188,7 @@
 }
 
 .ask-field {
+  min-width: 0;
   flex: 1;
   background: transparent;
   border: none;

@@ -1,7 +1,19 @@
-import { Component, ElementRef, EventEmitter, Output, ViewChild, AfterViewChecked, OnDestroy } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Output,
+  ViewChild,
+  AfterViewChecked,
+  OnDestroy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { ViewportService } from '../../services/viewport.service';
+import { AnalyticsService } from '../../services/analytics.service';
 
 type Intent = 'hire' | 'freelance' | 'hi';
 type Step = 'intent' | 'name' | 'email' | 'phone' | 'note' | 'done';
@@ -17,63 +29,115 @@ type ChatMsg = {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './contact-form.html',
-  styleUrl: './contact-form.scss'
+  styleUrl: './contact-form.scss',
 })
 export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   @Output() sent = new EventEmitter<void>();
   @ViewChild('thread') threadRef?: ElementRef<HTMLDivElement>;
+  @ViewChild('draftEl') draftEl?: ElementRef<HTMLInputElement | HTMLTextAreaElement>;
+
+  @Output() bookCall = new EventEmitter<void>();
 
   intents: { id: Intent; label: string; emoji: string; blurb: string }[] = [
     {
       id: 'hire',
       label: 'Hire me',
       emoji: '💼',
-      blurb: 'Roles, internships, or full-time — tell me about the team.',
+      blurb: 'Role or full-time fit',
     },
     {
       id: 'freelance',
-      label: 'Freelance project',
+      label: 'Freelance',
       emoji: '🛠️',
-      blurb: 'A scoped build or consulting gig with a clear outcome.',
+      blurb: 'A build or consulting gig',
     },
     {
       id: 'hi',
       label: 'Just say hi',
       emoji: '👋',
-      blurb: 'No pitch needed — a hello, a question, or a hello back.',
+      blurb: 'A hello or a quick question',
     },
   ];
 
-  messages: ChatMsg[] = [
-    { id: 1, from: 'bot', text: 'Hey — what brings you here?' },
-  ];
-
+  messages: ChatMsg[] = [];
   step: Step = 'intent';
   intent: Intent | null = null;
   draft = '';
   inputError = '';
   status: 'idle' | 'sending' | 'success' | 'error' = 'idle';
   statusMessage = '';
-  website = ''; // honeypot
+  website = '';
+  botTyping = false;
 
-  private data = { name: '', email: '', phone: '', message: '' };
-  private msgId = 1;
+  data = { name: '', email: '', phone: '', message: '' };
+  private viewport = inject(ViewportService);
+  private analytics = inject(AnalyticsService);
+  get simpleUi(): boolean {
+    return this.viewport.compact();
+  }
+  sendSimple(): void {
+    if (
+      !this.intent ||
+      this.validateName(this.data.name.trim()) ||
+      this.validateEmail(this.data.email.trim()) ||
+      !this.data.message.trim()
+    ) {
+      this.statusMessage = 'Choose a reason and enter your name, valid email and project details.';
+      return;
+    }
+    this.data = {
+      ...this.data,
+      name: this.data.name.trim(),
+      email: this.data.email.trim().toLowerCase(),
+      message: this.data.message.trim(),
+    };
+    this.submit();
+  }
+  private msgId = 0;
   private shouldScroll = false;
+  private shouldFocus = false;
   private botTimers: ReturnType<typeof setTimeout>[] = [];
 
-  private apiUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api'
-    : '/api';
+  private apiUrl =
+    typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:5000/api'
+      : '/api';
 
   private readonly emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngAfterViewChecked(): void {
-    if (!this.shouldScroll) return;
-    this.shouldScroll = false;
+    if (this.shouldScroll) {
+      this.shouldScroll = false;
+      this.scrollThreadToEnd();
+    }
+    if (this.shouldFocus) {
+      this.shouldFocus = false;
+      const input = this.draftEl?.nativeElement;
+      if (input && this.showComposer && this.status !== 'sending') {
+        try {
+          input.focus({ preventScroll: true });
+        } catch {
+          input.focus();
+        }
+        // After keyboard opens on phone, pin thread to latest message
+        setTimeout(() => this.scrollThreadToEnd(), 50);
+      }
+    }
+  }
+
+  private scrollThreadToEnd(): void {
     const el = this.threadRef?.nativeElement;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+      const last = el.lastElementChild as HTMLElement | null;
+      last?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    });
   }
 
   ngOnDestroy(): void {
@@ -81,7 +145,17 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   }
 
   get intentLabel(): string {
-    return this.intents.find(i => i.id === this.intent)?.label || '';
+    return this.intents.find((i) => i.id === this.intent)?.label || '';
+  }
+
+  get stepIndex(): number {
+    const order: Step[] = ['name', 'email', 'phone', 'note'];
+    const i = order.indexOf(this.step);
+    return i < 0 ? 0 : i + 1;
+  }
+
+  get stepTotal(): number {
+    return 4;
   }
 
   get inputType(): string {
@@ -90,11 +164,17 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
     return 'text';
   }
 
+  get useTextarea(): boolean {
+    return this.step === 'note';
+  }
+
   get placeholder(): string {
     if (this.step === 'name') return 'Your name';
     if (this.step === 'email') return 'you@company.com';
-    if (this.step === 'phone') return 'Phone — not required';
-    if (this.step === 'note') return this.intent === 'hi' ? 'Optional note…' : 'A short note…';
+    if (this.step === 'phone') return 'Phone number';
+    if (this.step === 'note') {
+      return this.intent === 'hi' ? 'Optional note…' : 'What’s this about?';
+    }
     return '';
   }
 
@@ -103,23 +183,31 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   }
 
   get showComposer(): boolean {
-    return this.step === 'name' || this.step === 'email' || this.step === 'phone' || this.step === 'note';
+    return (
+      this.step === 'name' || this.step === 'email' || this.step === 'phone' || this.step === 'note'
+    );
+  }
+
+  get sendLabel(): string {
+    if (this.status === 'sending') return '…';
+    if (this.step === 'note') return 'Send';
+    return 'Next';
   }
 
   pickIntent(id: Intent): void {
-    if (this.step !== 'intent') return;
+    if (this.step !== 'intent' || this.botTyping) return;
     this.intent = id;
-    const label = this.intents.find(i => i.id === id)?.label || id;
+    const label = this.intents.find((i) => i.id === id)?.label || id;
     this.push('user', label);
     this.step = 'name';
-    this.pushBot('Nice. What’s your name?', 340);
+    this.askBot(`Nice — what’s your name?`, 280);
   }
 
   skip(): void {
-    if (!this.canSkip || this.status === 'sending') return;
+    if (!this.canSkip || this.status === 'sending' || this.botTyping) return;
     this.inputError = '';
     if (this.step === 'phone') {
-      this.push('user', 'Not required');
+      this.push('user', 'Skip phone');
       this.data.phone = '';
       this.askForNote();
       return;
@@ -131,37 +219,60 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
     }
   }
 
+  onComposerKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter') return;
+    if (this.useTextarea && !event.shiftKey) {
+      event.preventDefault();
+      this.onSubmitDraft();
+      return;
+    }
+    if (!this.useTextarea) {
+      event.preventDefault();
+      this.onSubmitDraft();
+    }
+  }
+
   onSubmitDraft(event?: Event): void {
     event?.preventDefault();
-    if (!this.showComposer || this.status === 'sending') return;
+    if (!this.showComposer || this.status === 'sending' || this.botTyping) return;
     const value = this.draft.trim();
     this.inputError = '';
 
     if (this.step === 'name') {
       const err = this.validateName(value);
-      if (err) { this.inputError = err; return; }
+      if (err) {
+        this.inputError = err;
+        return;
+      }
       this.data.name = value;
       this.push('user', value);
       this.draft = '';
       this.step = 'email';
-      this.pushBot(`Thanks, ${value.split(' ')[0]}. What’s the best email to reach you?`, 320);
+      const first = value.split(/\s+/)[0];
+      this.askBot(`Thanks, ${first}. Best email to reach you?`, 300);
       return;
     }
 
     if (this.step === 'email') {
       const err = this.validateEmail(value);
-      if (err) { this.inputError = err; return; }
+      if (err) {
+        this.inputError = err;
+        return;
+      }
       this.data.email = value.toLowerCase();
       this.push('user', this.data.email);
       this.draft = '';
       this.step = 'phone';
-      this.pushBot('Got it. Phone number? Not required — tap that if you’d rather skip.', 300);
+      this.askBot('Phone? Totally optional — you can skip.', 280);
       return;
     }
 
     if (this.step === 'phone') {
       const err = this.validatePhone(value);
-      if (err) { this.inputError = err; return; }
+      if (err) {
+        this.inputError = err;
+        return;
+      }
       this.data.phone = value;
       this.push('user', value);
       this.draft = '';
@@ -179,7 +290,7 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
         return;
       }
       if (value.length > 5000) {
-        this.inputError = 'That’s a bit long — keep it under 5000 characters.';
+        this.inputError = 'Keep it under 5000 characters.';
         return;
       }
       this.data.message = value;
@@ -191,8 +302,9 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
 
   restart(): void {
     this.clearBotTimers();
-    this.messages = [{ id: 1, from: 'bot', text: 'Hey — what brings you here?' }];
-    this.msgId = 1;
+    this.botTyping = false;
+    this.messages = [];
+    this.msgId = 0;
     this.step = 'intent';
     this.intent = null;
     this.draft = '';
@@ -206,11 +318,11 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   private askForNote(): void {
     this.step = 'note';
     if (this.intent === 'hi') {
-      this.pushBot('Want to leave a short note? Not required.', 300);
+      this.askBot('Want to leave a short note? Optional.', 260);
     } else if (this.intent === 'hire') {
-      this.pushBot('Last one — role, team, or anything useful?', 300);
+      this.askBot('Last one — role, team, or anything useful?', 280);
     } else {
-      this.pushBot('Last one — what’s the project about?', 300);
+      this.askBot('Last one — what’s the project about?', 280);
     }
   }
 
@@ -226,7 +338,7 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
     if (!value) return 'Email can’t be empty.';
     if (value.length > 254) return 'That email is too long.';
     if (/\s/.test(value)) return 'Emails can’t contain spaces.';
-    if (!value.includes('@')) return 'That doesn’t look like an email — missing “@”.';
+    if (!value.includes('@')) return 'Missing “@” — that doesn’t look like an email.';
     const [local, domain] = value.split('@');
     if (!local) return 'Something’s missing before the “@”.';
     if (!domain) return 'Something’s missing after the “@”.';
@@ -234,26 +346,30 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
     if (domain.startsWith('.') || domain.endsWith('.') || domain.includes('..')) {
       return 'That domain doesn’t look valid.';
     }
-    if (!this.emailRe.test(value)) {
-      return 'Hmm, that email still looks invalid. Try again?';
-    }
-    // Common typo domains
-    const typoHosts = ['gmial.com', 'gmal.com', 'gmail.co', 'hotmal.com', 'yahooo.com', 'outlok.com'];
+    if (!this.emailRe.test(value)) return 'Hmm, that email still looks invalid.';
+    const typoHosts = [
+      'gmial.com',
+      'gmal.com',
+      'gmail.co',
+      'hotmal.com',
+      'yahooo.com',
+      'outlok.com',
+    ];
     const host = domain.toLowerCase();
     if (typoHosts.includes(host)) {
-      return `Did you mean a different domain? “${host}” looks mistyped.`;
+      return `“${host}” looks mistyped — check the domain?`;
     }
     return null;
   }
 
   private validatePhone(value: string): string | null {
-    if (!value) return 'Type a number, or choose Not required.';
+    if (!value) return 'Type a number, or tap Skip.';
     if (value.length > 40) return 'That phone number is too long.';
     const digits = value.replace(/\D/g, '');
-    if (digits.length < 7) return 'That number looks too short — or tap Not required.';
+    if (digits.length < 7) return 'That number looks too short — or tap Skip.';
     if (digits.length > 15) return 'That number looks too long.';
     if (!/^[+]?[\d\s().-]{7,40}$/.test(value)) {
-      return 'Use digits (and optional + - spaces). Or tap Not required.';
+      return 'Use digits (and optional + - spaces), or tap Skip.';
     }
     return null;
   }
@@ -264,8 +380,14 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
     this.shouldScroll = true;
   }
 
-  private pushBot(text: string, delayMs = 280): void {
-    const t = setTimeout(() => this.push('bot', text), delayMs);
+  private askBot(text: string, delayMs = 280): void {
+    this.botTyping = true;
+    this.shouldScroll = true;
+    const t = setTimeout(() => {
+      this.botTyping = false;
+      this.push('bot', text);
+      this.shouldFocus = true;
+    }, delayMs);
     this.botTimers.push(t);
   }
 
@@ -277,29 +399,38 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   private submit(): void {
     if (!this.intent || this.status === 'sending') return;
     this.status = 'sending';
-    this.push('system', 'Sending…');
+    this.botTyping = true;
     this.step = 'done';
+    this.shouldScroll = true;
 
-    this.http.post<{ success: boolean; message: string }>(`${this.apiUrl}/contact`, {
-      intent: this.intent,
-      name: this.data.name,
-      email: this.data.email,
-      phone: this.data.phone,
-      message: this.data.message,
-      website: this.website,
-    }).subscribe({
-      next: (res) => {
-        this.status = 'success';
-        this.statusMessage = res.message || 'Thanks — Pratyush will get back to you soon.';
-        this.pushBot(this.statusMessage, 260);
-        this.sent.emit();
-      },
-      error: (err: HttpErrorResponse) => {
-        this.status = 'error';
-        this.statusMessage = err.error?.error || 'Something went wrong. Try again later.';
-        this.pushBot(this.statusMessage, 200);
-        this.step = 'note';
-      }
-    });
+    this.http
+      .post<{ success: boolean; message: string }>(`${this.apiUrl}/contact`, {
+        intent: this.intent,
+        name: this.data.name,
+        email: this.data.email,
+        phone: this.data.phone,
+        message: this.data.message,
+        website: this.website,
+      })
+      .subscribe({
+        next: (res) => {
+          this.botTyping = false;
+          this.status = 'success';
+          void this.analytics.track('contact_submitted');
+          this.statusMessage = res.message || 'Got it — Pratyush will reply soon.';
+          this.push('bot', this.statusMessage);
+          this.sent.emit();
+          this.cdr.markForCheck();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.botTyping = false;
+          this.status = 'error';
+          this.statusMessage = err.error?.error || 'Couldn’t send — try again in a moment.';
+          this.push('bot', this.statusMessage);
+          this.step = 'note';
+          this.shouldFocus = true;
+          this.cdr.markForCheck();
+        },
+      });
   }
 }

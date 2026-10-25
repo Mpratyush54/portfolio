@@ -7,11 +7,35 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json({ limit: '10kb' }));
+// Only enable forwarding behind the known ingress hop; never trust arbitrary
+// client-supplied forwarding headers on a directly exposed development server.
+const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
+if (Number.isSafeInteger(proxyHops) && proxyHops > 0) app.set('trust proxy', proxyHops);
+// Capture the exact signed bytes before the JSON body parser.
+app.post('/api/bookings/webhook', express.raw({ type: 'application/json', limit: '64kb' }), async (req, res) => {
+  try { res.json(await bookingService.webhook(req.body, req.headers['x-razorpay-signature'])); }
+  catch (error) { handleBookingError(res, error); }
+});
+app.post('/api/quotations/webhook', express.raw({ type: 'application/json', limit: '64kb' }), async (req, res) => {
+  try {
+    res.json(await quotationService.webhook(req.body, req.get('x-razorpay-signature')));
+  } catch (error) { handleBookingError(res, error); }
+});
+app.use(express.json({ limit: '48kb' }));
 
-const { sendApprovedContactEmails, INTENT_LABEL } = require('./services/mailer');
+const Razorpay = require('razorpay');
+const { sendVisitorApprovalEmail, sendBookingPaidEmails, INTENT_LABEL } = require('./services/mailer');
 const contactStore = require('./services/contactStore');
 const ContactMessage = require('./models/ContactMessage');
+const { createBookingService } = require('./services/bookingService');
+const { createQuotationService } = require('./services/quotationService');
+const { createQuotationRouter } = require('./services/quotationRoutes');
+const quotationService = createQuotationService({ gateway: getRazorpay });
+const { createBookingRouter, handleBookingError } = require('./services/bookingRoutes');
+const { createAdminAuth } = require('./services/adminAuth');
+const { bookingSmtpReady } = require('./services/mailer');
+const bookingService = createBookingService({ gateway: getRazorpay, sendEmails: sendBookingPaidEmails, emailReady: bookingSmtpReady });
+const { startDailyDigestScheduler, runDailyDigest } = require('./services/digest');
 
 // In-memory rate limiter
 const rateStore = new Map();
@@ -63,17 +87,33 @@ const curatedProjects = require('./data/projects');
 
 let isMongoConnected = false;
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/portfolio')
-  .then(() => { console.log('MongoDB Connected'); isMongoConnected = true; })
+  .then(async () => {
+    console.log('MongoDB Connected'); isMongoConnected = true;
+    try { await bookingService.init(); } catch (error) { console.error('[Booking initialization]', error.message); }
+  })
   .catch(() => { console.log('MongoDB Connection Failed (Using Curated Data)'); });
+
+mongoose.connection.on('disconnected', () => { isMongoConnected = false; });
+mongoose.connection.on('connected', () => { isMongoConnected = true; });
+
+// Never silently move configured production inboxes to container-local files.
+app.use(['/api/contact', '/api/admin/contacts', '/api/admin/digest'], (req, res, next) => {
+  if (process.env.MONGO_URI && !isMongoConnected) return res.status(503).json({ error: 'Storage is temporarily unavailable.' });
+  next();
+});
 
 const Project = require('./models/Project');
 const { syncMetaOnly } = require('./services/gitFetcher');
 
-// Admin auth
-function requireAdmin(req, res, next) {
-  const pw = process.env.ADMIN_PASSWORD || 'admin123';
-  if (req.headers['x-admin-password'] !== pw) return res.status(401).json({ error: 'Unauthorized' });
-  next();
+const requireAdmin = createAdminAuth();
+const { createContactActions } = require('./services/contactActions');
+const contactActions = createContactActions({ connected: () => isMongoConnected, sendEmail: sendVisitorApprovalEmail });
+
+function getRazorpay() {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!key_id || !key_secret) return null;
+  return new Razorpay({ key_id, key_secret });
 }
 
 // Merge curated data with optional live metadata from DB
@@ -87,6 +127,12 @@ function mergeWithDb(dbProjects) {
     return live ? { ...c, lastSyncedAt: live.lastSyncedAt || c.lastSyncedAt } : c;
   });
 }
+
+// Readiness waits for durable storage and booking indexes, independently of payments.
+app.get('/api/health', (req, res) => {
+  const ready = isMongoConnected && bookingService.ready();
+  res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ ready });
+});
 
 // ===== PUBLIC ROUTES =====
 
@@ -183,6 +229,7 @@ app.post('/api/admin/sync', requireAdmin, async (req, res) => {
 app.get('/api/admin/contacts', requireAdmin, async (req, res) => {
   try {
     const status = req.query.status;
+    if (status && !['pending', 'approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'Invalid contact status.' });
     let rows = [];
     if (isMongoConnected) {
       const q = status ? { status } : {};
@@ -198,71 +245,13 @@ app.get('/api/admin/contacts', requireAdmin, async (req, res) => {
 });
 
 app.post('/api/admin/contacts/:id/approve', requireAdmin, async (req, res) => {
-  try {
-    const id = req.params.id;
-    let msg = null;
-    if (isMongoConnected) {
-      msg = await ContactMessage.findById(id);
-      if (!msg) return res.status(404).json({ error: 'Not found' });
-      if (msg.status === 'approved' && msg.emailSentAt) {
-        return res.json({ success: true, message: 'Already approved and emailed.' });
-      }
-    } else {
-      msg = contactStore.findById(id);
-      if (!msg) return res.status(404).json({ error: 'Not found' });
-      if (msg.status === 'approved' && msg.emailSentAt) {
-        return res.json({ success: true, message: 'Already approved and emailed.' });
-      }
-    }
-
-    await sendApprovedContactEmails(msg);
-
-    const patch = {
-      status: 'approved',
-      approvedAt: new Date(),
-      emailSentAt: new Date(),
-    };
-
-    if (isMongoConnected) {
-      Object.assign(msg, patch);
-      await msg.save();
-      res.json({ success: true, message: 'Approved — owner + visitor emails sent.', item: msg });
-    } else {
-      const updated = contactStore.update(id, {
-        ...patch,
-        approvedAt: patch.approvedAt.toISOString(),
-        emailSentAt: patch.emailSentAt.toISOString(),
-      });
-      res.json({ success: true, message: 'Approved — owner + visitor emails sent.', item: updated });
-    }
-  } catch (err) {
-    console.error('[Contact approve]', err);
-    res.status(500).json({ error: err.message || 'Failed to approve' });
-  }
+  try { res.json(await contactActions.approve(req.params.id)); }
+  catch (error) { handleBookingError(res, error); }
 });
 
 app.post('/api/admin/contacts/:id/reject', requireAdmin, async (req, res) => {
-  try {
-    const id = req.params.id;
-    if (isMongoConnected) {
-      const msg = await ContactMessage.findByIdAndUpdate(
-        id,
-        { $set: { status: 'rejected', rejectedAt: new Date() } },
-        { new: true }
-      );
-      if (!msg) return res.status(404).json({ error: 'Not found' });
-      return res.json({ success: true, item: msg });
-    }
-    const existing = contactStore.findById(id);
-    if (!existing) return res.status(404).json({ error: 'Not found' });
-    const updated = contactStore.update(id, {
-      status: 'rejected',
-      rejectedAt: new Date().toISOString(),
-    });
-    res.json({ success: true, item: updated });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  try { res.json(await contactActions.reject(req.params.id)); }
+  catch (error) { handleBookingError(res, error); }
 });
 
 // ===== CONTACT ROUTE =====
@@ -273,7 +262,7 @@ const VALID_INTENTS = new Set(['hire', 'freelance', 'hi']);
 
 app.post('/api/contact', async (req, res) => {
   try {
-    const { name, email, phone, company, message, website, intent } = req.body;
+    const { name, email, phone, company, message, website, intent } = req.body || {};
     const ip = req.ip || req.connection.remoteAddress;
 
     // Honeypot — bots fill hidden fields; humans leave them empty
@@ -298,6 +287,8 @@ app.post('/api/contact', async (req, res) => {
       message: String(message).trim(),
       ip: String(ip || ''),
     };
+
+    if (!trimmed.name || !trimmed.message) return res.status(400).json({ error: 'Name and message cannot be blank.' });
 
     if (!EMAIL_RE.test(trimmed.email)) {
       return res.status(400).json({ error: 'Please provide a valid email address.' });
@@ -335,4 +326,40 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Manual digest trigger (admin) — still no-ops when inbox is empty
+app.post('/api/admin/digest/run', requireAdmin, async (req, res) => {
+  try {
+    const result = await runDailyDigest({
+      isMongoConnected,
+      force: req.query.force === '1' || req.body?.force === true,
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[Digest manual]', err);
+    res.status(500).json({ error: err.message || 'Digest failed' });
+  }
+});
+
+app.use('/api', createBookingRouter(bookingService, requireAdmin, getRazorpay));
+app.use('/api', createQuotationRouter(quotationService, requireAdmin));
+
+// Malformed JSON and invalid Mongo IDs are client errors, not HTML error pages.
+app.use((error, req, res, next) => {
+  if (error.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON body.' });
+  if (error.type === 'entity.too.large') return res.status(413).json({ error: 'Request is too large.' });
+  console.error(error);
+  res.status(500).json({ error: 'Request failed.' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  startDailyDigestScheduler(() => isMongoConnected);
+  let retryingNotifications = false;
+  setInterval(async () => {
+    if (retryingNotifications) return;
+    retryingNotifications = true;
+    try { await bookingService.retryNotifications(); }
+    catch (error) { console.error('[Booking notifications]', error.message); }
+    finally { retryingNotifications = false; }
+  }, 60_000).unref();
+});

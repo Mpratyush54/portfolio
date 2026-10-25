@@ -3,6 +3,8 @@ import {
   HostListener, Input, Output, EventEmitter, inject, effect
 } from '@angular/core';
 import { BudEventsService } from '../../services/bud-events.service';
+import { ShellService } from '../../services/shell.service';
+import { loadModelBuffer } from './model-cache';
 
 export interface StagePose {
   camX?: number;
@@ -35,6 +37,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   showSpeech = false;
 
   private budEvents = inject(BudEventsService);
+  private shell = inject(ShellService);
   private scene: any = null;
   private camera: any = null;
   private renderer: any = null;
@@ -95,6 +98,13 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   private lastFrameMs = 0;
   private budHandoffPromise: Promise<void> | null = null;
   private paused = false;
+  /** Phone: don't boot WebGL until Home is shown. */
+  private deferred = false;
+  private startPromise: Promise<void> | null = null;
+  private started = false;
+  private OrbitControlsCtor: any = null;
+  private mobilePerf = false;
+  private frameBudgetMs = 16.5;
 
   constructor() {
     effect(() => {
@@ -108,6 +118,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(e: MouseEvent): void {
+    if (this.paused || !this.started) return;
     this.bumpActivity();
     // Only track head when pointer is over the 3D stage — not when browsing UI
     const stage = this.canvasRef?.nativeElement;
@@ -127,6 +138,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
   @HostListener('document:touchmove', ['$event'])
   onTouchMove(e: TouchEvent): void {
+    if (this.paused || !this.started) return;
     this.bumpActivity();
     const t = e.touches[0];
     if (t) this.onPointerMove(t.clientX, t.clientY);
@@ -153,29 +165,72 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   }
 
   async ngAfterViewInit(): Promise<void> {
+    this.mobilePerf = this.isPhone();
+    this.frameBudgetMs = this.mobilePerf ? 33 : 16.5;
+
+    // Phone on Work/About/Contact: unlock UI immediately, boot Three only on Home.
+    if (this.mobilePerf && this.shell.view() !== 'home') {
+      this.deferred = true;
+      this.paused = true;
+      this.loadingChange.emit(false);
+      this.ready.emit();
+      return;
+    }
+
+    await this.startScene();
+  }
+
+  /** Start (or resume) WebGL — safe to call when navigating back to Home on phone. */
+  ensureStarted(): void {
+    if (this.destroyed || this.started) {
+      if (this.started) this.setPaused(false);
+      return;
+    }
+    void this.startScene();
+  }
+
+  private async startScene(): Promise<void> {
+    if (this.startPromise) return this.startPromise;
+    this.startPromise = this.bootScene();
+    return this.startPromise;
+  }
+
+  private async bootScene(): Promise<void> {
+    this.deferred = false;
+    // Parent shell is already interactive — this flag is a soft badge only
     this.loadingChange.emit(true);
     try {
+      // Yield so first paint / nav clicks land before we parse Three.js
+      await this.wait(0);
+      if (this.destroyed) return;
+
       const T = await import('three');
+      if (this.destroyed) return;
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-      const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js');
-      const gsapMod = await import('gsap');
-      this.gsap = gsapMod.gsap || gsapMod.default;
+      if (this.destroyed) return;
       this.T = T;
       this.gltfLoaderCtor = GLTFLoader;
       this.initScene();
-      this.initControls(OrbitControls);
+
+      // OrbitControls only when the user enables play mode (saves parse work on first paint)
       this.setOrbitEnabled(false);
+
       const { fromCache } = await this.loadRobot(GLTFLoader);
+      if (this.destroyed) return;
       this.buildEnvironment(T);
+      this.started = true;
+      this.paused = false;
       this.animate();
       window.addEventListener('resize', this.onResize);
       this.loadingChange.emit(false);
       // Unlock UI as soon as the model is ready — don't hold the page for the walk.
       this.ready.emit();
 
-      // Walk-in only on cold load (Cache API miss). Warm visits skip straight to idle.
-      const shouldWalk = this.playIntro && !fromCache;
+      // Phone: skip walk-in + GSAP — idle immediately. Desktop: walk only on cold cache miss.
+      const shouldWalk = this.playIntro && !fromCache && !this.mobilePerf;
       if (shouldWalk) {
+        const gsapMod = await import('gsap');
+        this.gsap = gsapMod.gsap || gsapMod.default;
         await this.runIntro();
       } else {
         this.playIdle();
@@ -183,8 +238,8 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
       this.idleTimer = setInterval(() => this.checkBoredom(), 2000);
 
-      // Warm the About human in the background so the glitch isn't hitchy
-      void this.preloadHumanInBackground();
+      // Human model is desktop About-only — never prefetch on phones
+      if (!this.mobilePerf) void this.preloadHumanInBackground();
     } catch (e) {
       console.error('3D scene failed to load:', e);
       this.loadingChange.emit(false);
@@ -192,13 +247,18 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  /** Decode + GPU-warm human off the critical path. */
+  private isPhone(): boolean {
+    return typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+  }
+
+  /** Decode + GPU-warm human off the critical path (desktop About). */
   private async preloadHumanInBackground(): Promise<void> {
+    if (this.mobilePerf || this.isPhone()) return;
     // Let first paint / intro settle first
-    await this.wait(1200);
-    if (this.destroyed) return;
+    await this.wait(1800);
+    if (this.destroyed || this.paused) return;
     await this.ensureHumanLoaded();
-    if (this.destroyed || !this.humanReady) return;
+    if (this.destroyed || !this.humanReady || this.paused) return;
     this.warmHumanGpu();
   }
 
@@ -278,13 +338,27 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
   /** Pause render loop (phone non-home) — saves GPU while stage is hidden. */
   setPaused(paused: boolean): void {
+    if (paused && this.deferred && !this.started) {
+      this.paused = true;
+      return;
+    }
+    if (!paused && !this.started) {
+      this.ensureStarted();
+      return;
+    }
     if (this.paused === paused) return;
     this.paused = paused;
     if (paused) {
       cancelAnimationFrame(this.animId);
       this.animId = 0;
       this.showSpeech = false;
+      if (this.mixer) this.mixer.timeScale = 0;
+      if (this.humanMixer) this.humanMixer.timeScale = 0;
+      if (this.renderer?.domElement) this.renderer.domElement.style.visibility = 'hidden';
     } else if (!this.destroyed) {
+      if (this.mixer) this.mixer.timeScale = 1;
+      if (this.humanMixer) this.humanMixer.timeScale = 1;
+      if (this.renderer?.domElement) this.renderer.domElement.style.visibility = '';
       this.lastFrameMs = 0;
       this.animId = requestAnimationFrame(this.animate);
     }
@@ -310,7 +384,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     const lines: Record<string, string> = {
       home: "ask me anything about pratyush.",
       work: "here's what he's shipped.",
-      about: 'he builds backends and leads teams.',
+      about: 'he ships backends and full products.',
       contact: 'leave a note — he replies fast.',
     };
     this.applyPose(poses[view]);
@@ -399,22 +473,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       loader.setMeshoptDecoder(MeshoptDecoder);
     } catch { /* optional */ }
 
-    let buffer: ArrayBuffer | null = null;
-    try {
-      const cache = await caches.open('bud-models-v1');
-      const hit = await cache.match(url);
-      if (hit) buffer = await hit.arrayBuffer();
-      else {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        buffer = await res.arrayBuffer();
-        await cache.put(url, new Response(buffer.slice(0), {
-          headers: { 'Content-Type': 'model/gltf-binary' }
-        }));
-      }
-    } catch {
-      buffer = null;
-    }
+    const { buffer } = await loadModelBuffer(url);
 
     const gltf = buffer
       ? await new Promise<any>((resolve, reject) => loader.parse(buffer!, url, resolve, reject))
@@ -938,17 +997,27 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   /** Play = orbit/rotate Bud with the mouse. No spam greetings. */
   setPlayMode(on: boolean): void {
     this.playMode = on;
-    this.setOrbitEnabled(on);
     if (on) {
+      void this.ensureOrbitControls().then(() => this.setOrbitEnabled(true));
       this.bumpActivity();
       this.speechText = 'drag to rotate.';
       this.showSpeech = true;
       if (this.speechTimer) clearTimeout(this.speechTimer);
       this.speechTimer = setTimeout(() => { this.showSpeech = false; }, 2200);
     } else {
+      this.setOrbitEnabled(false);
       this.showSpeech = false;
       this.resetCameraSoft();
     }
+  }
+
+  private async ensureOrbitControls(): Promise<void> {
+    if (this.controls || !this.camera || !this.renderer) return;
+    if (!this.OrbitControlsCtor) {
+      const mod = await import('three/examples/jsm/controls/OrbitControls.js');
+      this.OrbitControlsCtor = mod.OrbitControls;
+    }
+    this.initControls(this.OrbitControlsCtor);
   }
 
   /** Autopilot: reshuffled varied deck — hard to spot a loop. */
@@ -987,15 +1056,18 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   }
 
   private resetCameraSoft(): void {
-    if (!this.camera || !this.gsap) return;
-    const isMobile = (this.canvasRef?.nativeElement?.clientWidth || window.innerWidth) < 768;
-    this.gsap.to(this.camera.position, {
+    if (!this.camera) return;
+    const isMobile = this.mobilePerf || (this.canvasRef?.nativeElement?.clientWidth || window.innerWidth) < 768;
+    const target = {
       x: isMobile ? 0.15 : 0.45,
       y: isMobile ? 1.0 : 1.15,
       z: isMobile ? 3.8 : 4.2,
-      duration: 0.9,
-      ease: 'power2.out',
-    });
+    };
+    if (this.gsap) {
+      this.gsap.to(this.camera.position, { ...target, duration: 0.9, ease: 'power2.out' });
+    } else {
+      this.camera.position.set(target.x, target.y, target.z);
+    }
     if (this.controls) {
       this.gsap.to(this.controls.target, {
         x: 0, y: 0.85, z: 0,
@@ -1109,7 +1181,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   }
 
   private checkBoredom(): void {
-    if (this.destroyed || document.hidden || this.introActive) return;
+    if (this.destroyed || this.paused || document.hidden || this.introActive) return;
     if (this.playMode || this.randomMode) return;
     if (Date.now() - this.lastActivity > 12000 && !this.isSleeping) {
       this.sleep('still there? i can wait…');
@@ -1183,17 +1255,24 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     const w = el.clientWidth || window.innerWidth;
     const h = el.clientHeight || window.innerHeight;
     this.scene = new T.Scene();
-    const isMobile = w < 768;
+    const isMobile = this.mobilePerf || w < 768;
     this.camera = new T.PerspectiveCamera(isMobile ? 38 : 32, w / h, 0.1, 100);
     // Frame humanoid mascot slightly right-of-center, a bit lower in the viewport
     this.camera.position.set(isMobile ? 0.15 : 0.45, isMobile ? 1.15 : 1.28, isMobile ? 4.0 : 4.35);
-    this.renderer = new T.WebGLRenderer({ alpha: true, antialias: true });
+    this.renderer = new T.WebGLRenderer({
+      alpha: true,
+      antialias: !isMobile,
+      powerPreference: isMobile ? 'low-power' : 'high-performance',
+      stencil: false,
+      depth: true,
+    });
     this.renderer.setSize(w, h);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Phone: cap DPR hard — 3x Retina is the usual jank source
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 2));
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.55;
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = T.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = !isMobile;
+    if (!isMobile) this.renderer.shadowMap.type = T.PCFSoftShadowMap;
     this.renderer.outputColorSpace = T.SRGBColorSpace;
     this.renderer.domElement.style.pointerEvents = this.stageOnly ? 'none' : 'auto';
     el.appendChild(this.renderer.domElement);
@@ -1227,26 +1306,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       console.warn('MeshoptDecoder unavailable', e);
     }
 
-    let fromCache = false;
-    let buffer: ArrayBuffer | null = null;
-
-    try {
-      const cache = await caches.open('bud-models-v1');
-      const hit = await cache.match(url);
-      if (hit) {
-        fromCache = true;
-        buffer = await hit.arrayBuffer();
-      } else {
-        const res = await fetch(url);
-        buffer = await res.arrayBuffer();
-        // Store a clone for next visits — cold load walks, warm load skips
-        await cache.put(url, new Response(buffer.slice(0), {
-          headers: { 'Content-Type': 'model/gltf-binary' }
-        }));
-      }
-    } catch {
-      // Cache API unavailable — fall through to normal load
-    }
+    const { buffer, fromCache } = await loadModelBuffer(url);
 
     const gltf = buffer
       ? await new Promise<any>((resolve, reject) => {
@@ -1272,10 +1332,11 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.robotHomeZ = this.robot.position.z;
     this.headBone = null;
     this.headTopBone = null;
+    const useShadows = !this.mobilePerf;
     this.robot.traverse((node: any) => {
       if (node.isMesh) {
-        node.castShadow = true;
-        node.receiveShadow = true;
+        node.castShadow = useShadows;
+        node.receiveShadow = useShadows;
         if (node.material) {
           const mats = Array.isArray(node.material) ? node.material : [node.material];
           mats.forEach((m: any) => {
@@ -1288,8 +1349,14 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
               }
               if (m.emissive && m.emissive.isColor) m.emissive.setHex(0xffffff);
             }
-            m.transparent = true;
-            m.opacity = 1;
+            // Phone: drop transparency cost on opaque mascot mats
+            if (this.mobilePerf) {
+              m.transparent = false;
+              m.opacity = 1;
+            } else {
+              m.transparent = true;
+              m.opacity = 1;
+            }
             m.needsUpdate = true;
           });
         }
@@ -1317,42 +1384,62 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   }
 
   private buildEnvironment(T: any): void {
+    const mobile = this.mobilePerf;
     const ground = new T.Mesh(
-      new T.CircleGeometry(3.2, 64),
-      new T.MeshStandardMaterial({ color: 0x0c0c14, roughness: 0.95, metalness: 0.02, transparent: true, opacity: 0.45 })
+      new T.CircleGeometry(3.2, mobile ? 24 : 64),
+      new T.MeshStandardMaterial({
+        color: 0x0c0c14,
+        roughness: 0.95,
+        metalness: 0.02,
+        transparent: !mobile,
+        opacity: mobile ? 1 : 0.45,
+      })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.01;
-    ground.receiveShadow = true;
+    ground.receiveShadow = !mobile;
     this.scene.add(ground);
-    const count = 160;
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 16;
-      pos[i * 3 + 1] = Math.random() * 7 + 0.5;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 16;
+
+    if (!mobile) {
+      const count = 160;
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        pos[i * 3] = (Math.random() - 0.5) * 16;
+        pos[i * 3 + 1] = Math.random() * 7 + 0.5;
+        pos[i * 3 + 2] = (Math.random() - 0.5) * 16;
+      }
+      const geo = new T.BufferGeometry();
+      geo.setAttribute('position', new T.BufferAttribute(pos, 3));
+      this.particles = new T.Points(geo, new T.PointsMaterial({
+        color: 0xa1a1aa, size: 0.022, transparent: true, opacity: 0.22, sizeAttenuation: true,
+      }));
+      this.scene.add(this.particles);
     }
-    const geo = new T.BufferGeometry();
-    geo.setAttribute('position', new T.BufferAttribute(pos, 3));
-    this.particles = new T.Points(geo, new T.PointsMaterial({ color: 0xa1a1aa, size: 0.022, transparent: true, opacity: 0.22, sizeAttenuation: true }));
-    this.scene.add(this.particles);
-    this.scene.add(new T.AmbientLight(0xc8cdd8, 0.6));
-    const key = new T.DirectionalLight(0xfff4e8, 2.2);
+
+    this.scene.add(new T.AmbientLight(0xc8cdd8, mobile ? 0.85 : 0.6));
+    const key = new T.DirectionalLight(0xfff4e8, mobile ? 1.8 : 2.2);
     key.position.set(4, 9, 6);
-    key.castShadow = true;
+    key.castShadow = !mobile;
     this.scene.add(key);
-    const fill = new T.DirectionalLight(0xb0becf, 0.9);
-    fill.position.set(-5, 3, 2);
-    this.scene.add(fill);
-    const rim = new T.DirectionalLight(0x90a4b8, 0.5);
-    rim.position.set(1, 2, -6);
-    this.scene.add(rim);
+    if (!mobile) {
+      const fill = new T.DirectionalLight(0xb0becf, 0.9);
+      fill.position.set(-5, 3, 2);
+      this.scene.add(fill);
+      const rim = new T.DirectionalLight(0x90a4b8, 0.5);
+      rim.position.set(1, 2, -6);
+      this.scene.add(rim);
+    } else {
+      const fill = new T.DirectionalLight(0xb0becf, 0.7);
+      fill.position.set(-5, 3, 2);
+      this.scene.add(fill);
+    }
   }
 
   private animate = (): void => {
     if (this.destroyed || this.paused) return;
     this.animId = requestAnimationFrame(this.animate);
     const now = performance.now();
+    if (this.lastFrameMs && now - this.lastFrameMs < this.frameBudgetMs - 1) return;
     const dt = this.lastFrameMs ? Math.min(0.05, (now - this.lastFrameMs) / 1000) : 0.016;
     this.lastFrameMs = now;
     this.time += dt;
@@ -1379,7 +1466,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       this.camera.lookAt(0, this.lookTarget.y, 0);
     }
     if (this.particles) this.particles.rotation.y += 0.0002;
-    if (this.controls) this.controls.update();
+    if (this.controls?.enabled) this.controls.update();
     this.renderer.render(this.scene, this.camera);
     this.updateSpeechAnchor();
   };

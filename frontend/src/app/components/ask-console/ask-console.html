@@ -1,6 +1,6 @@
 @if (isOpen) {
   <div class="ask-overlay" (click)="close()" role="presentation">
-    <div class="ask-modal" (click)="$event.stopPropagation()" role="dialog" aria-label="Ask Bud console">
+    <div class="ask-modal" appDialogFocus="input" (dialogDismiss)="close()" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Ask Bud console">
       <header class="ask-head">
         <div>
           <p class="ask-kicker">console</p>
@@ -38,6 +38,7 @@
           <input
             #inputEl
             class="ask-field"
+            aria-label="Ask Bud a question or command"
             [value]="input"
             (input)="onInput($any($event.target).value)"
             (keydown.enter)="submit()"

@@ -14,8 +14,10 @@ export class SfxService {
   private unlockBound = false;
 
   constructor() {
-    if (typeof window !== 'undefined') this.bindUnlock();
+    if (typeof window !== 'undefined' && !this.simpleUi()) this.bindUnlock();
   }
+
+  private simpleUi(): boolean { return typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 900px), (pointer: coarse)')?.matches); }
 
   setMuted(v: boolean): void {
     this.muted = v;
@@ -33,6 +35,7 @@ export class SfxService {
 
   /** Call from pointer/key events so AudioContext can start. */
   unlock(): void {
+    if (this.simpleUi()) return;
     try {
       const ctx = this.ensure();
       if (!ctx) return;
@@ -45,7 +48,7 @@ export class SfxService {
   }
 
   play(type: SfxType = 'click'): void {
-    if (this.muted || typeof window === 'undefined') return;
+    if (this.muted || typeof window === 'undefined' || this.simpleUi()) return;
     try {
       this.unlock();
       const ctx = this.ensure();

@@ -1,13 +1,48 @@
+@if (simpleUi) {
+  <form class="simple-contact" (ngSubmit)="sendSimple()">
+    @if (status === 'success') { <p role="status">{{statusMessage}}</p> }
+    @else {
+      <h2>Tell me about your project</h2>
+      <label>What do you need?<select name="intent" [(ngModel)]="intent" required><option [ngValue]="null" disabled>Choose one</option>@for (opt of intents; track opt.id) { <option [value]="opt.id">{{opt.label}}</option> }</select></label>
+      <label>Your name<input name="name" [(ngModel)]="data.name" required maxlength="100" autocomplete="name"></label>
+      <label>Email<input name="email" type="email" [(ngModel)]="data.email" required maxlength="254" autocomplete="email"></label>
+      <label>Phone (optional)<input name="phone" type="tel" [(ngModel)]="data.phone" maxlength="40" autocomplete="tel"></label>
+      <label>Project or message<textarea name="message" [(ngModel)]="data.message" required maxlength="5000" rows="5"></textarea></label>
+      <div class="hp-field" aria-hidden="true"><input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></div>
+      @if(statusMessage) { <p role="alert">{{statusMessage}}</p> }
+      <button type="submit" [disabled]="status === 'sending'">{{status === 'sending' ? 'Sending…' : 'Send message'}}</button>
+      <button type="button" (click)="bookCall.emit()">Book a discovery call instead</button>
+    }
+  </form>
+} @else {
 <div class="chat" [class.is-chatting]="step !== 'intent'" [class.is-done]="status === 'success'">
   @if (step === 'intent') {
     <div class="intent-stage">
-      <p class="chat-kicker">Why are you here?</p>
+      <div class="opener">
+        <div class="bubble bot opener-bubble">
+          Hey — what brings you here?
+        </div>
+      </div>
+      <p class="chat-kicker">Pick one to start</p>
       <div class="intent-list compact" role="group" aria-label="Choose an intent">
+        <button
+          type="button"
+          class="intent-btn directed book-intent"
+          style="animation-delay: 0ms"
+          (click)="bookCall.emit()"
+        >
+          <span class="intent-emoji" aria-hidden="true">📅</span>
+          <span class="intent-copy">
+            <span class="intent-label">Book a discovery call</span>
+            <span class="intent-blurb">Pick a time · 30 min</span>
+          </span>
+          <span class="intent-arrow" aria-hidden="true">→</span>
+        </button>
         @for (opt of intents; track opt.id; let i = $index) {
           <button
             type="button"
             class="intent-btn directed"
-            [style.animation-delay]="(i * 60) + 'ms'"
+            [style.animation-delay]="((i + 1) * 55) + 'ms'"
             (click)="pickIntent(opt.id)"
           >
             <span class="intent-emoji" aria-hidden="true">{{ opt.emoji }}</span>
@@ -23,11 +58,19 @@
   } @else {
     <div class="chat-stage">
       <div class="chat-top">
-        <button type="button" class="back" (click)="restart()" [disabled]="status === 'sending'">←</button>
-        <span class="intent-chip">{{ intentLabel }}</span>
+        <button type="button" class="back" (click)="restart()" [disabled]="status === 'sending'" aria-label="Start over">
+          ←
+        </button>
+        <div class="chat-meta">
+          <span class="intent-chip">{{ intentLabel }}</span>
+          @if (step !== 'done') {
+            <span class="step-pill" aria-label="Step {{ stepIndex }} of {{ stepTotal }}">
+              {{ stepIndex }} / {{ stepTotal }}
+            </span>
+          }
+        </div>
       </div>
 
-      <!-- Honeypot -->
       <div class="hp-field" aria-hidden="true">
         <label for="website">Website</label>
         <input type="text" id="website" name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off">
@@ -35,38 +78,82 @@
 
       <div class="thread" #thread role="log" aria-live="polite">
         @for (m of messages; track m.id) {
-          @if (m.from !== 'bot' || m.id > 1) {
-            <div
-              class="bubble"
-              [class.bot]="m.from === 'bot'"
-              [class.user]="m.from === 'user'"
-              [class.system]="m.from === 'system'"
-            >
-              {{ m.text }}
-            </div>
-          }
+          <div
+            class="bubble"
+            [class.bot]="m.from === 'bot'"
+            [class.user]="m.from === 'user'"
+            [class.system]="m.from === 'system'"
+          >
+            {{ m.text }}
+          </div>
+        }
+        @if (botTyping) {
+          <div class="bubble bot typing" aria-label="Typing">
+            <span></span><span></span><span></span>
+          </div>
         }
       </div>
 
       @if (showComposer) {
         <form class="composer" (ngSubmit)="onSubmitDraft($event)">
-          <input
-            [type]="inputType"
-            name="draft"
-            [(ngModel)]="draft"
-            [placeholder]="placeholder"
-            maxlength="5000"
-            autocomplete="on"
-            [attr.aria-invalid]="inputError ? true : null"
-            [disabled]="status === 'sending'"
-          />
-          <div class="composer-actions">
-            @if (canSkip) {
-              <button type="button" class="skip" (click)="skip()" [disabled]="status === 'sending'">Not required</button>
+          <div class="composer-row">
+            @if (useTextarea) {
+              <textarea
+                #draftEl
+                name="draft"
+                rows="2"
+                [(ngModel)]="draft"
+                [placeholder]="placeholder"
+                maxlength="5000"
+                [attr.aria-invalid]="inputError ? true : null"
+                [disabled]="status === 'sending' || botTyping"
+                (keydown)="onComposerKeydown($event)"
+              ></textarea>
+            } @else {
+              <input
+                #draftEl
+                [type]="inputType"
+                name="draft"
+                [(ngModel)]="draft"
+                [placeholder]="placeholder"
+                maxlength="5000"
+                autocomplete="on"
+                enterkeyhint="next"
+                [attr.aria-invalid]="inputError ? true : null"
+                [disabled]="status === 'sending' || botTyping"
+                (keydown)="onComposerKeydown($event)"
+              />
             }
-            <button type="submit" class="send" [disabled]="status === 'sending'">
-              {{ step === 'note' ? 'Send' : 'Next' }}
+            <button
+              type="submit"
+              class="send"
+              [disabled]="status === 'sending' || botTyping"
+              [attr.aria-label]="sendLabel"
+            >
+              @if (status === 'sending') {
+                <span class="send-spin" aria-hidden="true"></span>
+              } @else if (step === 'note') {
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>
+                </svg>
+              } @else {
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>
+                </svg>
+              }
             </button>
+          </div>
+          <div class="composer-foot">
+            @if (canSkip) {
+              <button type="button" class="skip" (click)="skip()" [disabled]="status === 'sending' || botTyping">
+                Skip
+              </button>
+            } @else {
+              <span class="hint">Enter to continue</span>
+            }
+            @if (useTextarea) {
+              <span class="hint">Enter to send</span>
+            }
           </div>
         </form>
         @if (inputError) {
@@ -75,8 +162,13 @@
       }
 
       @if (status === 'success') {
-        <button type="button" class="restart" (click)="restart()">Another note</button>
+        <button type="button" class="restart" (click)="restart()">Send another</button>
+      }
+      @if (status === 'error' && step === 'note') {
+        <p class="field-error retry-hint" role="status">Edit your note and hit send again.</p>
       }
     </div>
   }
 </div>
+
+}

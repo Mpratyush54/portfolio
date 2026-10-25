@@ -1,5 +1,5 @@
 @if (project) {
-  <div class="overlay-root" (click)="onBackdrop($event)" role="dialog" aria-modal="true">
+  <div class="overlay-root" appDialogFocus (dialogDismiss)="close.emit()" (click)="onBackdrop($event)" role="dialog" aria-modal="true" aria-labelledby="project-dialog-title">
     <div class="overlay-panel animate-slide-up">
       <header class="ov-head">
         <div class="ov-meta">
@@ -9,7 +9,7 @@
         <button type="button" class="ov-close" (click)="close.emit()" aria-label="Close">✕</button>
       </header>
 
-      <h2 class="ov-title">{{ project.title }}</h2>
+      <h2 class="ov-title" id="project-dialog-title">{{ project.title }}</h2>
       <p class="ov-lead">{{ project.shortDescription }}</p>
 
       @if (project.fullDescription) {

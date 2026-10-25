@@ -34,9 +34,21 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
           env:
             - name: PORT
               value: "5000"
+            - name: TRUST_PROXY_HOPS
+              value: "1"
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
@@ -108,6 +120,12 @@ spec:
                 secretKeyRef:
                   name: portfolio-secrets
                   key: RAZORPAY_KEY_SECRET
+                  optional: true
+            - name: RAZORPAY_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: RAZORPAY_WEBHOOK_SECRET
                   optional: true
             - name: DISCOVERY_FEE_PAISE
               valueFrom:

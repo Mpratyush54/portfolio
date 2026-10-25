@@ -2,15 +2,17 @@
   <header class="page-head" appReveal>
     <p class="eyebrow">contact</p>
     <h1 class="panel-title">let's build something.</h1>
-    <p class="lead">have a project or opportunity? open to backend &amp; full stack roles.</p>
+    <p class="lead">Send a note, or book a discovery call.</p>
+    <button type="button" class="page-book" (click)="openBook()">Book a discovery call</button>
   </header>
 
   <div class="contact-layout">
     <div class="form-shell" appReveal [appRevealDelay]="60">
-      <app-contact-form (sent)="onSent()"></app-contact-form>
+      <app-contact-form (sent)="onSent()" (bookCall)="openBook()"></app-contact-form>
     </div>
 
     <aside class="aside" appReveal [appRevealDelay]="120">
+      <button type="button" class="aside-link as-btn" (click)="openBook()">book a discovery call →</button>
       <a href="mailto:mpratyush54@gmail.com" class="aside-link">mpratyush54@gmail.com</a>
       <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="aside-link">resume ↗</a>
       <a href="https://www.linkedin.com/in/pratyushm07" target="_blank" rel="noopener" class="aside-link">linkedin ↗</a>

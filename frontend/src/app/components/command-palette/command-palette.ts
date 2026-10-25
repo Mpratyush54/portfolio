@@ -1,6 +1,7 @@
-import { Component, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, HostListener, ElementRef, ViewChild, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ShellService } from '../../services/shell.service';
 
 interface Command {
   input: string;
@@ -27,6 +28,7 @@ export class CommandPaletteComponent {
     '/projects': { path: '/projects', desc: 'View my projects' },
     '/about': { path: '/about', desc: 'Learn about me' },
     '/contact': { path: '/contact', desc: 'Get in touch' },
+    '/book': { path: '/book', desc: 'Book a discovery call' },
     '/journey': { path: '/', desc: 'Scroll the journey' },
     '/resume': { path: '/resume/Pratyush_mishra_SDE.pdf', desc: 'Download my resume' },
     'help': { path: '', desc: 'Show available commands' },
@@ -36,7 +38,8 @@ export class CommandPaletteComponent {
 
   prefix = 'visitor@pratyushes.dev:~$';
 
-  constructor(private router: Router) {}
+  private router = inject(Router);
+  private shell = inject(ShellService);
 
   get suggestions(): { key: string; desc: string }[] {
     const raw = this.input.trim().toLowerCase();
@@ -160,6 +163,8 @@ export class CommandPaletteComponent {
         this.close();
         if (cmd === '/resume') {
           window.open(route.path, '_blank');
+        } else if (cmd === '/book') {
+          this.shell.openDiscovery();
         } else if (cmd === '/journey') {
           this.router.navigate(['/']);
           setTimeout(() => {

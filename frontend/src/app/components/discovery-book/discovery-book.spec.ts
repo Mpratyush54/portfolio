@@ -19,7 +19,7 @@ describe('Discovery checkout', () => {
     window.Razorpay = class {
       constructor(value: any) { options = value; }
       open() {}
-      on(event: string, callback: () => void) { listeners[event] = callback; }
+      on(event: string, callback: (response: any) => void) { listeners[event] = () => callback({}); }
     };
     component.cfg = {
       amountPaise: 29900, amountLabel: '₹299', currency: 'INR', title: 'Discovery', durationMin: 30,

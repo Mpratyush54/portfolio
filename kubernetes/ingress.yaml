@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   name: portfolio-ingress
   annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx

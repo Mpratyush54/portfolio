@@ -16,6 +16,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
+    canDeactivate: [(component: { canLeave: () => Promise<boolean> }) => component.canLeave()],
     loadComponent: () => import('./pages/admin/admin').then(m => m.AdminComponent),
   },
   {

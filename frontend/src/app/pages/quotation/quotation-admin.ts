@@ -1,9 +1,10 @@
-import { Component, Input, inject, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, inject, signal, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { quoteApi, Quotation } from './quotation';
+import { cleanDraftText, downloadQuotationFile } from './quotation-files';
 
 @Component({
   selector: 'app-quotation-admin',
@@ -17,7 +18,7 @@ import { quoteApi, Quotation } from './quotation';
         the client. Inviting freezes its terms.
       </p>
       <div class="actions">
-        <button [disabled]="busy()" (click)="newDraft()">New quotation</button
+        <button [disabled]="busy() || !!editor" (click)="newDraft()">New quotation</button
         ><button [disabled]="busy()" (click)="load()">Refresh</button>
       </div>
       @if (error()) {
@@ -33,7 +34,40 @@ import { quoteApi, Quotation } from './quotation';
         ><button (click)="copy()">{{ copied() ? 'Copied' : 'Copy invitation' }}</button>
       }
       @if (editor) {
-        <div class="editor">
+        <div
+          class="editor"
+          (input)="changed($event)"
+          (change)="changed($event)"
+          (focusout)="cleanField($event)"
+        >
+          <div class="save-bar">
+            <div>
+              <strong>{{
+                savingDraft() ? 'Saving...' : dirty() ? 'Unsaved changes' : 'All changes saved'
+              }}</strong
+              ><small>Drafts save automatically, including unfinished fields.</small>
+            </div>
+            <button [disabled]="busy() || savingDraft() || conflict()" (click)="save()">
+              Save now</button
+            ><button [disabled]="busy() || savingDraft()" (click)="closeEditor()">
+              Close editor
+            </button>
+          </div>
+          @if (saveError()) {
+            <p class="error" role="alert">{{ saveError() }}</p>
+            @if (!conflict()) {
+              <button (click)="save()">Retry save</button>
+            } @else {
+              <button (click)="reloadDraft()">Discard local changes and reload saved draft</button>
+            }
+          }
+          @if (currentQuote()?.draftReady === false) {
+            <p class="draft-note">
+              Saved as an incomplete draft. Before inviting or exporting:
+              {{ currentQuote()?.draftValidation }}
+            </p>
+          }
+
           <h3>{{ editingId ? 'Edit draft' : 'New draft' }}</h3>
           <label>Project title<input [(ngModel)]="editor.title" maxlength="160" /></label>
           <div class="fields">
@@ -86,9 +120,9 @@ import { quoteApi, Quotation } from './quotation';
                     [(ngModel)]="b.provider.taxStatus"
                   >
                     <option value="" disabled>Choose your status</option>
-                    <option value="not_registered">Not GST registered � no GST charged</option>
-                    <option value="registered">GST registered � tax included in final price</option>
-                    <option value="other">Other tax treatment � describe below</option>
+                    <option value="not_registered">Not GST registered - no GST charged</option>
+                    <option value="registered">GST registered - tax included in final price</option>
+                    <option value="other">Other tax treatment - describe below</option>
                   </select></label
                 >
                 <label
@@ -218,7 +252,7 @@ import { quoteApi, Quotation } from './quotation';
               >
             </fieldset>
             <section class="agreement-editor">
-              <h3>Full agreement � {{ b.clauses.length }} editable sections</h3>
+              <h3>Full agreement - {{ b.clauses.length }} editable sections</h3>
               <p>
                 Complete standard clauses are already filled in. Expand a section to customise it.
                 The preview fills in the review period, revisions, schedule, contact, venue and
@@ -296,8 +330,40 @@ import { quoteApi, Quotation } from './quotation';
             every clause and your business/tax details before sharing. The final price is split 25%
             / 25% / 40% / 10%.
           </p>
-          <button [disabled]="busy()" (click)="save()">Save draft</button
-          ><button [disabled]="busy()" (click)="editor = null">Close editor</button>
+          <fieldset>
+            <legend>SRS requirements documents</legend>
+            <p>
+              Attach up to 3 PDF or Word (.docx) files, 5 MB each. Upload the agreed SRS before
+              creating the invitation; invited files are frozen with the terms.
+            </p>
+            <label
+              >Upload SRS<input
+                type="file"
+                accept=".pdf,.docx"
+                [disabled]="busy() || savingDraft() || conflict()"
+                (change)="uploadSrs($event)"
+            /></label>
+            @for (file of currentQuote()?.srs || []; track file.fileId) {
+              <div class="file-row">
+                <span>{{ file.name }} ({{ file.size / 1024 | number: '1.0-0' }} KB)</span
+                ><button [disabled]="busy()" (click)="downloadSrs(currentQuote()!, file)">
+                  Download</button
+                ><button
+                  [disabled]="busy() || savingDraft() || conflict()"
+                  (click)="removeSrs(file.fileId)"
+                >
+                  Remove
+                </button>
+              </div>
+            }
+          </fieldset>
+          <div class="actions">
+            <button [disabled]="busy() || savingDraft() || conflict()" (click)="save()">
+              Save now</button
+            ><button [disabled]="busy() || savingDraft()" (click)="closeEditor()">
+              Close editor
+            </button>
+          </div>
         </div>
       }
       @for (q of rows(); track q._id) {
@@ -305,8 +371,13 @@ import { quoteApi, Quotation } from './quotation';
           <h3>{{ q.title }} · revision {{ q.revision }}</h3>
           <p>
             {{ q.clientName }} · {{ q.clientEmail }} · {{ q.status }} ·
-            {{ q.totalPaise / 100 | currency: 'INR' }}
+            {{ (q.totalPaise || 0) / 100 | currency: 'INR' }}
           </p>
+          @if (q.draftReady === false) {
+            <p class="draft-note">
+              Incomplete draft - finish the required fields before inviting or exporting.
+            </p>
+          }
           <details>
             <summary>Preview full quotation</summary>
             <h4>Provider</h4>
@@ -323,21 +394,48 @@ import { quoteApi, Quotation } from './quotation';
           </details>
           <div class="actions">
             @if (q.status === 'draft') {
-              <button [disabled]="busy()" (click)="edit(q)">Edit draft</button>
+              <button [disabled]="busy() || !!editor" (click)="edit(q)">Edit draft</button>
             }
             @if (q.status !== 'cancelled') {
-              <button [disabled]="busy()" (click)="invite(q)">
+              <button [disabled]="busy() || !!editor || q.draftReady === false" (click)="invite(q)">
                 {{
                   q.status === 'draft'
                     ? 'Freeze terms and create invite'
                     : 'Replace private invite link'
                 }}</button
-              ><button [disabled]="busy()" (click)="revise(q)">Create revision</button>
+              ><button
+                [disabled]="busy() || !!editor || q.draftReady === false"
+                (click)="revise(q)"
+              >
+                Create revision
+              </button>
             }
             @if (q.status === 'invited' || q.status === 'accepted') {
-              <button [disabled]="busy()" (click)="revoke(q)">Revoke private link</button>
+              <button [disabled]="busy() || !!editor" (click)="revoke(q)">
+                Revoke private link
+              </button>
             }
           </div>
+          <div class="actions">
+            <button
+              [disabled]="busy() || q.draftReady === false || (!!editor && editingId === q._id)"
+              (click)="download(q, 'pdf')"
+            >
+              Download PDF</button
+            ><button
+              [disabled]="busy() || q.draftReady === false || (!!editor && editingId === q._id)"
+              (click)="download(q, 'docx')"
+            >
+              Download Word
+            </button>
+          </div>
+          @for (file of q.srs || []; track file.fileId) {
+            <p>
+              <button [disabled]="busy()" (click)="downloadSrs(q, file)">
+                SRS: {{ file.name }}
+              </button>
+            </p>
+          }
           @if (q.acceptance) {
             <p>Accepted by {{ q.acceptance.name }} on {{ q.acceptance.at | date: 'medium' }}</p>
           }
@@ -364,7 +462,10 @@ import { quoteApi, Quotation } from './quotation';
                   maxlength="3000"
                 ></textarea>
               </label>
-              <button [disabled]="busy() || !evidence[q._id + i]" (click)="release(q, i)">
+              <button
+                [disabled]="busy() || !!editor || !evidence[q._id + i]"
+                (click)="release(q, i)"
+              >
                 {{
                   i === 3
                     ? 'Record production deployment and request review'
@@ -398,6 +499,43 @@ import { quoteApi, Quotation } from './quotation';
         border-top: 1px solid #465064;
         margin-top: 24px;
         padding-top: 16px;
+      }
+      .save-bar {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        background: #172230;
+        border: 1px solid #617188;
+        border-radius: 12px;
+      }
+      .save-bar div {
+        flex: 1 1 180px;
+      }
+      .save-bar small {
+        display: block;
+        margin-top: 4px;
+        color: #bdc9da;
+      }
+      .draft-note {
+        padding: 12px;
+        background: #282519;
+        border-radius: 8px;
+        color: #ffe2a3;
+      }
+      .file-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin: 12px 0;
+      }
+      .file-row span {
+        flex: 1 1 200px;
       }
       .preserve {
         white-space: pre-wrap;
@@ -511,6 +649,21 @@ import { quoteApi, Quotation } from './quotation';
         min-height: 44px;
       }
       @media (max-width: 600px) {
+        .save-bar {
+          padding: 10px;
+          gap: 8px;
+        }
+        .save-bar div {
+          flex-basis: 100%;
+        }
+        .save-bar small {
+          display: none;
+        }
+        .save-bar button {
+          padding: 8px;
+          flex: 1;
+          font-size: 14px;
+        }
         .checks,
         .fields {
           grid-template-columns: minmax(0, 1fr);
@@ -530,6 +683,110 @@ export class QuotationAdminComponent {
   copied = signal(false);
   editor: any = null;
   editingId = '';
+  currentQuote = signal<Quotation | null>(null);
+  savingDraft = signal(false);
+  dirty = signal(false);
+  saveError = signal('');
+  conflict = signal(false);
+  private draftId = crypto.randomUUID();
+  private savedSnapshot = '';
+  private pending: any = null;
+  private savePromise: Promise<void> | null = null;
+  private saveTimer?: ReturnType<typeof setTimeout>;
+  private destroyed = false;
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent) {
+    if (this.dirty() || this.savingDraft()) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
+  ngOnDestroy() {
+    this.destroyed = true;
+    clearTimeout(this.saveTimer);
+  }
+  private snapshot() {
+    const keys = [
+      'title',
+      'clientName',
+      'clientEmail',
+      'builder',
+      'totalRupees',
+      'validDate',
+      ...(!this.editor.builder ? ['seller', 'scope', 'exclusions', 'timeline', 'terms'] : []),
+    ];
+    return cleanDraftText(
+      Object.fromEntries(
+        keys.filter((k) => this.editor[k] !== undefined).map((k) => [k, this.editor[k]]),
+      ),
+    );
+  }
+  cleanField(event: Event) {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement;
+    if (
+      !['INPUT', 'TEXTAREA'].includes(target.tagName) ||
+      ['file', 'checkbox', 'number', 'date'].includes(target.type)
+    )
+      return;
+    const cleaned = cleanDraftText(target.value);
+    if (cleaned !== target.value) {
+      target.value = cleaned;
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+  changed(event?: Event) {
+    if ((event?.target as HTMLInputElement)?.type === 'file') return;
+    queueMicrotask(() => {
+      if (!this.editor || this.destroyed) return;
+      this.dirty.set(JSON.stringify(this.snapshot()) !== this.savedSnapshot);
+      clearTimeout(this.saveTimer);
+      if (this.dirty() && !this.conflict() && !this.saveError())
+        this.saveTimer = setTimeout(() => {
+          if (!this.busy()) void this.save();
+        }, 1000);
+    });
+  }
+  private startEditor(q: Quotation | null) {
+    this.currentQuote.set(q);
+    this.draftId = crypto.randomUUID();
+    this.pending = null;
+    this.savedSnapshot = JSON.stringify(this.snapshot());
+    this.dirty.set(false);
+    this.saveError.set('');
+    this.conflict.set(false);
+  }
+  private updateQuote(q: Quotation) {
+    this.editingId = q._id;
+    this.editor.version = q.__v;
+    this.currentQuote.set(q);
+    this.rows.update((rows) => [q, ...rows.filter((r) => r._id !== q._id)]);
+  }
+  async canLeave() {
+    if (this.busy()) return false;
+    if (this.dirty() || this.savingDraft()) await this.save();
+    return !this.dirty() && !this.savingDraft();
+  }
+  async closeEditor() {
+    await this.save();
+    if (!this.dirty() && !this.saveError()) {
+      clearTimeout(this.saveTimer);
+      this.editor = null;
+      this.currentQuote.set(null);
+    }
+  }
+  async reloadDraft() {
+    await this.run(async () => {
+      const rows = await this.request('get');
+      this.rows.set(rows);
+      const q = rows.find((r: Quotation) => r._id === this.editingId);
+      if (!q || q.status !== 'draft') {
+        this.editor = null;
+        this.dirty.set(false);
+        this.saveError.set('');
+      } else this.edit(q);
+    });
+  }
+
   catalog: any = { features: [], exclusions: [], responsibilities: [] };
   previewText = signal<{ title: string; text: string }[] | null>(null);
   evidence: Record<string, string> = {};
@@ -554,6 +811,7 @@ export class QuotationAdminComponent {
       this.error.set(e.error?.error || 'Request failed. Refresh and try again.');
     } finally {
       this.busy.set(false);
+      if (this.editor && this.dirty() && !this.saveError()) this.changed();
     }
   }
   async load() {
@@ -580,18 +838,22 @@ export class QuotationAdminComponent {
         totalRupees: 0,
         validDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
       };
+      this.startEditor(null);
     });
   }
   edit(q: Quotation) {
     this.previewText.set(null);
-    if (q.builder && !this.catalog.features.length) void this.loadCatalog();
+    if ((q.draftEditor?.builder || q.builder) && !this.catalog.features.length)
+      void this.loadCatalog();
     this.editingId = q._id;
     this.editor = {
       ...structuredClone(q),
       version: q.__v,
       totalRupees: q.totalPaise / 100,
       validDate: q.validUntil.slice(0, 10),
+      ...structuredClone(q.draftEditor || {}),
     };
+    this.startEditor(q);
   }
   private async loadCatalog() {
     try {
@@ -607,6 +869,7 @@ export class QuotationAdminComponent {
     this.editor.builder[key] = enabled
       ? [...new Set([...selected, id])]
       : selected.filter((x) => x !== id);
+    this.changed();
   }
   async preview() {
     await this.run(async () => {
@@ -625,27 +888,108 @@ export class QuotationAdminComponent {
       );
     });
   }
-  async save() {
+  async save(): Promise<void> {
+    clearTimeout(this.saveTimer);
+    if (!this.editor || this.conflict()) return;
+    if (this.savePromise) {
+      await this.savePromise;
+      if (this.dirty() && !this.saveError()) return this.save();
+      return;
+    }
+    this.saveError.set('');
+    this.savingDraft.set(true);
+    this.savePromise = (async () => {
+      try {
+        do {
+          const snapshot = this.pending?.editor || this.snapshot();
+          if (!this.pending && this.editingId && JSON.stringify(snapshot) === this.savedSnapshot)
+            break;
+          this.pending ||= {
+            id: this.editingId || undefined,
+            version: this.editor.version,
+            clientDraftId: this.draftId,
+            mutationId: crypto.randomUUID(),
+            editor: snapshot,
+          };
+          const q = await firstValueFrom(
+            this.http.post<Quotation>(`${quoteApi()}/admin/quotation-drafts`, this.pending, {
+              headers: this.headers,
+            }),
+          );
+          this.savedSnapshot = JSON.stringify(snapshot);
+          this.pending = null;
+          this.updateQuote(q);
+          this.dirty.set(JSON.stringify(this.snapshot()) !== this.savedSnapshot);
+        } while (this.dirty() && !this.destroyed);
+      } catch (e: any) {
+        this.dirty.set(true);
+        this.conflict.set(e.status === 409);
+        this.saveError.set(
+          e.error?.error ||
+            'Autosave failed. Your changes are still in this editor. Retry before leaving.',
+        );
+      } finally {
+        this.savingDraft.set(false);
+      }
+    })();
+    await this.savePromise;
+    this.savePromise = null;
+  }
+  async uploadSrs(event: Event) {
+    const input = event.target as HTMLInputElement,
+      file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
     await this.run(async () => {
-      const paise = this.editor.totalRupees * 100;
-      if (!Number.isFinite(paise) || Math.abs(paise - Math.round(paise)) > 0.000001)
-        throw { error: { error: 'Enter a price with at most two decimal places.' } };
-      const payload = { ...this.editor };
-      if (payload.builder)
-        for (const key of ['seller', 'scope', 'exclusions', 'timeline', 'terms'])
-          delete payload[key];
-      await this.request(
-        this.editingId ? 'put' : 'post',
-        this.editingId ? `/${this.editingId}` : '',
-        {
-          ...payload,
-          totalPaise: Math.round(paise),
-          validUntil: `${this.editor.validDate}T23:59:59+05:30`,
-        },
+      if (!/\.(pdf|docx)$/i.test(file.name) || file.size > 5 * 1024 * 1024)
+        throw { error: { error: 'Choose a PDF or DOCX file up to 5 MB.' } };
+      await this.save();
+      if (this.saveError()) return;
+      const q = await firstValueFrom(
+        this.http.post<Quotation>(`${quoteApi()}/admin/quotations/${this.editingId}/srs`, file, {
+          headers: this.headers
+            .set('Content-Type', 'application/octet-stream')
+            .set('x-file-name', encodeURIComponent(file.name))
+            .set('x-quote-version', String(this.editor.version)),
+        }),
       );
-      this.editor = null;
-      this.rows.set(await this.request('get'));
+      this.updateQuote(q);
     });
+    this.changed();
+  }
+  async removeSrs(fileId: string) {
+    await this.run(async () => {
+      await this.save();
+      if (this.saveError()) return;
+      const q = await firstValueFrom(
+        this.http.delete<Quotation>(
+          `${quoteApi()}/admin/quotations/${this.editingId}/srs/${fileId}`,
+          { headers: this.headers, body: { version: this.editor.version } },
+        ),
+      );
+      this.updateQuote(q);
+    });
+    this.changed();
+  }
+  async download(q: Quotation, format: 'pdf' | 'docx') {
+    await this.run(() =>
+      downloadQuotationFile(
+        this.http,
+        `${quoteApi()}/admin/quotations/${q._id}/export/${format}`,
+        this.headers,
+        `quotation-revision-${q.revision}.${format}`,
+      ),
+    );
+  }
+  async downloadSrs(q: Quotation, file: { fileId: string; name: string }) {
+    await this.run(() =>
+      downloadQuotationFile(
+        this.http,
+        `${quoteApi()}/admin/quotations/${q._id}/srs/${file.fileId}`,
+        this.headers,
+        file.name,
+      ),
+    );
   }
   async invite(q: Quotation) {
     await this.run(async () => {

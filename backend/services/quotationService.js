@@ -6,12 +6,13 @@ const { validSignature } = require('./bookingService');
 const LABELS = ['Onboarding', 'MVP', 'Development complete', 'Deployment'];
 const ACKS = ['scope', 'payments', 'terms', 'authority'];
 const quotationTemplate = require('./quotationTemplate');
+const { cleanEditor } = require('./quotationText');
 const DEFAULT_TERMS = quotationTemplate.clauses
   .map((c, i) => `${i + 1}. ${c.title}\n${c.text}`)
   .join('\n\n');
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 function snapshot(q) {
-  return {
+  const result = {
     title: q.title,
     clientName: q.clientName,
     clientEmail: q.clientEmail,
@@ -30,11 +31,21 @@ function snapshot(q) {
       amountPaise: m.amountPaise,
     })),
   };
+  // Keep existing agreements' fingerprints stable when they have no attachments.
+  if (q.srs?.length)
+    result.srs = q.srs.map((s) => ({
+      fileId: String(s.fileId),
+      name: s.name,
+      size: s.size,
+      sha256: s.sha256,
+    }));
+  return result;
 }
 function digest(q) {
   return hash(JSON.stringify(snapshot(q)));
 }
 function validate(body) {
+  body = cleanEditor(body);
   if (body.builder)
     body = { ...body, ...quotationTemplate.compile(body.builder) };
   const data = { builder: body.builder || null };
@@ -126,9 +137,12 @@ function createQuotationService({ gateway }) {
       );
     return q;
   }
-  function view(q) {
+  function view(q, admin = false) {
     const data = q.toObject();
     delete data.tokenHash;
+    delete data.clientDraftId;
+    delete data.lastDraftMutation;
+    if (!admin) delete data.draftEditor;
     if (!q.acceptance?.at) delete data.acceptance;
     data.digest = digest(q);
     data.paymentsEnabled = Boolean(
@@ -143,7 +157,10 @@ function createQuotationService({ gateway }) {
   }
   async function create(body) {
     ready();
-    return view(await Quote.create(validate(body)));
+    return view(
+      await Quote.create({ ...validate(body), draftReady: true }),
+      true,
+    );
   }
   async function edit(id, body) {
     const q = await get(id);
@@ -152,7 +169,109 @@ function createQuotationService({ gateway }) {
     if (body.version !== q.__v)
       throw httpError(409, 'Reload the latest draft.');
     Object.assign(q, validate(body));
-    return view(await save(q));
+    q.draftReady = true;
+    q.draftValidation = undefined;
+    q.draftEditor = undefined;
+    return view(await save(q), true);
+  }
+  async function saveDraft(body) {
+    ready();
+    const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
+    if (
+      !uuid.test(body.clientDraftId || '') ||
+      !uuid.test(body.mutationId || '') ||
+      !body.editor ||
+      Array.isArray(body.editor) ||
+      typeof body.editor !== 'object'
+    )
+      throw httpError(400, 'Invalid draft request.');
+    if (JSON.stringify(body.editor).length > 40000)
+      throw httpError(413, 'Draft is too large.');
+    const allowed = [
+      'title',
+      'clientName',
+      'clientEmail',
+      'seller',
+      'scope',
+      'exclusions',
+      'timeline',
+      'terms',
+      'builder',
+      'totalRupees',
+      'validDate',
+    ];
+    const editor = cleanEditor(
+      Object.fromEntries(
+        allowed
+          .filter((key) => body.editor[key] !== undefined)
+          .map((key) => [key, body.editor[key]]),
+      ),
+    );
+    let q = body.id
+      ? await get(body.id)
+      : await Quote.findOne({ clientDraftId: body.clientDraftId });
+    if (q?.lastDraftMutation === body.mutationId) return view(q, true);
+    if (q && (q.status !== 'draft' || q.__v !== body.version))
+      throw httpError(
+        409,
+        'This draft changed elsewhere. Reload it before saving again.',
+      );
+    const isNew = !q;
+    if (!q)
+      q = new Quote({
+        clientDraftId: body.clientDraftId,
+        status: 'draft',
+        title: 'Untitled quotation',
+        validUntil: new Date(Date.now() + 14 * 86400000),
+        milestones: [],
+      });
+    q.draftEditor = editor;
+    q.lastDraftMutation = body.mutationId;
+    q.title =
+      typeof editor.title === 'string' && editor.title.trim()
+        ? editor.title.trim().slice(0, 160)
+        : 'Untitled quotation';
+    q.clientName =
+      typeof editor.clientName === 'string'
+        ? editor.clientName.slice(0, 120)
+        : '';
+    q.clientEmail =
+      typeof editor.clientEmail === 'string'
+        ? editor.clientEmail.slice(0, 254)
+        : '';
+    q.draftReady = false;
+    q.draftValidation = undefined;
+    try {
+      const paise = Number(editor.totalRupees) * 100;
+      if (Math.abs(paise - Math.round(paise)) > 0.000001)
+        throw httpError(400, 'Use whole paise.');
+      Object.assign(
+        q,
+        validate({
+          ...editor,
+          totalPaise: Math.round(paise),
+          validUntil: `${editor.validDate}T23:59:59+05:30`,
+        }),
+      );
+      q.draftReady = true;
+      q.draftValidation = undefined;
+    } catch (error) {
+      if (error.status !== 400) throw error;
+      q.draftValidation = error.message;
+    }
+    try {
+      return view(await save(q), true);
+    } catch (error) {
+      if (isNew && error.code === 11000) {
+        const existing = await Quote.findOne({
+          clientDraftId: body.clientDraftId,
+        });
+        if (existing?.lastDraftMutation === body.mutationId)
+          return view(existing, true);
+        throw httpError(409, 'Draft already exists. Reload the draft list.');
+      }
+      throw error;
+    }
   }
   async function revise(id) {
     const q = await get(id);
@@ -165,6 +284,9 @@ function createQuotationService({ gateway }) {
         'Payments have started. Create a separate change quotation.',
       );
     const data = snapshot(q);
+    if (q.draftReady === false)
+      throw httpError(409, 'Finish this draft before creating a revision.');
+    if (q.srs?.length) data.srs = q.srs.map((s) => s.toObject());
     if (q.builder) data.builder = q.builder;
     delete data.milestones;
     data.validUntil = new Date(Date.now() + 14 * 86400000);
@@ -190,6 +312,11 @@ function createQuotationService({ gateway }) {
   }
   async function invite(id, version) {
     const q = await get(id);
+    if (q.draftReady === false)
+      throw httpError(
+        409,
+        'Complete the required fields before inviting the client.',
+      );
     if (version !== q.__v)
       throw httpError(
         409,
@@ -473,6 +600,7 @@ function createQuotationService({ gateway }) {
   }
   return {
     create,
+    saveDraft,
     edit,
     revise,
     invite,
@@ -496,7 +624,9 @@ function createQuotationService({ gateway }) {
     preview: (builder) => quotationTemplate.compile(builder),
     list: async () => {
       ready();
-      return (await Quote.find().sort({ createdAt: -1 }).limit(100)).map(view);
+      return (await Quote.find().sort({ updatedAt: -1 }).limit(100)).map((q) =>
+        view(q, true),
+      );
     },
   };
 }

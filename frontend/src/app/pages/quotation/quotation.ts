@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { downloadQuotationFile } from './quotation-files';
 
 export const quoteApi = () =>
   location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
@@ -26,6 +27,10 @@ export type Quotation = {
   clientEmail: string;
   seller: string;
   builder?: any;
+  draftEditor?: any;
+  draftReady?: boolean;
+  draftValidation?: string;
+  srs?: { fileId: string; name: string; size: number; sha256: string }[];
   scope: string;
   exclusions: string;
   timeline: string;
@@ -138,10 +143,30 @@ export type Quotation = {
           </ol>
         </section>
         <section>
+          <h2>SRS requirements documents</h2>
+          <p>
+            Read these requirements together with the scope and agreement. These exact files belong
+            to this revision.
+          </p>
+          @for (file of q.srs || []; track file.fileId) {
+            <p>
+              <button [disabled]="busy()" (click)="downloadSrs(file)">
+                {{ file.name }} ({{ file.size / 1024 | number: '1.0-0' }} KB)
+              </button>
+            </p>
+          } @empty {
+            <p>No SRS files attached.</p>
+          }
+        </section>
+        <section>
           <h2>Terms and conditions</h2>
-          <p>Read the complete agreement below. Save a copy using Print before accepting.</p>
+          <p>Read the complete agreement below. Download a copy before accepting.</p>
           <p class="preserve terms">{{ q.terms }}</p>
-          <button class="secondary" (click)="print()">Print / save as PDF</button>
+          <div class="actions">
+            <button [disabled]="busy()" (click)="download('pdf')">Download PDF</button
+            ><button [disabled]="busy()" (click)="download('docx')">Download Word</button
+            ><button class="secondary" (click)="print()">Print</button>
+          </div>
         </section>
         @if (q.status === 'invited') {
           <section>
@@ -206,7 +231,7 @@ export class QuotationComponent {
   acknowledgements = [
     {
       id: 'scope',
-      text: 'I have read the scope, exclusions, timeline and delivery criteria.',
+      text: 'I have read the scope, attached SRS documents, exclusions, timeline and delivery criteria.',
       checked: false,
     },
     {
@@ -300,6 +325,31 @@ export class QuotationComponent {
       feedback: this.feedback[index],
       version: this.quote()?.__v,
     });
+  }
+  async download(format: 'pdf' | 'docx') {
+    await this.downloadFile(
+      `/export/${format}`,
+      `quotation-revision-${this.quote()?.revision}.${format}`,
+    );
+  }
+  async downloadSrs(file: { fileId: string; name: string }) {
+    await this.downloadFile(`/srs/${file.fileId}`, file.name);
+  }
+  private async downloadFile(path: string, name: string) {
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      await downloadQuotationFile(
+        this.http,
+        `${quoteApi()}/quotations${path}`,
+        new HttpHeaders({ 'x-quotation-token': this.token }),
+        name,
+      );
+    } catch (e: any) {
+      this.error.set(e.error?.error || 'Download failed. Try again.');
+    } finally {
+      this.busy.set(false);
+    }
   }
   print() {
     window.print();

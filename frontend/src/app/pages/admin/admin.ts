@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -59,7 +59,7 @@ type BookingRow = {
       <div class="admin-container container">
         <header class="admin-header">
           <h1>Admin Panel</h1>
-          <button type="button" class="ghost" (click)="logout()">Sign out</button>
+          <button type="button" class="ghost" (click)="signOut()">Sign out</button>
           <p class="subtitle">Daily digest emails you when there are submissions. Tap Send yes to email the visitor.</p>
         </header>
 
@@ -345,6 +345,10 @@ type BookingRow = {
   `]
 })
 export class AdminComponent implements OnInit, OnDestroy {
+  @ViewChild(QuotationAdminComponent) quotationEditor?: QuotationAdminComponent;
+  async canLeave() { return this.quotationEditor ? this.quotationEditor.canLeave() : true; }
+  private cdr = inject(ChangeDetectorRef, { optional: true });
+  async signOut() { if (await this.canLeave()) { this.logout(); this.cdr?.markForCheck(); } }
   private http = inject(HttpClient);
   private apiUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'

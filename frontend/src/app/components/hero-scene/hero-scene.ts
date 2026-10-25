@@ -4,6 +4,7 @@ import {
 } from '@angular/core';
 import { BudEventsService } from '../../services/bud-events.service';
 import { ShellService } from '../../services/shell.service';
+import { loadModelBuffer } from './model-cache';
 
 export interface StagePose {
   camX?: number;
@@ -472,22 +473,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       loader.setMeshoptDecoder(MeshoptDecoder);
     } catch { /* optional */ }
 
-    let buffer: ArrayBuffer | null = null;
-    try {
-      const cache = await caches.open('bud-models-v1');
-      const hit = await cache.match(url);
-      if (hit) buffer = await hit.arrayBuffer();
-      else {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        buffer = await res.arrayBuffer();
-        await cache.put(url, new Response(buffer.slice(0), {
-          headers: { 'Content-Type': 'model/gltf-binary' }
-        }));
-      }
-    } catch {
-      buffer = null;
-    }
+    const { buffer } = await loadModelBuffer(url);
 
     const gltf = buffer
       ? await new Promise<any>((resolve, reject) => loader.parse(buffer!, url, resolve, reject))
@@ -1320,26 +1306,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       console.warn('MeshoptDecoder unavailable', e);
     }
 
-    let fromCache = false;
-    let buffer: ArrayBuffer | null = null;
-
-    try {
-      const cache = await caches.open('bud-models-v1');
-      const hit = await cache.match(url);
-      if (hit) {
-        fromCache = true;
-        buffer = await hit.arrayBuffer();
-      } else {
-        const res = await fetch(url);
-        buffer = await res.arrayBuffer();
-        // Store a clone for next visits — cold load walks, warm load skips
-        await cache.put(url, new Response(buffer.slice(0), {
-          headers: { 'Content-Type': 'model/gltf-binary' }
-        }));
-      }
-    } catch {
-      // Cache API unavailable — fall through to normal load
-    }
+    const { buffer, fromCache } = await loadModelBuffer(url);
 
     const gltf = buffer
       ? await new Promise<any>((resolve, reject) => {

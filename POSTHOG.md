@@ -35,10 +35,8 @@ The reported 1499×543 touch-emulated desktop activated `(pointer: coarse)` rule
 
 Checks cover desktop, the exact 1499×543 touch viewport, 768px tablet, 390px phone and 320px phone, including resizing wide → phone → wide. Actual PostHog SDK requests are intercepted locally and their decoded event batches inspected for synthetic private test data. Tests do not send QA events to the real project. Fresh admin/proposal loads are checked for zero analytics requests.
 
-## Existing dependency findings
+## Release dependency review
 
-A production-only npm audit currently reports 16 findings in the pre-existing Angular/Markdown/Mermaid dependency chain. The new PostHog SDK is not listed among those findings; the flagged `uuid` dependency comes through `ngx-markdown` → `mermaid`. No unrelated framework upgrades were applied in this integration. The existing `home.scss` warning budget also remains unchanged.
+The deployment review upgraded Angular within major version 21 to its patched 21.2 releases and removed the unused ngx-markdown/marked bootstrap and dependencies. No application template or service used MarkdownModule. Production dependency audits now report zero findings for frontend and backend. PostHog remains at the already-tested version. Development-tool advisories are excluded from these production audit counts. The existing home.scss warning budget remains below its error threshold.
 
-Validation completed: all 32 frontend tests pass; production Angular build passes; five viewport layouts plus a resize-back state pass, with 12 real-SDK events decoded locally and no private test data found. Backend code is unchanged in this update; its 47-test suite previously passed.
-
-Validation completed: all 32 frontend tests pass; production Angular build passes; five viewport layouts plus a resize-back state pass, with 12 real-SDK events decoded locally and no private test data found. Backend code is unchanged in this update; its 47-test suite previously passed.
+PostHog validation covered five viewport layouts plus a resize-back state, with 12 real-SDK events intercepted and decoded locally and no private test data found. Private admin/proposal routes remain excluded. No QA events were sent to the live analytics project.

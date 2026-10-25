@@ -1,15 +1,13 @@
 import {
   ApplicationConfig,
-  importProvidersFrom,
   provideZoneChangeDetection,
   provideAppInitializer,
   inject,
 } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { provideHttpClient, withFetch, HttpClient } from '@angular/common/http';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideClientHydration } from '@angular/platform-browser';
 
-import { MarkdownModule } from 'ngx-markdown';
 import { routes } from './app.routes';
 import { AnalyticsService } from './services/analytics.service';
 
@@ -24,10 +22,5 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(),
     provideHttpClient(withFetch()),
 
-    importProvidersFrom(
-      MarkdownModule.forRoot({
-        loader: HttpClient,
-      }),
-    ),
   ],
 };

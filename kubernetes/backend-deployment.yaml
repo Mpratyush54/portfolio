@@ -35,7 +35,8 @@ spec:
           ports:
             - containerPort: 5000
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /api/health
               port: 5000
             periodSeconds: 5
           livenessProbe:

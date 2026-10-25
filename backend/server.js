@@ -128,6 +128,12 @@ function mergeWithDb(dbProjects) {
   });
 }
 
+// Readiness waits for durable storage and booking indexes, independently of payments.
+app.get('/api/health', (req, res) => {
+  const ready = isMongoConnected && bookingService.ready();
+  res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ ready });
+});
+
 // ===== PUBLIC ROUTES =====
 
 app.get('/api/projects', async (req, res) => {

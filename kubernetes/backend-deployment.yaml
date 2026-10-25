@@ -34,6 +34,15 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
+          readinessProbe:
+            tcpSocket:
+              port: 5000
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
           env:
             - name: PORT
               value: "5000"

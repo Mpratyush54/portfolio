@@ -1,10 +1,19 @@
 import {
-  Component, ElementRef, EventEmitter, Output, ViewChild,
-  AfterViewChecked, OnDestroy, ChangeDetectorRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Output,
+  ViewChild,
+  AfterViewChecked,
+  OnDestroy,
+  ChangeDetectorRef,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { ViewportService } from '../../services/viewport.service';
+import { AnalyticsService } from '../../services/analytics.service';
 
 type Intent = 'hire' | 'freelance' | 'hi';
 type Step = 'intent' | 'name' | 'email' | 'phone' | 'note' | 'done';
@@ -61,12 +70,27 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   botTyping = false;
 
   data = { name: '', email: '', phone: '', message: '' };
-  simpleUi = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 900px), (pointer: coarse)')?.matches);
+  private viewport = inject(ViewportService);
+  private analytics = inject(AnalyticsService);
+  get simpleUi(): boolean {
+    return this.viewport.compact();
+  }
   sendSimple(): void {
-    if (!this.intent || this.validateName(this.data.name.trim()) || this.validateEmail(this.data.email.trim()) || !this.data.message.trim()) {
-      this.statusMessage = 'Choose a reason and enter your name, valid email and project details.'; return;
+    if (
+      !this.intent ||
+      this.validateName(this.data.name.trim()) ||
+      this.validateEmail(this.data.email.trim()) ||
+      !this.data.message.trim()
+    ) {
+      this.statusMessage = 'Choose a reason and enter your name, valid email and project details.';
+      return;
     }
-    this.data = { ...this.data, name: this.data.name.trim(), email: this.data.email.trim().toLowerCase(), message: this.data.message.trim() };
+    this.data = {
+      ...this.data,
+      name: this.data.name.trim(),
+      email: this.data.email.trim().toLowerCase(),
+      message: this.data.message.trim(),
+    };
     this.submit();
   }
   private msgId = 0;
@@ -74,13 +98,17 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   private shouldFocus = false;
   private botTimers: ReturnType<typeof setTimeout>[] = [];
 
-  private apiUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api'
-    : '/api';
+  private apiUrl =
+    typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:5000/api'
+      : '/api';
 
   private readonly emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngAfterViewChecked(): void {
     if (this.shouldScroll) {
@@ -91,7 +119,11 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
       this.shouldFocus = false;
       const input = this.draftEl?.nativeElement;
       if (input && this.showComposer && this.status !== 'sending') {
-        try { input.focus({ preventScroll: true }); } catch { input.focus(); }
+        try {
+          input.focus({ preventScroll: true });
+        } catch {
+          input.focus();
+        }
         // After keyboard opens on phone, pin thread to latest message
         setTimeout(() => this.scrollThreadToEnd(), 50);
       }
@@ -113,7 +145,7 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   }
 
   get intentLabel(): string {
-    return this.intents.find(i => i.id === this.intent)?.label || '';
+    return this.intents.find((i) => i.id === this.intent)?.label || '';
   }
 
   get stepIndex(): number {
@@ -151,7 +183,9 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   }
 
   get showComposer(): boolean {
-    return this.step === 'name' || this.step === 'email' || this.step === 'phone' || this.step === 'note';
+    return (
+      this.step === 'name' || this.step === 'email' || this.step === 'phone' || this.step === 'note'
+    );
   }
 
   get sendLabel(): string {
@@ -163,7 +197,7 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
   pickIntent(id: Intent): void {
     if (this.step !== 'intent' || this.botTyping) return;
     this.intent = id;
-    const label = this.intents.find(i => i.id === id)?.label || id;
+    const label = this.intents.find((i) => i.id === id)?.label || id;
     this.push('user', label);
     this.step = 'name';
     this.askBot(`Nice — what’s your name?`, 280);
@@ -206,7 +240,10 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
 
     if (this.step === 'name') {
       const err = this.validateName(value);
-      if (err) { this.inputError = err; return; }
+      if (err) {
+        this.inputError = err;
+        return;
+      }
       this.data.name = value;
       this.push('user', value);
       this.draft = '';
@@ -218,7 +255,10 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
 
     if (this.step === 'email') {
       const err = this.validateEmail(value);
-      if (err) { this.inputError = err; return; }
+      if (err) {
+        this.inputError = err;
+        return;
+      }
       this.data.email = value.toLowerCase();
       this.push('user', this.data.email);
       this.draft = '';
@@ -229,7 +269,10 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
 
     if (this.step === 'phone') {
       const err = this.validatePhone(value);
-      if (err) { this.inputError = err; return; }
+      if (err) {
+        this.inputError = err;
+        return;
+      }
       this.data.phone = value;
       this.push('user', value);
       this.draft = '';
@@ -304,7 +347,14 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
       return 'That domain doesn’t look valid.';
     }
     if (!this.emailRe.test(value)) return 'Hmm, that email still looks invalid.';
-    const typoHosts = ['gmial.com', 'gmal.com', 'gmail.co', 'hotmal.com', 'yahooo.com', 'outlok.com'];
+    const typoHosts = [
+      'gmial.com',
+      'gmal.com',
+      'gmail.co',
+      'hotmal.com',
+      'yahooo.com',
+      'outlok.com',
+    ];
     const host = domain.toLowerCase();
     if (typoHosts.includes(host)) {
       return `“${host}” looks mistyped — check the domain?`;
@@ -353,31 +403,34 @@ export class ContactFormComponent implements AfterViewChecked, OnDestroy {
     this.step = 'done';
     this.shouldScroll = true;
 
-    this.http.post<{ success: boolean; message: string }>(`${this.apiUrl}/contact`, {
-      intent: this.intent,
-      name: this.data.name,
-      email: this.data.email,
-      phone: this.data.phone,
-      message: this.data.message,
-      website: this.website,
-    }).subscribe({
-      next: (res) => {
-        this.botTyping = false;
-        this.status = 'success';
-        this.statusMessage = res.message || 'Got it — Pratyush will reply soon.';
-        this.push('bot', this.statusMessage);
-        this.sent.emit();
-        this.cdr.markForCheck();
-      },
-      error: (err: HttpErrorResponse) => {
-        this.botTyping = false;
-        this.status = 'error';
-        this.statusMessage = err.error?.error || 'Couldn’t send — try again in a moment.';
-        this.push('bot', this.statusMessage);
-        this.step = 'note';
-        this.shouldFocus = true;
-        this.cdr.markForCheck();
-      },
-    });
+    this.http
+      .post<{ success: boolean; message: string }>(`${this.apiUrl}/contact`, {
+        intent: this.intent,
+        name: this.data.name,
+        email: this.data.email,
+        phone: this.data.phone,
+        message: this.data.message,
+        website: this.website,
+      })
+      .subscribe({
+        next: (res) => {
+          this.botTyping = false;
+          this.status = 'success';
+          void this.analytics.track('contact_submitted');
+          this.statusMessage = res.message || 'Got it — Pratyush will reply soon.';
+          this.push('bot', this.statusMessage);
+          this.sent.emit();
+          this.cdr.markForCheck();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.botTyping = false;
+          this.status = 'error';
+          this.statusMessage = err.error?.error || 'Couldn’t send — try again in a moment.';
+          this.push('bot', this.statusMessage);
+          this.step = 'note';
+          this.shouldFocus = true;
+          this.cdr.markForCheck();
+        },
+      });
   }
 }

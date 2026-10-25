@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { AnalyticsService } from '../../services/analytics.service';
 
 type SlotInfo = {
   slot: string;
@@ -39,8 +40,21 @@ type SpotsPayload = {
   days: SlotDay[];
 };
 
-type PaymentVerification = { bookingId: string; razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
-type CheckoutOrder = { bookingId: string; orderId: string; amountPaise: number; currency: string; keyId: string; slotLabel: string; holdExpiresAt: string };
+type PaymentVerification = {
+  bookingId: string;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+type CheckoutOrder = {
+  bookingId: string;
+  orderId: string;
+  amountPaise: number;
+  currency: string;
+  keyId: string;
+  slotLabel: string;
+  holdExpiresAt: string;
+};
 
 type CalCell = {
   date: string | null;
@@ -52,7 +66,10 @@ type CalCell = {
 
 declare global {
   interface Window {
-    Razorpay?: new (options: Record<string, unknown>) => { open: () => void; on: (event: string, handler: (response: any) => void) => void };
+    Razorpay?: new (options: Record<string, unknown>) => {
+      open: () => void;
+      on: (event: string, handler: (response: any) => void) => void;
+    };
   }
 }
 
@@ -64,6 +81,7 @@ declare global {
   styleUrl: './discovery-book.scss',
 })
 export class DiscoveryBookComponent implements OnInit {
+  private analytics = inject(AnalyticsService);
   @Output() booked = new EventEmitter<void>();
   @Output() back = new EventEmitter<void>();
 
@@ -98,6 +116,7 @@ export class DiscoveryBookComponent implements OnInit {
   readonly weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
   ngOnInit(): void {
+    void this.analytics.track('booking_step_viewed', 'time');
     this.loadSlots();
   }
 
@@ -110,10 +129,9 @@ export class DiscoveryBookComponent implements OnInit {
   }
 
   get priceLabel(): string {
-    return this.selectedSlotInfo?.amountLabel
-      || this.day?.amountLabel
-      || this.cfg?.amountLabel
-      || '';
+    return (
+      this.selectedSlotInfo?.amountLabel || this.day?.amountLabel || this.cfg?.amountLabel || ''
+    );
   }
 
   get demandLabel(): string {
@@ -224,7 +242,7 @@ export class DiscoveryBookComponent implements OnInit {
   }
 
   pickSlot(slot: string): void {
-    if (!this.day?.slots.some(s => s.slot === slot && s.available)) return;
+    if (!this.day?.slots.some((s) => s.slot === slot && s.available)) return;
     this.selectedSlot = slot;
     this.error = '';
   }
@@ -255,6 +273,7 @@ export class DiscoveryBookComponent implements OnInit {
       return;
     }
     this.step = 'details';
+    void this.analytics.track('booking_step_viewed', 'details');
   }
 
   continueToCheckout(): void {
@@ -269,6 +288,7 @@ export class DiscoveryBookComponent implements OnInit {
     }
     this.acceptTerms = false;
     this.step = 'checkout';
+    void this.analytics.track('booking_step_viewed', 'checkout');
     // Keep checkout in view on short screens
     if (typeof window !== 'undefined') {
       requestAnimationFrame(() => {
@@ -318,22 +338,37 @@ export class DiscoveryBookComponent implements OnInit {
       if (!this.paymentsReady) throw new Error('Online booking is unavailable. Please email me.');
       await this.ensureRazorpay();
       const details = {
-        name: this.name.trim(), email: this.email.trim(), phone: this.phone.trim(),
-        note: this.note.trim(), date: this.selectedDate, slot: this.selectedSlot,
-        website: this.website, acceptTerms: this.acceptTerms,
-        amountPaise: this.selectedSlotInfo?.amountPaise ?? this.day?.amountPaise ?? this.cfg?.amountPaise,
+        name: this.name.trim(),
+        email: this.email.trim(),
+        phone: this.phone.trim(),
+        note: this.note.trim(),
+        date: this.selectedDate,
+        slot: this.selectedSlot,
+        website: this.website,
+        acceptTerms: this.acceptTerms,
+        amountPaise:
+          this.selectedSlotInfo?.amountPaise ?? this.day?.amountPaise ?? this.cfg?.amountPaise,
       };
       const fingerprint = JSON.stringify(details);
-      if (!this.checkoutOrder || this.orderDetails !== fingerprint || new Date(this.checkoutOrder.holdExpiresAt).getTime() <= Date.now()) {
-        this.checkoutOrder = await firstValueFrom(this.http.post<CheckoutOrder>(this.apiUrl + '/bookings/create-order', details));
+      if (
+        !this.checkoutOrder ||
+        this.orderDetails !== fingerprint ||
+        new Date(this.checkoutOrder.holdExpiresAt).getTime() <= Date.now()
+      ) {
+        this.checkoutOrder = await firstValueFrom(
+          this.http.post<CheckoutOrder>(this.apiUrl + '/bookings/create-order', details),
+        );
         this.orderDetails = fingerprint;
       }
       const order = this.checkoutOrder;
       await new Promise<void>((resolve, reject) => {
         let verifying = false;
         const rzp = new window.Razorpay!({
-          key: order.keyId, amount: order.amountPaise, currency: order.currency,
-          name: 'Pratyush Mishra', description: 'Discovery call · ' + this.selectedSummary,
+          key: order.keyId,
+          amount: order.amountPaise,
+          currency: order.currency,
+          name: 'Pratyush Mishra',
+          description: 'Discovery call · ' + this.selectedSummary,
           order_id: order.orderId,
           prefill: { name: this.name.trim(), email: this.email.trim(), contact: this.phone.trim() },
           theme: { color: '#1a1a24' },
@@ -343,12 +378,18 @@ export class DiscoveryBookComponent implements OnInit {
             this.pendingVerification = { bookingId: order.bookingId, ...response };
             this.confirmPayment().then(resolve, reject);
           },
-          modal: { ondismiss: () => { if (!verifying) resolve(); } },
+          modal: {
+            ondismiss: () => {
+              if (!verifying) resolve();
+            },
+          },
         });
         rzp.on('payment.failed', () => {
-          if (!verifying) this.error = 'Payment failed. Retry in the payment window, or close it to try again.';
+          if (!verifying)
+            this.error = 'Payment failed. Retry in the payment window, or close it to try again.';
         });
         rzp.open();
+        void this.analytics.track('booking_checkout_opened');
       });
     } catch (e: any) {
       if (e?.status === 409 && !this.pendingVerification) {
@@ -364,17 +405,26 @@ export class DiscoveryBookComponent implements OnInit {
   }
 
   private async confirmPayment(): Promise<void> {
-    const result = await firstValueFrom(this.http.post<{ success: boolean; status: string }>(
-      this.apiUrl + '/bookings/verify', this.pendingVerification,
-    ));
+    const result = await firstValueFrom(
+      this.http.post<{ success: boolean; status: string }>(
+        this.apiUrl + '/bookings/verify',
+        this.pendingVerification,
+      ),
+    );
     if (result.status === 'payment_review') {
       this.paymentNeedsReview = true;
-      this.error = 'Payment received, but the time could not be confirmed. Please email ' + this.bookingEmail + ' to arrange another slot or a refund.';
+      void this.analytics.track('booking_payment_review');
+      this.error =
+        'Payment received, but the time could not be confirmed. Please email ' +
+        this.bookingEmail +
+        ' to arrange another slot or a refund.';
       return;
     }
-    if (!result.success || result.status !== 'paid') throw new Error('Payment confirmation is still pending. Please retry confirmation.');
+    if (!result.success || result.status !== 'paid')
+      throw new Error('Payment confirmation is still pending. Please retry confirmation.');
     this.pendingVerification = null;
     this.done = true;
+    void this.analytics.track('booking_confirmed');
     this.booked.emit();
   }
 
@@ -384,11 +434,16 @@ export class DiscoveryBookComponent implements OnInit {
     this.razorpayLoading = new Promise<void>((resolve, reject) => {
       const s = document.createElement('script');
       s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      const fail = () => { s.remove(); reject(new Error('Failed to load Razorpay')); };
-      s.onload = () => window.Razorpay ? resolve() : fail();
+      const fail = () => {
+        s.remove();
+        reject(new Error('Failed to load Razorpay'));
+      };
+      s.onload = () => (window.Razorpay ? resolve() : fail());
       s.onerror = fail;
       document.body.appendChild(s);
-    }).finally(() => { this.razorpayLoading = null; });
+    }).finally(() => {
+      this.razorpayLoading = null;
+    });
     return this.razorpayLoading;
   }
 }

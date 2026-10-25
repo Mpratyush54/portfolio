@@ -1,17 +1,25 @@
-import { ApplicationConfig, importProvidersFrom, provideZoneChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  importProvidersFrom,
+  provideZoneChangeDetection,
+  provideAppInitializer,
+  inject,
+} from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch, HttpClient } from '@angular/common/http';
 import { provideClientHydration } from '@angular/platform-browser';
 
 import { MarkdownModule } from 'ngx-markdown';
 import { routes } from './app.routes';
+import { AnalyticsService } from './services/analytics.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    provideAppInitializer(() => inject(AnalyticsService).start()),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(
       routes,
-      withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' })
+      withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }),
     ),
     provideClientHydration(),
     provideHttpClient(withFetch()),
@@ -19,7 +27,7 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(
       MarkdownModule.forRoot({
         loader: HttpClient,
-      })
-    )
+      }),
+    ),
   ],
 };

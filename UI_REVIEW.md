@@ -46,3 +46,10 @@ than physical iOS/Android devices or a complete accessibility certification.
 The existing home stylesheet size warning remains: about 37 kB against a 32 kB
 warning budget, below the 40 kB error limit. The changes are prepared for review
 and have not been deployed.
+
+
+## Touch-emulated desktop regression and PostHog
+
+The 1499×543 responsive touch screenshot exposed phone navigation being displayed by a coarse-pointer query without receiving its narrow-width styling. Layout now consistently follows the 900px width breakpoint. Compact navigation includes its own fixed positioning, dark buttons, active state and typography, including tablet widths. Reactive viewport state updates native contact forms, custom-cursor eligibility and body scrolling during a wide → phone → wide resize, without reloading. Pointer capability no longer selects the phone layout.
+
+Verified at 1499×543 with touch emulation, 1440×900 desktop, 768×1024 tablet, 390×844 and 320×568 phones. No horizontal overflow or browser runtime errors were detected. Screenshot comparisons confirm the white unstyled navigation is gone. The PostHog real-SDK check intercepted and decoded 12 events without sending QA events to the real project; public-route/funnel events were present and private test values absent. Fresh admin/proposal loads made no analytics/config requests. Full frontend suite: 32 tests pass; production build passes. See POSTHOG.md for configuration and data boundaries.

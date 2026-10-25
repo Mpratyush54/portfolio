@@ -7,7 +7,7 @@
 .mobile-title {
   display: none;
 }
-@media (max-width: 900px), (pointer: coarse) {
+@media (max-width: 900px) {
   .stage {
     height: auto;
     min-height: 100dvh;
@@ -88,6 +88,13 @@
   }
   .stage .bottom-nav {
     display: flex !important;
+    position: fixed;
+    z-index: 40;
+    justify-content: space-around;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px;
+    border-top: 1px solid #343b48;
     bottom: 0;
     left: 0;
     right: 0;
@@ -100,7 +107,27 @@
   }
   .stage .bottom-nav button {
     flex: 1;
+    min-width: 0;
     min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    border: 0;
+    border-radius: 8px;
+    padding: 6px 4px;
+    background: transparent;
+    color: #b8c6d8;
+    font: inherit;
+    font-size: 0.75rem;
+  }
+  .stage .bottom-nav button.active {
+    background: #263041;
+    color: #fff;
+  }
+  .stage .bottom-nav svg {
+    display: block;
   }
   .stage .views {
     top: 90px;

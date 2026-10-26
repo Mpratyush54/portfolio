@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
@@ -26,6 +27,7 @@ describe('Discovery checkout', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
+        { provide: ChangeDetectorRef, useValue: { markForCheck() {} } },
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AnalyticsService, useValue: { track: () => Promise.resolve() } },
@@ -89,6 +91,34 @@ describe('Discovery checkout', () => {
     return { pending };
   }
 
+  it('shows an unavailable calendar and blocks selection while online checkout is disabled', async () => {
+    const fixture = TestBed.createComponent(DiscoveryBookComponent);
+    fixture.detectChanges();
+    http
+      .expectOne((req) => req.url.endsWith('/bookings/slots'))
+      .flush({ ...component.cfg, paymentsEnabled: false, razorpayKeyId: '' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const closed = fixture.componentInstance;
+    expect(fixture.nativeElement.textContent).toContain('No slots available');
+    expect(fixture.nativeElement.textContent).not.toContain('Service information');
+    const days = Array.from(
+      fixture.nativeElement.querySelectorAll('[role="gridcell"]'),
+    ) as HTMLButtonElement[];
+    expect(days.length).toBeGreaterThan(0);
+    expect(days.every((day) => day.disabled)).toBe(true);
+    closed.pickDate({
+      date: '2099-01-01',
+      dayNum: 1,
+      inMonth: true,
+      bookable: true,
+      selected: false,
+    });
+    closed.continueToDetails();
+    expect(closed.selectedDate).toBe('');
+    expect(closed.step).toBe('time');
+    expect(fixture.nativeElement.querySelector('button.pay')).toBeNull();
+  });
   it('retries verification without charging again after a network failure', async () => {
     const { pending } = await openCheckout();
     options.handler(response);

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -90,6 +90,7 @@ export class DiscoveryBookComponent implements OnInit {
   @Output() back = new EventEmitter<void>();
 
   private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
   private apiUrl =
     typeof window !== 'undefined' && window.location.hostname === 'localhost'
       ? 'http://localhost:5000/api'
@@ -152,7 +153,7 @@ export class DiscoveryBookComponent implements OnInit {
 
   get title(): string {
     if (this.done) return 'Talk soon.';
-    if (!this.loading && this.cfg && !this.paymentsReady) return 'Consultation enquiries';
+    if (!this.loading && this.cfg && !this.paymentsReady) return 'No slots available';
     if (this.step === 'checkout') return 'Checkout';
     if (this.step === 'details') return 'A few details';
     return 'Pick a time';
@@ -189,13 +190,13 @@ export class DiscoveryBookComponent implements OnInit {
     for (let d = 1; d <= daysInMonth; d++) {
       const ymd = `${this.viewYear}-${String(this.viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const info = byDate.get(ymd);
-      const bookable = Boolean(info && info.slots.some((s) => s.available));
+      const bookable = this.paymentsReady && Boolean(info && info.slots.some((s) => s.available));
       cells.push({
         date: ymd,
         dayNum: d,
         inMonth: true,
         bookable,
-        selected: ymd === this.selectedDate,
+        selected: this.paymentsReady && ymd === this.selectedDate,
       });
     }
     while (cells.length % 7 !== 0) {
@@ -237,7 +238,7 @@ export class DiscoveryBookComponent implements OnInit {
   }
 
   pickDate(cell: CalCell): void {
-    if (!cell.bookable || !cell.date) return;
+    if (!this.paymentsReady || !cell.bookable || !cell.date) return;
     this.selectedDate = cell.date;
     const day = this.cfg?.days.find((d) => d.date === cell.date);
     const open = day?.slots.find((s) => s.available);
@@ -246,7 +247,7 @@ export class DiscoveryBookComponent implements OnInit {
   }
 
   pickSlot(slot: string): void {
-    if (!this.day?.slots.some((s) => s.slot === slot && s.available)) return;
+    if (!this.paymentsReady || !this.day?.slots.some((s) => s.slot === slot && s.available)) return;
     this.selectedSlot = slot;
     this.error = '';
   }
@@ -272,6 +273,7 @@ export class DiscoveryBookComponent implements OnInit {
 
   continueToDetails(): void {
     this.error = '';
+    if (!this.paymentsReady) return;
     if (!this.selectedDate || !this.selectedSlotInfo?.available) {
       this.error = 'Pick a day and a time.';
       return;
@@ -317,10 +319,12 @@ export class DiscoveryBookComponent implements OnInit {
           this.viewMonth = m - 1;
         }
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loading = false;
         this.error = 'Could not load times. Try again shortly.';
+        this.cdr.markForCheck();
       },
     });
   }

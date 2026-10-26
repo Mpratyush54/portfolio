@@ -1,6 +1,14 @@
 <div class="book">
   <div class="book-top">
-    <button type="button" class="back" (click)="onBack()" [disabled]="paying || !!pendingVerification" aria-label="Back">←</button>
+    <button
+      type="button"
+      class="back"
+      (click)="onBack()"
+      [disabled]="paying || !!pendingVerification"
+      aria-label="Back"
+    >
+      ←
+    </button>
     <div>
       @if (paymentsReady || loading || done) {
         <p class="eyebrow">step {{ stepNum }} of 3</p>
@@ -23,29 +31,48 @@
     <p class="muted">Loading times…</p>
   } @else if (!cfg) {
     <p class="err">{{ error || 'Could not load booking.' }}</p>
-  } @else if (!paymentsReady) {
-    <div class="unavailable">
-      <p class="unavailable-kicker">Service information</p>
-      <p><strong>30-minute technical consultation</strong><br>
-        Fee: {{cfg.minLabel || cfg.amountLabel}}@if(cfg.maxPaise !== cfg.minPaise){ – {{cfg.maxLabel}} depending on the selected slot}.</p>
-      <p>
-        Online checkout is pending payment-gateway activation. You can still review the service and fee,
-        or email your preferred times and technical question. No online payment is collected now.
-      </p>
-      <a class="mail-cta" [href]="'mailto:' + bookingEmail + '?subject=Technical%20consultation%20enquiry'">
-        {{ bookingEmail }}
-      </a>
-    </div>
-  } @else if (step === 'time') {
-    @if (cfg.pricingNote) {
+  } @else if (step === 'time' || !paymentsReady) {
+    @if (!paymentsReady) {
+      <div class="availability-summary" role="status">
+        <p>
+          30-minute technical consultation
+          <strong
+            >{{ cfg.minLabel || cfg.amountLabel }}
+            @if (cfg.maxPaise !== cfg.minPaise && cfg.maxLabel) {
+              - {{ cfg.maxLabel }}
+            }
+          </strong>
+        </p>
+        <p>
+          No slots are available for online booking right now. Please check back or email to enquire
+          about upcoming times.
+        </p>
+      </div>
+    } @else if (cfg.pricingNote) {
       <p class="lede quiet">{{ cfg.pricingNote }}</p>
     }
 
     <div class="cal-panel">
       <div class="cal-nav">
-        <button type="button" class="cal-nav-btn" (click)="prevMonth()" [disabled]="!canPrevMonth" aria-label="Previous month">‹</button>
+        <button
+          type="button"
+          class="cal-nav-btn"
+          (click)="prevMonth()"
+          [disabled]="!canPrevMonth"
+          aria-label="Previous month"
+        >
+          ‹
+        </button>
         <p class="cal-month">{{ monthLabel }}</p>
-        <button type="button" class="cal-nav-btn" (click)="nextMonth()" [disabled]="!canNextMonth" aria-label="Next month">›</button>
+        <button
+          type="button"
+          class="cal-nav-btn"
+          (click)="nextMonth()"
+          [disabled]="!canNextMonth"
+          aria-label="Next month"
+        >
+          ›
+        </button>
       </div>
 
       <div class="cal-scroll">
@@ -78,7 +105,9 @@
 
       <div class="cal-times">
         <p class="section-label">
-          @if (day) {
+          @if (!paymentsReady) {
+            No online availability
+          } @else if (day) {
             Evening · {{ day.label }}
             @if (day.amountLabel) {
               <span class="price-chip">{{ day.amountLabel }} · {{ day.demand }}</span>
@@ -88,7 +117,9 @@
           }
         </p>
         <div class="slot-row">
-          @if (!day) {
+          @if (!paymentsReady) {
+            <p class="cal-hint">Appointment selection is currently unavailable.</p>
+          } @else if (!day) {
             <p class="cal-hint">Lit days have open evening slots.</p>
           } @else {
             @for (s of day.slots; track s.slot) {
@@ -114,9 +145,17 @@
       <p class="err">{{ error }}</p>
     }
 
-    <button type="button" class="pay" (click)="continueToDetails()" [disabled]="!selectedSlot">
-      Continue
-    </button>
+    @if (paymentsReady) {
+      <button type="button" class="pay" (click)="continueToDetails()" [disabled]="!selectedSlot">
+        Continue
+      </button>
+    } @else {
+      <a
+        class="mail-cta"
+        [href]="'mailto:' + bookingEmail + '?subject=Technical%20consultation%20availability'"
+        >Enquire about upcoming times</a
+      >
+    }
   } @else if (step === 'details') {
     <p class="lede summary">{{ selectedSummary }} · {{ priceLabel }}</p>
 
@@ -147,19 +186,29 @@
       <p class="err">{{ error }}</p>
     }
 
-    <button type="button" class="pay" (click)="continueToCheckout()">
-      Continue to checkout
-    </button>
+    <button type="button" class="pay" (click)="continueToCheckout()">Continue to checkout</button>
   } @else {
     <div class="checkout">
       <div class="checkout-summary">
         <p class="section-label">Order</p>
-        <p class="checkout-line"><span>Service</span><strong>Technical consultation · 30 min</strong></p>
-        <p class="checkout-line"><span>When</span><strong>{{ selectedSummary }}</strong></p>
-        <p class="checkout-line"><span>Demand</span><strong>{{ demandLabel }}</strong></p>
-        <p class="checkout-line total"><span>Total</span><strong>{{ priceLabel }}</strong></p>
-        <p class="checkout-line soft"><span>Name</span><strong>{{ name }}</strong></p>
-        <p class="checkout-line soft"><span>Email</span><strong>{{ email }}</strong></p>
+        <p class="checkout-line">
+          <span>Service</span><strong>Technical consultation · 30 min</strong>
+        </p>
+        <p class="checkout-line">
+          <span>When</span><strong>{{ selectedSummary }}</strong>
+        </p>
+        <p class="checkout-line">
+          <span>Demand</span><strong>{{ demandLabel }}</strong>
+        </p>
+        <p class="checkout-line total">
+          <span>Total</span><strong>{{ priceLabel }}</strong>
+        </p>
+        <p class="checkout-line soft">
+          <span>Name</span><strong>{{ name }}</strong>
+        </p>
+        <p class="checkout-line soft">
+          <span>Email</span><strong>{{ email }}</strong>
+        </p>
       </div>
 
       <div class="legal">
@@ -167,26 +216,26 @@
         <div class="legal-scroll" tabindex="0">
           <h4>Terms of service</h4>
           <p>
-            Paid 30-minute technical consultation with Pratyush Mishra. The fee holds the slot
-            and does not guarantee project work or employment.
+            Paid 30-minute technical consultation with Pratyush Mishra. The fee holds the slot and
+            does not guarantee project work or employment.
           </p>
           <h4>Cancellation</h4>
           <p>
             Cancel/reschedule ≥24h before via
-            <a [href]="'mailto:' + bookingEmail">{{ bookingEmail }}</a>.
-            Inside 24h or no-show: no refund.
+            <a [href]="'mailto:' + bookingEmail">{{ bookingEmail }}</a
+            >. Inside 24h or no-show: no refund.
           </p>
           <h4>Refunds</h4>
           <p>
-            If I cancel or miss the call: full refund in 5–7 business days.
-            Partial attendance after start is not refundable.
+            If I cancel or miss the call: full refund in 5–7 business days. Partial attendance after
+            start is not refundable.
           </p>
           <h4>Pricing &amp; privacy</h4>
           <p>
-            Fee is demand-based; checkout amount is final. Payment via Razorpay —
-            card details are not stored here. Contact details are only for this booking.
-            Questions:
-            <a [href]="'mailto:' + bookingEmail">{{ bookingEmail }}</a>.
+            Fee is demand-based; checkout amount is final. Payment via Razorpay — card details are
+            not stored here. Contact details are only for this booking. Questions:
+            <a [href]="'mailto:' + bookingEmail">{{ bookingEmail }}</a
+            >.
           </p>
         </div>
 
@@ -206,7 +255,15 @@
         (click)="pay()"
         [disabled]="paying || (!acceptTerms && !pendingVerification) || paymentNeedsReview"
       >
-        {{ paymentNeedsReview ? 'Contact me to resolve payment' : paying ? 'Processing…' : pendingVerification ? 'Retry payment confirmation' : ('Confirm & pay · ' + priceLabel) }}
+        {{
+          paymentNeedsReview
+            ? 'Contact me to resolve payment'
+            : paying
+              ? 'Processing…'
+              : pendingVerification
+                ? 'Retry payment confirmation'
+                : 'Confirm & pay · ' + priceLabel
+        }}
       </button>
       @if (paymentNeedsReview) {
         <a [href]="'mailto:' + bookingEmail">{{ bookingEmail }}</a>

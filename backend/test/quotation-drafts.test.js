@@ -9,7 +9,7 @@ const { PDFParse } = require('pdf-parse');
 const Quote = require('../models/Quotation');
 const { createQuotationService } = require('../services/quotationService');
 const { createQuotationRouter } = require('../services/quotationRoutes');
-const { exportQuotation } = require('../services/quotationExport');
+const { exportQuotation, sections } = require('../services/quotationExport');
 const { inspectFile } = require('../services/quotationFiles');
 const { defaults } = require('../services/quotationTemplate');
 const { cleanText } = require('../services/quotationText');
@@ -266,5 +266,16 @@ describe('Durable quotation drafts, SRS files and document exports', () => {
     assert.equal(response.headers.get('cache-control'), 'no-store');
     const loaded = await service.portal(invite.token);
     assert.equal(service.view(loaded).draftEditor, undefined);
+  });
+  it('preserves clause paragraphs and the quotation snapshot while formatting exports', async () => {
+    const value = editor();
+    value.builder.clauses[0].text += '\n\nA separately agreed second paragraph stays in this clause.';
+    const q = await service.saveDraft(draft(value));
+    const before = JSON.stringify(q);
+    const clauses = sections(q).filter((s) => s.agreement);
+    assert.equal(clauses.length, 16);
+    assert.match(clauses[0].text, /\n\nA separately agreed second paragraph/);
+    for (const format of ['pdf', 'docx']) await exportQuotation(q, format);
+    assert.equal(JSON.stringify(q), before);
   });
 });

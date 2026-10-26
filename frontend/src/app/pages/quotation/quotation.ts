@@ -5,6 +5,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { downloadQuotationFile } from './quotation-files';
+import { AgreementTextComponent } from './agreement-text';
 
 export const quoteApi = () =>
   location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
@@ -49,10 +50,13 @@ export type Quotation = {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AgreementTextComponent],
   template: `
     <main class="quote-page">
-      <nav><a routerLink="/">Pratyush Mishra</a><a routerLink="/book">Book a call</a></nav>
+      <nav class="portal-nav" aria-label="Project portal">
+        <a routerLink="/">Pratyush Mishra<span>Client workspace</span></a
+        ><span class="private-label">Private document</span>
+      </nav>
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
       }
@@ -63,154 +67,246 @@ export type Quotation = {
         </p>
       }
       @if (quote(); as q) {
-        <header>
-          <p>Private quotation · revision {{ q.revision }} · {{ q.status }}</p>
-          <h1>{{ q.title }}</h1>
-          <p>Prepared for {{ q.clientName }} · {{ q.clientEmail }}</p>
-          <strong>{{ q.totalPaise / 100 | currency: 'INR' }}</strong>
-          <p>Quotation valid until {{ q.validUntil | date: 'mediumDate' }}</p>
-        </header>
-        <section>
-          <h2>Your provider</h2>
-          <p class="preserve">{{ q.seller }}</p>
-        </section>
-        <section>
-          <h2>What we will build</h2>
-          <p class="preserve">{{ q.scope }}</p>
-          <h3>Not included</h3>
-          <p class="preserve">{{ q.exclusions }}</p>
-          <h3>Timeline and dependencies</h3>
-          <p class="preserve">{{ q.timeline }}</p>
-        </section>
-        <section>
-          <h2>Four clear payments</h2>
-          <p>
-            25% before onboarding · 50% paid at MVP · 90% paid when development is complete · 100%
-            after deployment.
-          </p>
-          <ol class="milestones">
-            @for (m of q.milestones; track $index; let i = $index) {
-              <li>
-                <h3>{{ m.label }} · {{ m.percent }}%</h3>
-                <strong>{{ m.amountPaise / 100 | currency: 'INR' }}</strong>
-                <p>
-                  {{
-                    m.paidAt
-                      ? 'Paid'
-                      : m.approvedAt
-                        ? 'Ready for payment'
-                        : m.releasedAt
-                          ? 'Ready for your review'
-                          : 'Upcoming'
-                  }}
-                </p>
-                @if (m.evidence) {
-                  <p class="preserve">{{ m.evidence }}</p>
-                }
-                @if (m.feedback) {
-                  <p class="preserve">Your requested changes: {{ m.feedback }}</p>
-                }
-                @if (m.paidAt) {
-                  <p>Received {{ m.paidAt | date: 'medium' }} · {{ m.paymentId }}</p>
-                }
-                @if (q.status === 'accepted' && m.releasedAt && !m.approvedAt) {
-                  <p>Review this delivery against the agreed scope before approving payment.</p>
-                  <label
-                    >Changes needed<textarea [(ngModel)]="feedback[i]" maxlength="3000"></textarea>
-                  </label>
-                  <div class="actions">
-                    <button [disabled]="busy()" (click)="review(i, true)">
-                      Approve this delivery</button
-                    ><button
-                      class="secondary"
-                      [disabled]="busy() || !feedback[i]"
-                      (click)="review(i, false)"
-                    >
-                      Request changes
-                    </button>
-                  </div>
-                }
-                @if (q.status === 'accepted' && m.approvedAt && !m.paidAt) {
-                  <button [disabled]="busy() || !q.paymentsEnabled" (click)="pay(i)">
-                    {{ busy() ? 'Please wait…' : 'Pay ' + (m.amountPaise / 100 | currency: 'INR') }}
-                  </button>
-                  @if (!q.paymentsEnabled) {
-                    <p>Online payments are not enabled yet. Contact your provider.</p>
-                  }
-                }
-              </li>
-            }
-          </ol>
-        </section>
-        <section>
-          <h2>SRS requirements documents</h2>
-          <p>
-            Read these requirements together with the scope and agreement. These exact files belong
-            to this revision.
-          </p>
-          @for (file of q.srs || []; track file.fileId) {
-            <p>
-              <button [disabled]="busy()" (click)="downloadSrs(file)">
-                {{ file.name }} ({{ file.size / 1024 | number: '1.0-0' }} KB)
-              </button>
-            </p>
-          } @empty {
-            <p>No SRS files attached.</p>
-          }
-        </section>
-        <section>
-          <h2>Terms and conditions</h2>
-          <p>Read the complete agreement below. Download a copy before accepting.</p>
-          <p class="preserve terms">{{ q.terms }}</p>
+        <div class="document-toolbar">
+          <button class="contents-link" (click)="goTo('agreement-contents')">
+            View agreement contents
+          </button>
           <div class="actions">
-            <button [disabled]="busy()" (click)="download('pdf')">Download PDF</button
-            ><button [disabled]="busy()" (click)="download('docx')">Download Word</button
-            ><button class="secondary" (click)="print()">Print</button>
-          </div>
-        </section>
-        @if (q.status === 'invited') {
-          <section>
-            <h2>Review and accept</h2>
-            <p>
-              This link is private. Acceptance records your entered name and invited email; it is
-              not a verified digital signature.
-            </p>
-            <label
-              >Your full name<input autocomplete="name" [(ngModel)]="name" maxlength="120"
-            /></label>
-            <label
-              >Invited email<input type="email" autocomplete="email" [(ngModel)]="email"
-            /></label>
-            @for (a of acknowledgements; track a.id) {
-              <label class="check"
-                ><input type="checkbox" [(ngModel)]="a.checked" />{{ a.text }}</label
-              >
-            }
-            <button [disabled]="busy() || !canAccept()" (click)="accept()">
-              Accept quotation and terms
+            <button class="secondary" [disabled]="busy()" (click)="download('pdf')">
+              Download PDF
             </button>
-            <p>Accepting does not charge you. The first 25% payment opens separately.</p>
-          </section>
-        }
-        @if (q.acceptance; as a) {
-          <section>
-            <h2>Agreement accepted</h2>
-            <p>{{ a.name }} · {{ a.email }} · {{ a.at | date: 'medium' }}</p>
-            <p class="fingerprint">Agreement fingerprint: {{ a.digest }}</p>
-            <p>Accepted terms are frozen. Changes require a new quotation and acceptance.</p>
-          </section>
-        }
-        @if (q.deployedAt) {
-          <section>
-            <h2>Your 30-day support window</h2>
-            <p>
-              Deployment: {{ q.deployedAt | date: 'medium' }}<br />Free support ends:
-              {{ q.supportEndsAt | date: 'medium' }}
+            <button class="secondary" [disabled]="busy()" (click)="download('docx')">
+              Download Word
+            </button>
+          </div>
+        </div>
+        <article class="agreement-document" aria-label="Project proposal and service agreement">
+          <header class="document-header">
+            <div class="document-kicker">
+              <span>Project proposal &amp; service agreement</span
+              ><span class="status">{{ q.status }}</span>
+            </div>
+            <h1>{{ q.title }}</h1>
+            <p class="document-intro">
+              Project scope, delivery milestones, commercial terms and the complete agreement for
+              your review.
             </p>
-            <p>Coverage follows the support clause in your accepted agreement.</p>
+            <dl class="document-facts">
+              <div>
+                <dt>Total project fee</dt>
+                <dd class="project-total">{{ q.totalPaise / 100 | currency: 'INR' }}</dd>
+              </div>
+              <div>
+                <dt>Document revision</dt>
+                <dd>{{ q.revision }}</dd>
+              </div>
+              <div>
+                <dt>Accept by</dt>
+                <dd>{{ q.validUntil | date: 'mediumDate' }}</dd>
+              </div>
+            </dl>
+          </header>
+          <section id="agreement-contents" class="contents">
+            <h2>Agreement contents</h2>
+            <nav aria-label="Agreement contents">
+              <button class="contents-link" (click)="goTo('agreement-parties')">01 Parties</button
+              ><button class="contents-link" (click)="goTo('agreement-scope')">
+                02 Scope &amp; delivery
+              </button>
+              <button class="contents-link" (click)="goTo('agreement-payments')">
+                03 Payment schedule</button
+              ><button class="contents-link" (click)="goTo('agreement-srs')">
+                04 Requirements
+              </button>
+              <button class="contents-link" (click)="goTo('agreement-terms')">
+                05 General terms</button
+              ><button class="contents-link" (click)="goTo('agreement-acceptance')">
+                06 Acceptance
+              </button>
+            </nav>
           </section>
-        }
-        <button class="secondary" [disabled]="busy()" (click)="load()">
+          <section id="agreement-parties">
+            <h2><span class="section-number">01</span> Parties to this agreement</h2>
+            <div class="parties">
+              <div>
+                <h3>Service provider</h3>
+                <p class="preserve">{{ q.seller }}</p>
+              </div>
+              <div>
+                <h3>Prepared for</h3>
+                <p class="client-name">{{ q.clientName }}</p>
+                <p class="client-email">{{ q.clientEmail }}</p>
+              </div>
+            </div>
+          </section>
+          <section id="agreement-scope">
+            <h2><span class="section-number">02</span> Scope and delivery</h2>
+            <h3>Deliverables and acceptance criteria</h3>
+            <app-agreement-text [text]="q.scope" />
+            <h3 class="subsection">Exclusions and revision limits</h3>
+            <app-agreement-text [text]="q.exclusions" />
+            <h3 class="subsection">Timeline and client responsibilities</h3>
+            <app-agreement-text [text]="q.timeline" />
+          </section>
+          <section id="agreement-payments">
+            <h2><span class="section-number">03</span> Milestones and payment schedule</h2>
+            <p>
+              The project fee is paid in four instalments. Review the delivery and payment triggers
+              in the general terms below.
+            </p>
+            <div class="payment-summary" role="table" aria-label="Milestone payment summary">
+              <div class="payment-heading" role="row">
+                <span role="columnheader">Milestone</span><span role="columnheader">Share</span
+                ><span role="columnheader">Amount</span>
+              </div>
+              @for (m of q.milestones; track $index) {
+                <div role="row">
+                  <span role="cell">{{ m.label }}</span
+                  ><span role="cell">{{ m.percent }}%</span
+                  ><span role="cell">{{ m.amountPaise / 100 | currency: 'INR' }}</span>
+                </div>
+              }
+            </div>
+            <h3 class="subsection">Delivery and payment status</h3>
+            <ol class="milestones">
+              @for (m of q.milestones; track $index; let i = $index) {
+                <li>
+                  <h3>{{ m.label }} · {{ m.percent }}%</h3>
+                  <strong>{{ m.amountPaise / 100 | currency: 'INR' }}</strong>
+                  <p>
+                    {{
+                      m.paidAt
+                        ? 'Paid'
+                        : m.approvedAt
+                          ? 'Ready for payment'
+                          : m.releasedAt
+                            ? 'Ready for your review'
+                            : 'Upcoming'
+                    }}
+                  </p>
+                  @if (m.evidence) {
+                    <p class="preserve">{{ m.evidence }}</p>
+                  }
+                  @if (m.feedback) {
+                    <p class="preserve">Your requested changes: {{ m.feedback }}</p>
+                  }
+                  @if (m.paidAt) {
+                    <p>Received {{ m.paidAt | date: 'medium' }} · {{ m.paymentId }}</p>
+                  }
+                  @if (q.status === 'accepted' && m.releasedAt && !m.approvedAt) {
+                    <p>Review this delivery against the agreed scope before approving payment.</p>
+                    <label
+                      >Changes needed<textarea
+                        [(ngModel)]="feedback[i]"
+                        maxlength="3000"
+                      ></textarea>
+                    </label>
+                    <div class="actions">
+                      <button [disabled]="busy()" (click)="review(i, true)">
+                        Approve this delivery</button
+                      ><button
+                        class="secondary"
+                        [disabled]="busy() || !feedback[i]"
+                        (click)="review(i, false)"
+                      >
+                        Request changes
+                      </button>
+                    </div>
+                  }
+                  @if (q.status === 'accepted' && m.approvedAt && !m.paidAt) {
+                    <button [disabled]="busy() || !q.paymentsEnabled" (click)="pay(i)">
+                      {{
+                        busy() ? 'Please wait…' : 'Pay ' + (m.amountPaise / 100 | currency: 'INR')
+                      }}
+                    </button>
+                    @if (!q.paymentsEnabled) {
+                      <p>Online payments are not enabled yet. Contact your provider.</p>
+                    }
+                  }
+                </li>
+              }
+            </ol>
+          </section>
+          <section id="agreement-srs">
+            <h2><span class="section-number">04</span> Requirements and attachments</h2>
+            <p>
+              Read these requirements together with the scope and agreement. These exact files
+              belong to this revision.
+            </p>
+            @for (file of q.srs || []; track file.fileId) {
+              <p class="attachment">
+                <button class="secondary" [disabled]="busy()" (click)="downloadSrs(file)">
+                  {{ file.name }} ({{ file.size / 1024 | number: '1.0-0' }} KB)
+                </button>
+              </p>
+            } @empty {
+              <p>No SRS files attached.</p>
+            }
+          </section>
+          <section id="agreement-terms" class="general-terms">
+            <h2><span class="section-number">05</span> General terms and conditions</h2>
+            <p class="section-intro">
+              Read these terms together with the scope, payment schedule and attached requirements.
+              Download a copy for your records before accepting.
+            </p>
+            <app-agreement-text class="terms" [text]="q.terms" />
+            <div class="actions">
+              <button [disabled]="busy()" (click)="download('pdf')">Download PDF</button
+              ><button [disabled]="busy()" (click)="download('docx')">Download Word</button
+              ><button class="secondary" (click)="print()">Print</button>
+            </div>
+          </section>
+          <section id="agreement-acceptance" class="acceptance-section">
+            <h2><span class="section-number">06</span> Agreement acceptance</h2>
+            @if (q.status === 'invited') {
+              <p>
+                This link is private. Acceptance records your entered name and invited email; it is
+                not a verified digital signature.
+              </p>
+              <label
+                >Your full name<input autocomplete="name" [(ngModel)]="name" maxlength="120"
+              /></label>
+              <label
+                >Invited email<input type="email" autocomplete="email" [(ngModel)]="email"
+              /></label>
+              @for (a of acknowledgements; track a.id) {
+                <label class="check"
+                  ><input type="checkbox" [(ngModel)]="a.checked" />{{ a.text }}</label
+                >
+              }
+              <button [disabled]="busy() || !canAccept()" (click)="accept()">
+                Accept quotation and terms
+              </button>
+              <p>Accepting does not charge you. The first 25% payment opens separately.</p>
+            }
+            @if (q.acceptance; as a) {
+              <h3>Accepted by the client</h3>
+              <p>{{ a.name }} · {{ a.email }} · {{ a.at | date: 'medium' }}</p>
+              <p class="fingerprint">Agreement fingerprint: {{ a.digest }}</p>
+              <p>Accepted terms are frozen. Changes require a new quotation and acceptance.</p>
+            } @else if (q.status !== 'invited') {
+              <p>
+                This revision has not been accepted. A preview or downloaded copy does not record
+                agreement.
+              </p>
+            }
+          </section>
+          @if (q.deployedAt) {
+            <section>
+              <h2>Your 30-day support window</h2>
+              <p>
+                Deployment: {{ q.deployedAt | date: 'medium' }}<br />Free support ends:
+                {{ q.supportEndsAt | date: 'medium' }}
+              </p>
+              <p>Coverage follows the support clause in your accepted agreement.</p>
+            </section>
+          }
+          <footer class="document-footer">
+            <span>Private project agreement · Revision {{ q.revision }}</span
+            ><span>{{ q.clientName }}</span>
+          </footer>
+        </article>
+        <button class="secondary refresh-status" [disabled]="busy()" (click)="load()">
           Refresh payment and project status
         </button>
       }
@@ -353,6 +449,11 @@ export class QuotationComponent {
   }
   print() {
     window.print();
+  }
+  goTo(id: string) {
+    // The invitation lives in location.hash. Section navigation must never
+    // replace it with an anchor, or refreshing would lose private access.
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   private async checkoutScript() {
     if (window.Razorpay) return;

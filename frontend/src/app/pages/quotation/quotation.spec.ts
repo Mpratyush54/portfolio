@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { QuotationComponent, Quotation } from './quotation';
+import { agreementBlocks } from './agreement-text';
 
 describe('Quotation acceptance and payment recovery', () => {
   let component: QuotationComponent, http: HttpTestingController;
@@ -39,6 +40,18 @@ describe('Quotation acceptance and payment recovery', () => {
     expect(component.canAccept()).toBeTruthy();
     component.email = 'wrong@example.com';
     expect(component.canAccept()).toBeFalsy();
+  });
+  it('formats numbered clauses and retains custom paragraphs as literal text', () => {
+    const blocks = agreementBlocks(
+      '1. Scope\nAgreed work.\n\nA second paragraph <script> is text.\n\n2. Support\n30 days.',
+    );
+    expect(blocks.map((b) => b.title)).toEqual(['1. Scope', '', '2. Support']);
+    expect(blocks.map((b) => b.text).join('\n')).toContain('A second paragraph <script> is text.');
+  });
+  it('keeps the private invitation hash when navigating the agreement', () => {
+    history.replaceState(null, '', '/proposal#private-invitation');
+    component.goTo('agreement-terms');
+    expect(location.hash).toBe('#private-invitation');
   });
   it('submits the immutable terms digest and leaves payment separate', async () => {
     component.name = 'Client';

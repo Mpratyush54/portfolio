@@ -5,11 +5,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { quoteApi, Quotation } from './quotation';
 import { cleanDraftText, downloadQuotationFile } from './quotation-files';
+import { AgreementTextComponent } from './agreement-text';
 
 @Component({
   selector: 'app-quotation-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AgreementTextComponent],
   template: `
     <section class="quotes-admin">
       <h2>Project quotations and invitations</h2>
@@ -279,14 +280,16 @@ import { cleanDraftText, downloadQuotationFile } from './quotation-files';
             </button>
             @if (previewText(); as preview) {
               <section class="generated-preview" aria-live="polite">
-                <h3>Quotation preview</h3>
+                <h3>Project proposal and service agreement</h3>
                 <p>
                   Generated from the choices at the time you clicked Preview. Saving regenerates
                   from your current choices.
                 </p>
                 @for (section of preview; track section.title) {
-                  <h4>{{ section.title }}</h4>
-                  <p class="preserve">{{ section.text }}</p>
+                  <div class="preview-section">
+                    <h4>{{ section.title }}</h4>
+                    <app-agreement-text [text]="section.text" />
+                  </div>
                 }
               </section>
             }
@@ -609,10 +612,28 @@ import { cleanDraftText, downloadQuotationFile } from './quotation-files';
         padding: 8px 0;
       }
       .generated-preview {
-        border: 1px solid #617188;
-        border-radius: 12px;
-        padding: 16px;
+        border: 1px solid #dce2e8;
+        background: #fff;
+        color: #354356;
+        border-radius: 4px;
+        padding: clamp(20px, 5vw, 48px);
         margin: 16px 0;
+      }
+      .generated-preview p {
+        color: #617183;
+      }
+      .generated-preview h3 {
+        color: #182b40;
+        font-size: 1.5rem;
+      }
+      .generated-preview h4 {
+        color: #182b40;
+        font-size: 1.1rem;
+        margin: 0 0 18px;
+      }
+      .preview-section {
+        padding: 26px 0;
+        border-top: 1px solid #dce2e8;
       }
       .terms-edit {
         min-height: 360px;

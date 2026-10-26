@@ -1,14 +1,5 @@
 <div class="business-page">
-  <header class="business-nav">
-    <a routerLink="/" class="brand"
-      >pratyush mishra.<span>Software development &amp; consulting</span></a
-    >
-    <nav aria-label="Primary">
-      <a routerLink="/work" aria-current="page">Services &amp; pricing</a
-      ><a routerLink="/about">About</a><a routerLink="/contact">Contact</a
-      ><a routerLink="/book" class="nav-cta">Technical consultation</a>
-    </nav>
-  </header>
+  <app-public-header active="work" />
   <main>
     <section class="intro">
       <p class="eyebrow">Professional services</p>
@@ -67,7 +58,7 @@
               </ul>
               <p class="exclusions"><strong>Outside this scope</strong>{{ p.exclusions }}</p>
               <p class="timeline"><strong>Planning estimate</strong>{{ p.timeline }}</p>
-              <a routerLink="/contact" class="button secondary">Discuss this package →</a>
+              <a routerLink="/book" class="button secondary">Discuss this package →</a>
             </article>
           }
         </div>

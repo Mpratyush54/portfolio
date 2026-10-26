@@ -523,3 +523,138 @@ button {
     padding: 8px 10px;
   }
 }
+
+/* The header follows the landing HUD; primary navigation is shared with Home. */
+.business-nav {
+  max-width: none;
+  min-height: 106px;
+  padding: 22px 28px;
+  border: 0;
+  align-items: flex-start;
+  flex-direction: row;
+  gap: 16px;
+}
+.brand {
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.hud-left {
+  min-width: 0;
+}
+.hud-sub {
+  margin: 6px 0 0;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(200, 205, 220, 0.72);
+}
+.hud-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.mood {
+  font:
+    0.58rem 'SF Mono',
+    Consolas,
+    monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(160, 165, 185, 0.4);
+}
+.mobile-book {
+  display: none;
+}
+@media (max-width: 640px) {
+  .business-nav {
+    min-height: 68px;
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .hud-left {
+    flex: 1;
+  }
+  .hud-sub {
+    margin-top: 4px;
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hud-right {
+    display: none;
+  }
+  .mobile-book {
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(12, 12, 20, 0.55);
+    color: rgba(200, 205, 220, 0.7);
+  }
+  footer {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 900px) {
+  .business-nav {
+    min-height: 82px;
+    padding: 16px 20px;
+    align-items: center;
+    gap: 12px;
+    background: #07070c;
+  }
+  .hud-left {
+    flex: 1;
+  }
+  .hud-right {
+    display: none;
+  }
+  .mobile-book {
+    display: inline-flex;
+    width: auto;
+    height: auto;
+    min-width: 80px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    background: #d3eaff;
+    color: #10131a;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .mobile-book svg {
+    display: none;
+  }
+  .mobile-book::after {
+    content: 'Book a call';
+  }
+  footer {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}
+@media (min-width: 901px) and (max-height: 600px) {
+  .mood,
+  .hud-sub {
+    display: none;
+  }
+  .business-nav {
+    padding: 12px 20px;
+    min-height: 68px;
+    align-items: center;
+  }
+}

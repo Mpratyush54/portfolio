@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, inject, effect, signal, HostListener } from '@angular/core';
+import { PrimaryNavigationComponent } from '../../components/primary-navigation/primary-navigation';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { HeroSceneComponent } from '../../components/hero-scene/hero-scene';
@@ -18,6 +19,7 @@ import { Project } from '../../models/project.model';
   standalone: true,
   imports: [
     CommonModule,
+    PrimaryNavigationComponent,
     HeroSceneComponent,
     ContactFormComponent,
     AskConsoleComponent,
@@ -35,6 +37,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   private net = inject(NetworkPerfService);
   ask = inject(AskService);
   private sanitizer = inject(DomSanitizer);
+  private pageTitle = inject(Title);
+  private pageMeta = inject(Meta);
 
   /** Soft robot indicator only — never blocks the shell. */
   loading = signal(false);
@@ -401,6 +405,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private syncFromUrl(): void {
     const path = this.router.url.split('?')[0];
+    if (['/', '/about', '/contact'].includes(path)) {
+      this.pageTitle.setTitle(path === '/' ? 'Pratyush Mishra' : (path === '/about' ? 'About' : 'Contact') + ' | Pratyush Mishra');
+      this.pageMeta.updateTag({name: 'description', content: 'Website development, backend APIs and cloud technical services by Pratyush Mishra. View defined service packages or request a project quotation.'});
+    }
     if (path.startsWith('/projects/') && path !== '/projects' && path !== '/projects/systems') {
       const id = path.split('/')[2];
       this.shell.openProject(id);

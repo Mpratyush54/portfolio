@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { PublicHeaderComponent } from '../../components/public-header/public-header';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -23,7 +24,7 @@ export type ServicesCatalog = {
 };
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, PublicHeaderComponent],
   templateUrl: './services.html',
   styleUrl: './services.scss',
 })

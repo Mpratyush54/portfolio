@@ -47,3 +47,7 @@ The optional 30-minute technical consultation is distinct from free project enqu
 Validation: 54 backend tests and 42 frontend tests pass, including public service visibility before checkout activation and normal page scrolling on /work. The Angular production build passes with the existing home stylesheet size warning. Desktop and 320px/390px visual reviews passed; legacy project redirects and public terms/contact navigation were checked. Fixed an anchor/base-URL interaction that sent Explore packages to the home route. A three-page merchant review PDF was rendered and visually checked; it contains public URLs, actual package scopes/prices and an illustrative milestone calculation, without publishing a private client quotation.
 
 The services and public policy pages use the landing page's Outfit typography, dark background, muted text, rounded cards and pill navigation after visual consistency review. Desktop and compact layouts were rechecked after this correction.
+
+Home and /work now render the same primary-navigation component, including desktop pill labels/active state and the mobile navigation bar at the shared 900px breakpoint. Home retains its existing view-switch and deferred scene behavior; returning to Home/About/Contact also restores the correct page title and description.
+
+Package discussion buttons open /book. The booking and services pages share the public header and the same primary navigation used on Home; mobile content retains bottom spacing for the fixed navigation bar.

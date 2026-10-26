@@ -2404,3 +2404,5 @@
     }
   }
 }
+
+@media (max-width: 640px) { .stage.is-contact:has(.chat.is-chatting) > app-primary-navigation { display: none !important; } }

@@ -21,6 +21,7 @@ describe('Page scrolling', () => {
           { path: 'about', component: RouteStub },
           { path: 'projects/:id', component: RouteStub },
           { path: 'book', component: RouteStub },
+          { path: 'work', component: RouteStub },
           { path: 'admin', component: RouteStub },
           { path: '404', component: RouteStub },
         ]),
@@ -44,7 +45,7 @@ describe('Page scrolling', () => {
     expect(document.body.style.overflow).toBe('hidden');
   });
   it('allows booking, admin and not-found pages to scroll', async () => {
-    for (const path of ['/book', '/admin', '/404']) {
+    for (const path of ['/book', '/work', '/admin', '/404']) {
       await TestBed.inject(Router).navigateByUrl(path);
       expect(document.body.style.overflow).not.toBe('hidden');
     }

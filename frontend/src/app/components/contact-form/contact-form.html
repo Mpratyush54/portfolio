@@ -11,7 +11,7 @@
       <div class="hp-field" aria-hidden="true"><input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></div>
       @if(statusMessage) { <p role="alert">{{statusMessage}}</p> }
       <button type="submit" [disabled]="status === 'sending'">{{status === 'sending' ? 'Sending…' : 'Send message'}}</button>
-      <button type="button" (click)="bookCall.emit()">Book a discovery call instead</button>
+      <button type="button" (click)="bookCall.emit()">Book a technical consultation instead</button>
     }
   </form>
 } @else {
@@ -33,7 +33,7 @@
         >
           <span class="intent-emoji" aria-hidden="true">📅</span>
           <span class="intent-copy">
-            <span class="intent-label">Book a discovery call</span>
+            <span class="intent-label">Book a technical consultation</span>
             <span class="intent-blurb">Pick a time · 30 min</span>
           </span>
           <span class="intent-arrow" aria-hidden="true">→</span>

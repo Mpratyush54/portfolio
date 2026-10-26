@@ -5,7 +5,7 @@
       @if (paymentsReady || loading || done) {
         <p class="eyebrow">step {{ stepNum }} of 3</p>
       } @else {
-        <p class="eyebrow">discovery call</p>
+        <p class="eyebrow">Technical consultation</p>
       }
       <h3 class="book-title">{{ title }}</h3>
     </div>
@@ -25,12 +25,14 @@
     <p class="err">{{ error || 'Could not load booking.' }}</p>
   } @else if (!paymentsReady) {
     <div class="unavailable">
-      <p class="unavailable-kicker">Unavailable at the moment</p>
+      <p class="unavailable-kicker">Service information</p>
+      <p><strong>30-minute technical consultation</strong><br>
+        Fee: {{cfg.minLabel || cfg.amountLabel}}@if(cfg.maxPaise !== cfg.minPaise){ – {{cfg.maxLabel}} depending on the selected slot}.</p>
       <p>
-        Online booking isn’t open yet. Email your preferred times and a short note about
-        what you need — I’ll get back to you.
+        Online checkout is pending payment-gateway activation. You can still review the service and fee,
+        or email your preferred times and technical question. No online payment is collected now.
       </p>
-      <a class="mail-cta" [href]="'mailto:' + bookingEmail + '?subject=Discovery%20call%20request'">
+      <a class="mail-cta" [href]="'mailto:' + bookingEmail + '?subject=Technical%20consultation%20enquiry'">
         {{ bookingEmail }}
       </a>
     </div>
@@ -152,7 +154,7 @@
     <div class="checkout">
       <div class="checkout-summary">
         <p class="section-label">Order</p>
-        <p class="checkout-line"><span>Call</span><strong>Discovery · 30 min</strong></p>
+        <p class="checkout-line"><span>Service</span><strong>Technical consultation · 30 min</strong></p>
         <p class="checkout-line"><span>When</span><strong>{{ selectedSummary }}</strong></p>
         <p class="checkout-line"><span>Demand</span><strong>{{ demandLabel }}</strong></p>
         <p class="checkout-line total"><span>Total</span><strong>{{ priceLabel }}</strong></p>
@@ -165,7 +167,7 @@
         <div class="legal-scroll" tabindex="0">
           <h4>Terms of service</h4>
           <p>
-            Paid 30-minute discovery call with Pratyush Mishra. The fee holds the slot
+            Paid 30-minute technical consultation with Pratyush Mishra. The fee holds the slot
             and does not guarantee project work or employment.
           </p>
           <h4>Cancellation</h4>

@@ -1,0 +1,182 @@
+<div class="business-page">
+  <header class="business-nav">
+    <a routerLink="/" class="brand"
+      >Pratyush Mishra<span>Software development &amp; consulting</span></a
+    >
+    <nav aria-label="Primary">
+      <a routerLink="/work" aria-current="page">Services &amp; pricing</a
+      ><a routerLink="/about">About</a><a routerLink="/contact">Contact</a
+      ><a routerLink="/book" class="nav-cta">Technical consultation</a>
+    </nav>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">Professional services</p>
+      <h1>Software for your business.<br /><span>Scope and pricing, upfront.</span></h1>
+      <p class="lead">
+        I build business websites, backend APIs and cloud deployment workflows. Choose a defined
+        package below, or request a custom quotation for a larger project.
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/contact" class="button">Request a project quotation</a
+        ><button type="button" class="text-link" (click)="showPackages()">
+          Explore packages ↓
+        </button>
+      </div>
+      <div class="trust-line">
+        <span>Defined deliverables</span><span>Written agreement</span
+        ><span>Milestone payments</span><span>30-day defect support</span>
+      </div>
+    </section>
+    <section id="packages" class="packages-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">01 / Services &amp; pricing</p>
+          <h2>A clear starting point.</h2>
+        </div>
+        <p>
+          One-time fees in INR for the listed scope.<br />Extra work is quoted before it begins.
+        </p>
+      </div>
+      @if (error()) {
+        <p role="alert">
+          Service pricing could not load. <button (click)="loadCatalog()">Try again</button> or
+          <a routerLink="/contact">contact me for a quotation</a>.
+        </p>
+      }
+      @if (catalog(); as c) {
+        <div class="packages">
+          @for (p of c.packages; track p.id; let i = $index) {
+            <article class="package" [class.bundle]="p.id === 'launch'">
+              <div class="package-top">
+                <span class="package-index">{{ (i + 1).toString().padStart(2, '0') }}</span>
+                @if (p.id === 'launch') {
+                  <span class="badge">Bundled delivery</span>
+                }
+              </div>
+              <h3>{{ p.name }}</h3>
+              <p class="package-summary">{{ p.summary }}</p>
+              <p class="price">
+                {{ p.fee | currency: 'INR' : 'symbol' : '1.0-0' }}<span>base service fee</span>
+              </p>
+              <h4>Included in this scope</h4>
+              <ul>
+                @for (item of p.scope; track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+              <p class="exclusions"><strong>Outside this scope</strong>{{ p.exclusions }}</p>
+              <p class="timeline"><strong>Planning estimate</strong>{{ p.timeline }}</p>
+              <a routerLink="/contact" class="button secondary">Discuss this package →</a>
+            </article>
+          }
+        </div>
+        <div class="commercial-notes">
+          <h3>Before you commission work</h3>
+          @for (note of c.commercialNotes; track note) {
+            <p>{{ note }}</p>
+          }
+        </div>
+      } @else if (!error()) {
+        <p role="status">Loading service details…</p>
+      }
+    </section>
+    <section class="consultation" id="consultation">
+      <div>
+        <p class="eyebrow">02 / Technical consultation</p>
+        <h2>A focused 30-minute session.</h2>
+        <p>
+          Bring your project brief, technical question or deployment challenge. We will review the
+          requirements, discuss options and identify practical next steps.
+        </p>
+        <p>
+          The session covers advice and a high-level action plan. Development work, a detailed SRS
+          and implementation are separate quoted services. You do not need to buy a consultation to
+          send a project enquiry.
+        </p>
+      </div>
+      <div class="consultation-action">
+        @if (consultation(); as fee) {
+          <p class="price">
+            {{ fee.minLabel }}
+            @if (fee.maxPaise !== fee.minPaise) {
+              <span>to {{ fee.maxLabel }}, depending on the selected slot</span>
+            } @else {
+              <span>for one 30-minute session</span>
+            }
+          </p>
+          @if (!fee.paymentsEnabled) {
+            <p>
+              Online checkout is pending payment-gateway activation. The service details and fee
+              remain visible; contact me to enquire.
+            </p>
+          }
+        } @else {
+          <p>The current consultation fee is shown on the consultation page when available.</p>
+        }
+        <a routerLink="/book" class="button">View consultation details →</a>
+      </div>
+    </section>
+    <section class="process" id="process">
+      <p class="eyebrow">03 / From brief to handover</p>
+      <h2>How an engagement works.</h2>
+      <ol>
+        <li>
+          <span>01</span>
+          <h3>Send your requirements</h3>
+          <p>
+            Share the pages, workflows, integrations and timeline you need. A project enquiry is
+            free.
+          </p>
+        </li>
+        <li>
+          <span>02</span>
+          <h3>Review your quotation</h3>
+          <p>
+            Receive a private, client-specific proposal with exact deliverables, SRS attachments
+            where applicable, exclusions, taxes, total price and the full agreement.
+          </p>
+        </li>
+        <li>
+          <span>03</span>
+          <h3>Approve and pay by milestone</h3>
+          <p>
+            Accept the agreement explicitly, then pay 25% before onboarding, 25% after MVP approval,
+            40% after completion approval and 10% after deployment approval.
+          </p>
+        </li>
+        <li>
+          <span>04</span>
+          <h3>Deployment and handover</h3>
+          <p>
+            Receive the agreed handover after full payment, plus 30 calendar days of agreed-scope
+            defect support from recorded production deployment.
+          </p>
+        </li>
+      </ol>
+    </section>
+    <section class="closing">
+      <h2>Need a different scope?</h2>
+      <p>
+        More pages, an admin dashboard, another integration or a larger cloud environment can be
+        covered by a custom written quotation.
+      </p>
+      <a routerLink="/contact" class="button">Send your project brief</a
+      ><a routerLink="/book" class="text-link">Or book a technical consultation →</a>
+    </section>
+  </main>
+  <footer>
+    <div>
+      <strong>Pratyush Mishra</strong>
+      <p>Website development, backend APIs and cloud technical services.</p>
+      <a href="mailto:developer@pratyushes.dev">developer&#64;pratyushes.dev</a>
+    </div>
+    <nav aria-label="Business information">
+      <a routerLink="/about">About</a><a routerLink="/contact">Contact</a
+      ><a routerLink="/work">Pricing</a><a routerLink="/terms">Terms of service</a
+      ><a routerLink="/privacy">Privacy policy</a
+      ><a routerLink="/refunds">Cancellation &amp; refunds</a
+      ><a routerLink="/delivery">Service delivery</a>
+    </nav>
+  </footer>
+</div>

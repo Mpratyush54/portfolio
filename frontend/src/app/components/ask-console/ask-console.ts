@@ -40,12 +40,12 @@ export class AskConsoleComponent implements OnDestroy {
       a: "I'm <b>Pratyush Mishra</b> — Backend Engineer & Full Stack Dev. Clean architecture, automated deploys, great DX.",
     },
     built: {
-      q: 'what has he built?',
-      a: 'ClassStream (DRM/WebRTC), CAPS Automation, Exam Protector, Ambue, internal PaaS — open <span class="cmd">work</span> to browse.',
+      q: 'what services are offered?',
+      a: 'Business websites, backend APIs, DevOps deployment and AWS optimisation. Open <span class="cmd">work</span> for package prices and exact scopes, or <span class="cmd">contact</span> for a written quotation.',
     },
     work: {
       q: 'is he open to work?',
-      a: 'Yes. Book a paid discovery call with <span class="cmd">book</span>, or write via <span class="cmd">contact</span>. Resume: <span class="cmd">resume</span>.',
+      a: 'Yes. Book a paid technical consultation with <span class="cmd">book</span>, or write via <span class="cmd">contact</span>. Resume: <span class="cmd">resume</span>.',
     },
     stack: {
       q: 'what is his tech stack?',
@@ -53,11 +53,11 @@ export class AskConsoleComponent implements OnDestroy {
     },
     experience: {
       q: 'what is his experience?',
-      a: 'Coding since <b>2022</b>. Team Lead at CAPS — DRM streaming, AI proctoring, CI/CD on Kubernetes.',
+      a: 'Software development experience across backend APIs, application interfaces and cloud deployment automation. See <span class="cmd">about</span> for background and <span class="cmd">work</span> for professional services.',
     },
     contact: {
       q: 'how to contact him?',
-      a: 'Book a discovery call with <span class="cmd">book</span>, email <a href="mailto:mpratyush54@gmail.com">mpratyush54@gmail.com</a>, or type <span class="cmd">contact</span>.',
+      a: 'Book a technical consultation with <span class="cmd">book</span>, email <a href="mailto:developer@pratyushes.dev">developer@pratyushes.dev</a>, or type <span class="cmd">contact</span>.',
     },
   };
 
@@ -69,7 +69,7 @@ export class AskConsoleComponent implements OnDestroy {
     work: { desc: 'open work', run: () => this.go('work') },
     about: { desc: 'open about', run: () => this.go('about') },
     contact: { desc: 'open contact', run: () => this.go('contact') },
-    book: { desc: 'book a discovery call', run: () => this.goBook() },
+    book: { desc: 'book a technical consultation', run: () => this.goBook() },
     discovery: { desc: 'alias for book', run: () => this.goBook() },
     resume: { desc: 'open resume PDF', run: () => { window.open('/resume/Pratyush_mishra_SDE.pdf', '_blank'); this.push('out', 'Opening resume…'); } },
     who: { desc: 'ask: who is pratyush?', run: () => this.askQa('who') },
@@ -213,7 +213,7 @@ export class AskConsoleComponent implements OnDestroy {
       if (t === k || t.includes(v.q.slice(0, 12)) || t.includes(k)) return k;
     }
     if (t.includes('who')) return 'who';
-    if (t.includes('built') || t.includes('project')) return 'built';
+    if (t.includes('built') || t.includes('project') || t.includes('service') || t.includes('pricing')) return 'built';
     if (t.includes('open to work') || t.includes('hiring')) return 'work';
     if (t.includes('stack') || t.includes('tech')) return 'stack';
     if (t.includes('experience') || t.includes('gpa')) return 'experience';

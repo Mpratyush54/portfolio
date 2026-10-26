@@ -1,0 +1,93 @@
+{
+  "provider": "Pratyush Mishra",
+  "email": "developer@pratyushes.dev",
+  "currency": "INR",
+  "consultation": {
+    "durationMinutes": 30,
+    "description": "A one-to-one technical consultation to review your requirements, discuss architecture and identify next steps. Development, implementation and a detailed SRS are quoted separately."
+  },
+  "packages": [
+    {
+      "id": "website",
+      "name": "Business website",
+      "fee": 14999,
+      "summary": "A focused, responsive website for a business or independent professional.",
+      "scope": [
+        "Up to 5 public pages and 15 content sections",
+        "Responsive layouts for mobile, tablet and desktop",
+        "1 contact form with validation and email delivery",
+        "Page titles, descriptions and basic technical SEO setup",
+        "2 consolidated design revision rounds"
+      ],
+      "exclusions": "Copywriting, branding, e-commerce, user accounts, CMS and paid integrations are not included.",
+      "timeline": "About 2 weeks after content and access are ready"
+    },
+    {
+      "id": "backend",
+      "name": "Backend & API development",
+      "fee": 24999,
+      "summary": "A documented backend for one application or business workflow.",
+      "scope": [
+        "Up to 8 API endpoints, including authentication routes",
+        "1 database with up to 5 data models",
+        "1 email/password sign-in flow and up to 2 access roles",
+        "Input validation, access checks and agreed error handling",
+        "API documentation and setup instructions"
+      ],
+      "exclusions": "Frontend/admin UI, data migration, complex real-time features and additional integrations are quoted separately.",
+      "timeline": "About 2–3 weeks after the API specification is approved"
+    },
+    {
+      "id": "deployment",
+      "name": "DevOps & deployment setup",
+      "fee": 9999,
+      "summary": "Deploy an existing application with a repeatable release process.",
+      "scope": [
+        "1 application: one frontend, one backend and one database connection",
+        "1 production environment on client-owned cloud infrastructure",
+        "HTTPS, domain configuration and environment setup",
+        "1 CI/CD pipeline for one repository",
+        "Health checks, deployment notes and 1 handover session"
+      ],
+      "exclusions": "Cloud/domain charges, Kubernetes clusters, migration, 24/7 monitoring and ongoing server operations are not included.",
+      "timeline": "About 3–5 business days once the application is deployment-ready"
+    },
+    {
+      "id": "aws",
+      "name": "AWS review & optimisation",
+      "fee": 14999,
+      "summary": "Review a small AWS setup and prioritise practical improvements.",
+      "scope": [
+        "Review of 1 AWS account and up to 5 existing resources",
+        "Review of resource sizing, cost visibility and access configuration",
+        "A prioritised written recommendations report",
+        "Setup of 1 budget notification using client-approved thresholds",
+        "Implementation of 1 agreed, reversible configuration improvement"
+      ],
+      "exclusions": "Cloud usage charges, migrations, formal security audits and guaranteed cost savings are not included. Changes require client approval.",
+      "timeline": "About 3–5 business days after suitable access is provided"
+    },
+    {
+      "id": "launch",
+      "name": "Website & backend launch bundle",
+      "fee": 39999,
+      "summary": "A small business application, from public pages to deployment.",
+      "scope": [
+        "Up to 5 responsive public pages and 1 contact form",
+        "Up to 8 API endpoints, including one authentication flow",
+        "1 database with up to 5 models and up to 2 access roles",
+        "1 production deployment and CI/CD pipeline for one repository",
+        "API/setup documentation and 1 handover session"
+      ],
+      "exclusions": "A custom admin UI, e-commerce, migrations, paid services, hosting and domain fees are quoted separately.",
+      "timeline": "About 4–6 weeks after scope, content and access are approved"
+    }
+  ],
+  "commercialNotes": [
+    "Prices are base service fees for the listed scope, not subscriptions. Any applicable taxes and the final payable total are disclosed in the written quotation before acceptance.",
+    "Additional pages, endpoints, integrations or other changes require a separate written quotation and client approval before work begins.",
+    "Project payments are 25% before onboarding, 25% after MVP approval, 40% after development completion approval and 10% after deployment approval.",
+    "Project delivery includes 30 calendar days of agreed-scope defect support from the recorded production deployment date. Ongoing operations and new features are separate services.",
+    "Third-party cloud, domain, API and licence charges are paid separately by the client. These offers are for development and technical services, not hosting resale or streaming subscriptions."
+  ]
+}

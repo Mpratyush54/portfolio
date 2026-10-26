@@ -27,6 +27,10 @@ type SpotsPayload = {
   amountPaise: number;
   amountLabel: string;
   baseLabel?: string;
+  minLabel?: string;
+  maxLabel?: string;
+  minPaise?: number;
+  maxPaise?: number;
   currency: string;
   title: string;
   durationMin: number;
@@ -148,7 +152,7 @@ export class DiscoveryBookComponent implements OnInit {
 
   get title(): string {
     if (this.done) return 'Talk soon.';
-    if (!this.loading && this.cfg && !this.paymentsReady) return 'Unavailable';
+    if (!this.loading && this.cfg && !this.paymentsReady) return 'Consultation enquiries';
     if (this.step === 'checkout') return 'Checkout';
     if (this.step === 'details') return 'A few details';
     return 'Pick a time';
@@ -368,7 +372,7 @@ export class DiscoveryBookComponent implements OnInit {
           amount: order.amountPaise,
           currency: order.currency,
           name: 'Pratyush Mishra',
-          description: 'Discovery call · ' + this.selectedSummary,
+          description: 'Technical consultation · ' + this.selectedSummary,
           order_id: order.orderId,
           prefill: { name: this.name.trim(), email: this.email.trim(), contact: this.phone.trim() },
           theme: { color: '#1a1a24' },

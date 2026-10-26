@@ -134,9 +134,11 @@ function configPublic(settings = bookingSettings.read()) {
     minLabel: formatAmount(settings.minPaise),
     maxLabel: formatAmount(settings.maxPaise),
     blockedDates: settings.blockedDates,
-    title: 'Discovery call',
+    title: 'Technical consultation',
     durationMin: 30,
-    pricingNote: `Fee moves with demand between ${formatAmount(settings.minPaise)}–${formatAmount(settings.maxPaise)}.`,
+    pricingNote: settings.minPaise === settings.maxPaise
+      ? `Fixed fee: ${formatAmount(settings.minPaise)} for one 30-minute technical consultation.`
+      : `The selected slot fee is shown before payment, between ${formatAmount(settings.minPaise)} and ${formatAmount(settings.maxPaise)}.`,
   };
 }
 

@@ -52,7 +52,7 @@ export class App implements OnInit {
   private isShell(url: string): boolean {
     const path = url.split(/[?#]/)[0].replace(/\/$/, '') || '/';
     return (
-      ['/', '/work', '/about', '/contact', '/projects'].includes(path) ||
+      ['/', '/about', '/contact', '/projects'].includes(path) ||
       path.startsWith('/projects/')
     );
   }

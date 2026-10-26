@@ -44,3 +44,13 @@ PostHog validation covered five viewport layouts plus a resize-back state, with 
 ## Ingestion correction (26 October 2026)
 
 Authenticated project settings revealed that the supplied token had the project ID accidentally appended. The runtime configuration now uses the exact public project token from PostHog project 687744. Capture API HTTP 200 alone did not establish ingestion; confirm events in the authenticated project before reporting success.
+
+## Live dashboard (26 October 2026)
+
+The authenticated project now confirms ingested live SDK events: `$pageview` and `booking_step_viewed` from a verification visit to `/book`. No synthetic contact submission or payment was created. The previous HTTP 200 test used the malformed token and did not establish ingestion.
+
+The default pinned dashboard is [Portfolio traffic and enquiries](https://us.posthog.com/project/687744/dashboard/2260517), with eight saved native insights: daily pageviews, popular public pages, device/browser breakdowns, booking interest, contact submissions, a future booking payment funnel, and future payment-review signals. The dashboard defaults to 30 days and the project reports in Asia/Kolkata. Comparison percentage pills are hidden until a meaningful history exists. Earlier traffic was not recovered.
+
+Contact and payment event definitions are registered but remain unverified until real events arrive. Contact data is awaiting the first genuine submission; checkout, confirmation and review are inactive while Razorpay is unconfigured. Dashboard notes explain those limits and memory-only anonymous identity. Existing dashboards remain intact.
+
+Project settings also disable session replay, heatmaps, autocapture, console/performance capture and automatic web vitals, matching the SDK privacy choices. IP anonymization is enabled. No email/Slack subscriptions, paid upgrades, public sharing or additional credentials were created.

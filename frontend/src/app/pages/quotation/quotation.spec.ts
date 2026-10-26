@@ -1,3 +1,4 @@
+import { ActivatedRoute } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
@@ -113,5 +114,44 @@ describe('Quotation acceptance and payment recovery', () => {
     await retry;
     expect(opened).toBe(1);
     expect(component.quote()?.milestones[0].paidAt).toBeTruthy();
+  });
+});
+
+describe('Public quotation example', () => {
+  it('loads only the static sample and cannot accept, approve or create a payment', async () => {
+    history.replaceState(null, '', '/sample-quotation');
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ActivatedRoute, useValue: { snapshot: { data: { example: true } } } },
+      ],
+    });
+    const component = TestBed.runInInjectionContext(() => new QuotationComponent());
+    const http = TestBed.inject(HttpTestingController);
+    http
+      .expectOne('/review/sample-quotation.json')
+      .flush({
+        _id: 'sample',
+        status: 'accepted',
+        paymentsEnabled: true,
+        clientEmail: 'client@example.com',
+        milestones: [],
+      });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(component.quote()?.status).toBe('sample');
+    expect(component.quote()?.paymentsEnabled).toBe(false);
+    component.name = 'Example';
+    component.email = 'client@example.com';
+    component.acknowledgements.forEach((item) => (item.checked = true));
+    expect(component.canAccept()).toBeFalsy();
+    component.accept();
+    component.review(0, true);
+    await component.pay(0);
+    http.expectNone((req) => req.method === 'POST');
+    expect(document.querySelector('script[src*="checkout.razorpay.com"]')).toBeNull();
+    http.verify();
+    history.replaceState(null, '', '/');
   });
 });

@@ -1,0 +1,175 @@
+{
+  "builder": {
+    "version": 1,
+    "provider": {
+      "name": "Sample service provider - review only",
+      "email": "example@example.com",
+      "address": "Illustrative address only. A real quotation includes the actual provider address.",
+      "taxStatus": "other",
+      "gstin": "",
+      "taxNote": "Illustrative price only. Actual tax treatment and final total are stated in the real quotation.",
+      "venue": "Specified in the real quotation"
+    },
+    "features": [
+      "website",
+      "responsive",
+      "auth",
+      "admin",
+      "deployment",
+      "handover"
+    ],
+    "exclusions": [
+      "hosting",
+      "subscriptions",
+      "content",
+      "migration",
+      "mobileApps",
+      "maintenance",
+      "certification"
+    ],
+    "responsibilities": [
+      "content",
+      "access",
+      "contact",
+      "feedback",
+      "accounts"
+    ],
+    "scopeNotes": "EXAMPLE ONLY: five responsive public pages, one project enquiry form, a lead-management dashboard with two access roles, up to eight API endpoints and five database models. Acceptance requires validated enquiries, protected dashboard access, mobile review at 320px and 390px, HTTPS deployment and agreed handover.",
+    "exclusionNotes": "",
+    "timelineNotes": "Illustrative schedule: four weeks after scope approval, content and suitable client access. The client reviews the design, MVP and final delivery against written criteria.",
+    "revisionRounds": 2,
+    "reviewDays": 5,
+    "weeks": 4,
+    "portfolio": false,
+    "clauses": [
+      {
+        "id": "agreement",
+        "title": "Parties, scope and order of precedence",
+        "text": "This agreement is between the provider identified in this quotation and the named client. The accepted quotation, its deliverables, exclusions, milestone schedule and these terms form the project agreement. Only expressly listed work is included. Agreed project-specific additions apply alongside these terms; any conflict must be resolved in a written revision accepted by both parties before the affected work starts. The signer confirms authority to act for the client."
+      },
+      {
+        "id": "milestones",
+        "title": "Four delivery phases and payment triggers",
+        "text": "Onboarding: 25% is payable after quotation acceptance and before project work begins. MVP: another 25% is payable after the client approves the agreed core working flow, bringing the paid total to 50%. Development complete: another 40% is payable after approval of all remaining agreed features and testing, bringing the paid total to 90%. Deployment: the final 10% is payable after production deployment and client approval, bringing the total to 100%. Completion is measured against the written scope and acceptance criteria, not the addition of unquoted features. Source/IP handover follows full payment."
+      },
+      {
+        "id": "payment",
+        "title": "Price, taxes and payment processing",
+        "text": "The displayed quotation total is the final payable INR amount, including applicable taxes identified in the provider details. Instalment amounts are shown separately; rounding in paise is reconciled in the final instalment. Work on the next phase begins after the preceding payment is captured. Acceptance alone does not charge the client and no future instalment is automatically debited. Razorpay processes payment credentials; this portal stores payment references and confirmation status. An authorised or pending payment is not treated as received until capture is verified. A quotation or portal payment status is not a tax invoice; the provider supplies required invoices/advance receipts through its accounting process. Any agreed discovery-call credit must already be reflected in the final price."
+      },
+      {
+        "id": "review",
+        "title": "Delivery review and acceptance",
+        "text": "The client should review each delivery within {{reviewDays}} business days and approve it or report specific failures against the agreed criteria, with steps/screenshots where possible. A reported agreed-scope defect is corrected and submitted again for review. Silence, opening the link, or the passing of the review period does not automatically approve a milestone. If feedback is delayed, dependent work and the delivery schedule may pause. Approval records the delivery version reviewed. The next instalment becomes available only after explicit client approval, except the initial onboarding instalment which follows agreement acceptance."
+      },
+      {
+        "id": "revisions",
+        "title": "Included revisions and change requests",
+        "text": "{{revisionRounds}} consolidated revision round(s) per milestone are included for adjustments within the agreed scope. A round means one consolidated feedback list followed by its implementation and review. Correcting a reproducible failure to meet the agreed acceptance criteria does not consume a design-revision round. New features, altered business rules, new integrations, additional pages beyond scope, major redesign after approval and extra revision rounds require a separately priced written change quotation accepted before work begins. Related cost and timeline effects must be agreed in advance."
+      },
+      {
+        "id": "timeline",
+        "title": "Schedule, dependencies and project pauses",
+        "text": "The planning estimate is {{weeks}} week(s) from receipt of the onboarding payment and all agreed starting inputs. The specific timeline and dependencies in this quotation govern phase planning. The client supplies the listed content, permissions, credentials, decisions and feedback. Delays caused by missing inputs, late approvals, changed scope, provider outages or access restrictions require an updated written schedule; they do not create automatic acceptance or an automatic penalty. A stalled project may be paused with written notice. Restart timing is agreed with regard to current availability; no unquoted restart fee is automatically applied."
+      },
+      {
+        "id": "thirdParty",
+        "title": "Third-party services and excluded costs",
+        "text": "Hosting, domains, email/SMS providers, paid APIs, licences and external subscriptions are included only where this quotation expressly says so. Otherwise they are excluded costs payable by the client, and no such purchase is made on the client’s behalf without approval. Third-party service terms, account approval, usage limits, pricing and outages remain controlled by those providers. Changes to external APIs or platforms after acceptance may require a new change quotation. No uptime SLA, formal security certification, app-store approval, search ranking or business-revenue outcome is promised unless separately agreed."
+      },
+      {
+        "id": "deployment",
+        "title": "Production deployment and operational responsibility",
+        "text": "Deployment means the agreed release is made available in the agreed production environment and its deployment date is recorded with review evidence. The client supplies or authorises production accounts, domain settings, required credentials and payment activation. The provider performs the deployment checks stated in scope and supplies the agreed handover notes. Ongoing monitoring, backups, incident response, hosting administration and operational availability are the client’s responsibility unless expressly included under a separate agreement. Credentials must be shared securely, never pasted into quotation notes."
+      },
+      {
+        "id": "support",
+        "title": "30-day free support and defect reporting",
+        "text": "Free support lasts 30 calendar days from the first recorded production deployment date, ending at the timestamp shown in the portal. It covers reproducible defects where the delivered work fails the accepted scope and criteria. Report issues to {{providerEmail}} with a description, reproduction steps and relevant screenshots/logs without secrets. Issues reported during the window remain eligible for assessment and correction even if the correction finishes later. The provider acknowledges and schedules work according to severity and availability; no 24/7 or fixed response/resolution SLA is included. New features, redesigns, content changes, misuse, client/third-party modifications, third-party outages and new platform requirements are excluded. Re-deploying a fix does not restart or extend the window unless separately agreed."
+      },
+      {
+        "id": "cancellation",
+        "title": "Cancellation, termination and refunds",
+        "text": "Either party may request cancellation or raise a material breach by written email to the project contacts. The parties first document completed/accepted work, unfinished work, paid instalments, approved non-recoverable external costs and any outstanding obligations. Completed and accepted work remains payable. Unperformed work and unused advances are reconciled fairly in writing; there is no blanket rule that every advance is non-refundable. Any agreed refund is initiated within 7 business days of reconciliation and confirmation of the payment reference; bank/payment-provider processing can take longer. Refunds normally return through the original payment method. Cancellation does not automatically trigger a refund in the portal. Mandatory statutory rights are preserved. No new unapproved work or charges accrue after the agreed termination date."
+      },
+      {
+        "id": "ip",
+        "title": "Ownership, licences and handover",
+        "text": "After full payment, the client receives the agreed project-specific deliverables, source code and ownership rights that the provider is entitled to transfer. The provider retains pre-existing libraries, general tools, reusable know-how and components identified as pre-existing; the client receives the usage rights necessary for the agreed deliverable, subject to applicable licences. Open-source and third-party components retain their original licence terms. Client-supplied content and trademarks remain the client’s property. The client warrants that it has permission to supply those materials. Handover includes only the assets, documentation and accounts expressly listed in scope; secrets are transferred securely and access should be rotated afterwards."
+      },
+      {
+        "id": "confidentiality",
+        "title": "Confidentiality and portfolio use",
+        "text": "Both parties protect non-public project, commercial and access information and use it only for performing this project, except where disclosure is legally required or information is already lawfully public. Necessary service providers may receive only the information required for their role under appropriate confidentiality/security arrangements. Credentials, customer datasets and private business information must not appear in public repositories or portfolio screenshots. Portfolio/publicity permission for this project: {{portfolioPermission}}. Confidentiality does not prevent either party retaining records required for accounting, legal obligations or resolving a dispute."
+      },
+      {
+        "id": "privacy",
+        "title": "Project data, privacy and security",
+        "text": "Client contact details, quotation content, acceptance records and payment references are used to administer the project, communicate about deliveries, meet record obligations and resolve disputes. Payment credentials are handled by Razorpay and are not stored by this site. Both parties use reasonable access controls and share only necessary project data through agreed channels. The client must identify any personal, regulated or sensitive production data before development so required processing arrangements can be agreed; production datasets are not assumed necessary for testing. Requests about access, correction, deletion or retention should go to {{providerEmail}}. Deletion remains subject to required record retention and legal obligations. Specific hosting location, retention periods, subprocessors or data-processing commitments must be agreed separately when required; no compliance certification is implied."
+      },
+      {
+        "id": "warranty",
+        "title": "Quality, limitations and mandatory rights",
+        "text": "The provider will perform the agreed work with reasonable care and skill and correct agreed-scope defects under the review/support provisions. Software is not promised to be entirely defect-free or immune to every security threat. The provider does not guarantee results controlled by third parties or commercial outcomes. Each party should mitigate avoidable losses and promptly report material problems. No term excludes liability or consumer/statutory remedies that applicable law does not permit to be excluded. Any additional liability cap, indemnity, service level or warranty must be specifically agreed in a written revision; none is silently created by a checkbox."
+      },
+      {
+        "id": "events",
+        "title": "Events beyond reasonable control",
+        "text": "A party affected by an event beyond its reasonable control should notify the other promptly, explain the likely impact and take reasonable steps to reduce delay. The parties agree an updated schedule or, if continuing is impractical, reconcile termination under the cancellation clause. Such an event does not erase payment for already accepted work or automatically remove rights to unused advances."
+      },
+      {
+        "id": "disputes",
+        "title": "Communication, governing law and dispute resolution",
+        "text": "Operational decisions, approvals and change requests are documented in this portal or written correspondence between the named project contacts. Raise a dispute first through {{providerEmail}} and seek a good-faith written resolution before escalation. Governing law: laws of India. Proposed dispute venue: {{venue}}, subject to mandatory jurisdiction and statutory rights. There is no compulsory arbitration clause unless separately agreed. Quotation validity controls the deadline for initial acceptance; it does not terminate an already accepted agreement. Later amendments require explicit written acceptance of the revised terms by both parties."
+      }
+    ],
+    "additionalTerms": ""
+  },
+  "seller": "Sample service provider - review only\nContact: example@example.com\nAddress: Illustrative address only. A real quotation includes the actual provider address.\nIllustrative price only. Actual tax treatment and final total are stated in the real quotation.\nGoverning law: India. Dispute venue: Specified in the real quotation, subject to mandatory jurisdiction.",
+  "scope": "• Website / landing pages\nAcceptance: All named pages display the approved content, navigation and calls to action without broken internal links.\n\n• Responsive mobile layout\nAcceptance: The agreed screens are usable at 320px, tablet and desktop widths without horizontal overflow; controls remain usable by touch.\n\n• Sign-in and user accounts\nAcceptance: The agreed sign-in, sign-out and account recovery flows work; protected routes reject unauthorised users.\n\n• Admin dashboard\nAcceptance: Authorised administrators can perform the listed management actions; ordinary users cannot access those actions.\n\n• Production deployment\nAcceptance: The agreed release is deployed to the named environment with HTTPS and a working health check; the client receives deployment/access notes.\n\n• Source code and handover notes\nAcceptance: The agreed repository/source, setup steps, configuration reference and access handover are supplied after full payment.\n\nProject-specific deliverables and criteria\nEXAMPLE ONLY: five responsive public pages, one project enquiry form, a lead-management dashboard with two access roles, up to eight API endpoints and five database models. Acceptance requires validated enquiries, protected dashboard access, mobile review at 320px and 390px, HTTPS deployment and agreed handover.",
+  "exclusions": "• Hosting, domain renewals and infrastructure charges\n• Paid APIs, SMS/email usage and third-party subscriptions\n• Copywriting, photography, logo creation and content entry\n• Historic data migration and bulk data cleaning\n• Native Android/iOS apps and app-store submissions\n• Ongoing operations and maintenance after the support window\n• Formal security audit, penetration test or compliance certification\nIncluded revisions: 2 consolidated round(s) per milestone; agreed-scope defect corrections do not consume these rounds.",
+  "timeline": "Planning estimate: 4 week(s) after onboarding payment and required inputs.\nReview target: 5 business days per delivery; silence does not imply approval.\nClient responsibilities:\n• Supply approved content, branding and assets with permission to use them\n• Provide required hosting, domain, API and payment-provider access securely\n• Nominate one authorised contact to consolidate decisions and feedback\n• Review deliveries and provide consolidated, specific feedback within the review window\n• Own and maintain production accounts and pay agreed third-party charges directly\nProject schedule and dependencies: Illustrative schedule: four weeks after scope approval, content and suitable client access. The client reviews the design, MVP and final delivery against written criteria.",
+  "terms": "READ-ONLY EXAMPLE. This document is illustrative and is not an offer, accepted agreement, invoice or payment request. No acceptance or payments are possible on this sample. The clauses below show the structure used in a real private quotation.\n\n1. Parties, scope and order of precedence\nThis agreement is between the provider identified in this quotation and the named client. The accepted quotation, its deliverables, exclusions, milestone schedule and these terms form the project agreement. Only expressly listed work is included. Agreed project-specific additions apply alongside these terms; any conflict must be resolved in a written revision accepted by both parties before the affected work starts. The signer confirms authority to act for the client.\n\n2. Four delivery phases and payment triggers\nOnboarding: 25% is payable after quotation acceptance and before project work begins. MVP: another 25% is payable after the client approves the agreed core working flow, bringing the paid total to 50%. Development complete: another 40% is payable after approval of all remaining agreed features and testing, bringing the paid total to 90%. Deployment: the final 10% is payable after production deployment and client approval, bringing the total to 100%. Completion is measured against the written scope and acceptance criteria, not the addition of unquoted features. Source/IP handover follows full payment.\n\n3. Price, taxes and payment processing\nThe displayed quotation total is the final payable INR amount, including applicable taxes identified in the provider details. Instalment amounts are shown separately; rounding in paise is reconciled in the final instalment. Work on the next phase begins after the preceding payment is captured. Acceptance alone does not charge the client and no future instalment is automatically debited. Razorpay processes payment credentials; this portal stores payment references and confirmation status. An authorised or pending payment is not treated as received until capture is verified. A quotation or portal payment status is not a tax invoice; the provider supplies required invoices/advance receipts through its accounting process. Any agreed discovery-call credit must already be reflected in the final price.\n\n4. Delivery review and acceptance\nThe client should review each delivery within 5 business days and approve it or report specific failures against the agreed criteria, with steps/screenshots where possible. A reported agreed-scope defect is corrected and submitted again for review. Silence, opening the link, or the passing of the review period does not automatically approve a milestone. If feedback is delayed, dependent work and the delivery schedule may pause. Approval records the delivery version reviewed. The next instalment becomes available only after explicit client approval, except the initial onboarding instalment which follows agreement acceptance.\n\n5. Included revisions and change requests\n2 consolidated revision round(s) per milestone are included for adjustments within the agreed scope. A round means one consolidated feedback list followed by its implementation and review. Correcting a reproducible failure to meet the agreed acceptance criteria does not consume a design-revision round. New features, altered business rules, new integrations, additional pages beyond scope, major redesign after approval and extra revision rounds require a separately priced written change quotation accepted before work begins. Related cost and timeline effects must be agreed in advance.\n\n6. Schedule, dependencies and project pauses\nThe planning estimate is 4 week(s) from receipt of the onboarding payment and all agreed starting inputs. The specific timeline and dependencies in this quotation govern phase planning. The client supplies the listed content, permissions, credentials, decisions and feedback. Delays caused by missing inputs, late approvals, changed scope, provider outages or access restrictions require an updated written schedule; they do not create automatic acceptance or an automatic penalty. A stalled project may be paused with written notice. Restart timing is agreed with regard to current availability; no unquoted restart fee is automatically applied.\n\n7. Third-party services and excluded costs\nHosting, domains, email/SMS providers, paid APIs, licences and external subscriptions are included only where this quotation expressly says so. Otherwise they are excluded costs payable by the client, and no such purchase is made on the client’s behalf without approval. Third-party service terms, account approval, usage limits, pricing and outages remain controlled by those providers. Changes to external APIs or platforms after acceptance may require a new change quotation. No uptime SLA, formal security certification, app-store approval, search ranking or business-revenue outcome is promised unless separately agreed.\n\n8. Production deployment and operational responsibility\nDeployment means the agreed release is made available in the agreed production environment and its deployment date is recorded with review evidence. The client supplies or authorises production accounts, domain settings, required credentials and payment activation. The provider performs the deployment checks stated in scope and supplies the agreed handover notes. Ongoing monitoring, backups, incident response, hosting administration and operational availability are the client’s responsibility unless expressly included under a separate agreement. Credentials must be shared securely, never pasted into quotation notes.\n\n9. 30-day free support and defect reporting\nFree support lasts 30 calendar days from the first recorded production deployment date, ending at the timestamp shown in the portal. It covers reproducible defects where the delivered work fails the accepted scope and criteria. Report issues to example@example.com with a description, reproduction steps and relevant screenshots/logs without secrets. Issues reported during the window remain eligible for assessment and correction even if the correction finishes later. The provider acknowledges and schedules work according to severity and availability; no 24/7 or fixed response/resolution SLA is included. New features, redesigns, content changes, misuse, client/third-party modifications, third-party outages and new platform requirements are excluded. Re-deploying a fix does not restart or extend the window unless separately agreed.\n\n10. Cancellation, termination and refunds\nEither party may request cancellation or raise a material breach by written email to the project contacts. The parties first document completed/accepted work, unfinished work, paid instalments, approved non-recoverable external costs and any outstanding obligations. Completed and accepted work remains payable. Unperformed work and unused advances are reconciled fairly in writing; there is no blanket rule that every advance is non-refundable. Any agreed refund is initiated within 7 business days of reconciliation and confirmation of the payment reference; bank/payment-provider processing can take longer. Refunds normally return through the original payment method. Cancellation does not automatically trigger a refund in the portal. Mandatory statutory rights are preserved. No new unapproved work or charges accrue after the agreed termination date.\n\n11. Ownership, licences and handover\nAfter full payment, the client receives the agreed project-specific deliverables, source code and ownership rights that the provider is entitled to transfer. The provider retains pre-existing libraries, general tools, reusable know-how and components identified as pre-existing; the client receives the usage rights necessary for the agreed deliverable, subject to applicable licences. Open-source and third-party components retain their original licence terms. Client-supplied content and trademarks remain the client’s property. The client warrants that it has permission to supply those materials. Handover includes only the assets, documentation and accounts expressly listed in scope; secrets are transferred securely and access should be rotated afterwards.\n\n12. Confidentiality and portfolio use\nBoth parties protect non-public project, commercial and access information and use it only for performing this project, except where disclosure is legally required or information is already lawfully public. Necessary service providers may receive only the information required for their role under appropriate confidentiality/security arrangements. Credentials, customer datasets and private business information must not appear in public repositories or portfolio screenshots. Portfolio/publicity permission for this project: No public portfolio listing, client logo or project screenshots without separate written permission.. Confidentiality does not prevent either party retaining records required for accounting, legal obligations or resolving a dispute.\n\n13. Project data, privacy and security\nClient contact details, quotation content, acceptance records and payment references are used to administer the project, communicate about deliveries, meet record obligations and resolve disputes. Payment credentials are handled by Razorpay and are not stored by this site. Both parties use reasonable access controls and share only necessary project data through agreed channels. The client must identify any personal, regulated or sensitive production data before development so required processing arrangements can be agreed; production datasets are not assumed necessary for testing. Requests about access, correction, deletion or retention should go to example@example.com. Deletion remains subject to required record retention and legal obligations. Specific hosting location, retention periods, subprocessors or data-processing commitments must be agreed separately when required; no compliance certification is implied.\n\n14. Quality, limitations and mandatory rights\nThe provider will perform the agreed work with reasonable care and skill and correct agreed-scope defects under the review/support provisions. Software is not promised to be entirely defect-free or immune to every security threat. The provider does not guarantee results controlled by third parties or commercial outcomes. Each party should mitigate avoidable losses and promptly report material problems. No term excludes liability or consumer/statutory remedies that applicable law does not permit to be excluded. Any additional liability cap, indemnity, service level or warranty must be specifically agreed in a written revision; none is silently created by a checkbox.\n\n15. Events beyond reasonable control\nA party affected by an event beyond its reasonable control should notify the other promptly, explain the likely impact and take reasonable steps to reduce delay. The parties agree an updated schedule or, if continuing is impractical, reconcile termination under the cancellation clause. Such an event does not erase payment for already accepted work or automatically remove rights to unused advances.\n\n16. Communication, governing law and dispute resolution\nOperational decisions, approvals and change requests are documented in this portal or written correspondence between the named project contacts. Raise a dispute first through example@example.com and seek a good-faith written resolution before escalation. Governing law: laws of India. Proposed dispute venue: Specified in the real quotation, subject to mandatory jurisdiction and statutory rights. There is no compulsory arbitration clause unless separately agreed. Quotation validity controls the deadline for initial acceptance; it does not terminate an already accepted agreement. Later amendments require explicit written acceptance of the revised terms by both parties.",
+  "_id": "public-sample-quotation",
+  "__v": 0,
+  "title": "Sample website and lead dashboard quotation - REVIEW ONLY",
+  "clientName": "Example client - not a real customer",
+  "clientEmail": "client@example.com",
+  "revision": 1,
+  "status": "sample",
+  "totalPaise": 6000000,
+  "validUntil": "2026-11-30T18:29:59Z",
+  "digest": "sample-not-an-acceptance-record",
+  "draftReady": true,
+  "paymentsEnabled": false,
+  "srs": [
+    {
+      "fileId": "sample-srs",
+      "name": "Sample-project-SRS.pdf",
+      "size": 2245,
+      "sha256": "315f15e0f87ebdddefe120564f14bdb4dc2c000a199f1eaadcde21056be339ee"
+    }
+  ],
+  "milestones": [
+    {
+      "label": "Onboarding",
+      "percent": 25,
+      "amountPaise": 1500000
+    },
+    {
+      "label": "MVP",
+      "percent": 25,
+      "amountPaise": 1500000
+    },
+    {
+      "label": "Development complete",
+      "percent": 40,
+      "amountPaise": 2400000
+    },
+    {
+      "label": "Deployment",
+      "percent": 10,
+      "amountPaise": 600000
+    }
+  ]
+}

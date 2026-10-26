@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { HomeComponent } from './pages/home/home';
 
 export const routes: Routes = [
+  { path: 'sample-quotation', data: { example: true }, loadComponent: () => import('./pages/quotation/quotation').then(m => m.QuotationComponent) },
   { path: 'terms', data: {policy:'terms'}, loadComponent: () => import('./pages/services/business-policy').then(m => m.BusinessPolicyComponent) },
   { path: 'privacy', data: {policy:'privacy'}, loadComponent: () => import('./pages/services/business-policy').then(m => m.BusinessPolicyComponent) },
   { path: 'refunds', data: {policy:'refunds'}, loadComponent: () => import('./pages/services/business-policy').then(m => m.BusinessPolicyComponent) },

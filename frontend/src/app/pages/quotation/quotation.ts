@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { downloadQuotationFile } from './quotation-files';
 import { AgreementTextComponent } from './agreement-text';
@@ -55,8 +55,22 @@ export type Quotation = {
     <main class="quote-page">
       <nav class="portal-nav" aria-label="Project portal">
         <a routerLink="/">Pratyush Mishra<span>Client workspace</span></a
-        ><span class="private-label">Private document</span>
+        ><span class="private-label">{{
+          isExample ? 'Read-only sample' : 'Private document'
+        }}</span>
       </nav>
+      @if (isExample) {
+        <aside class="sample-notice" role="note">
+          <h1>Sample quotation for website review</h1>
+          <p>
+            Illustrative scope and rates only. This is not a client contract or payment request.
+            Acceptance, approvals and payments are disabled. Real projects use a private client
+            invitation.
+          </p>
+          <a routerLink="/work">Services and pricing</a> ·
+          <a routerLink="/book">Technical consultation</a>
+        </aside>
+      }
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
       }
@@ -101,7 +115,7 @@ export type Quotation = {
                 <dd>{{ q.revision }}</dd>
               </div>
               <div>
-                <dt>Accept by</dt>
+                <dt>{{ isExample ? 'Example date' : 'Accept by' }}</dt>
                 <dd>{{ q.validUntil | date: 'mediumDate' }}</dd>
               </div>
             </dl>
@@ -257,8 +271,15 @@ export type Quotation = {
             </div>
           </section>
           <section id="agreement-acceptance" class="acceptance-section">
+            @if (isExample) {
+              <p>
+                <strong>Read-only example.</strong> A real invited client enters their name and
+                email and confirms the scope, SRS, payment schedule and complete terms before
+                accepting. Acceptance itself does not charge them.
+              </p>
+            }
             <h2><span class="section-number">06</span> Agreement acceptance</h2>
-            @if (q.status === 'invited') {
+            @if (!isExample && q.status === 'invited') {
               <p>
                 This link is private. Acceptance records your entered name and invited email; it is
                 not a verified digital signature.
@@ -302,12 +323,14 @@ export type Quotation = {
             </section>
           }
           <footer class="document-footer">
-            <span>Private project agreement · Revision {{ q.revision }}</span
+            <span
+              >{{ isExample ? 'Sample quotation' : 'Private project agreement' }} · Revision
+              {{ q.revision }}</span
             ><span>{{ q.clientName }}</span>
           </footer>
         </article>
         <button class="secondary refresh-status" [disabled]="busy()" (click)="load()">
-          Refresh payment and project status
+          {{ isExample ? 'Reload sample quotation' : 'Refresh payment and project status' }}
         </button>
       }
     </main>
@@ -316,6 +339,8 @@ export type Quotation = {
 })
 export class QuotationComponent {
   private http = inject(HttpClient);
+  private route = inject(ActivatedRoute, { optional: true });
+  readonly isExample = this.route?.snapshot.data['example'] === true;
   private token = typeof location !== 'undefined' ? location.hash.slice(1) : '';
   quote = signal<Quotation | null>(null);
   busy = signal(false);
@@ -347,13 +372,13 @@ export class QuotationComponent {
     },
   ];
   constructor() {
-    if (this.token) void this.load();
+    if (this.isExample || this.token) void this.load();
   }
   private headers() {
     return new HttpHeaders({ 'x-quotation-token': this.token });
   }
   private async action(path: string, body: any) {
-    if (this.busy()) return;
+    if (this.isExample || this.busy()) return;
     this.busy.set(true);
     this.error.set('');
     try {
@@ -375,7 +400,17 @@ export class QuotationComponent {
     this.busy.set(true);
     this.error.set('');
     try {
-      if (this.pendingPayment) {
+      if (this.isExample) {
+        const example = await firstValueFrom(
+          this.http.get<Quotation>('/review/sample-quotation.json'),
+        );
+        this.quote.set({
+          ...example,
+          status: 'sample',
+          paymentsEnabled: false,
+          acceptance: undefined,
+        });
+      } else if (this.pendingPayment) {
         this.quote.set(
           await firstValueFrom(
             this.http.post<Quotation>(`${quoteApi()}/quotations/verify`, this.pendingPayment, {
@@ -402,6 +437,7 @@ export class QuotationComponent {
   }
   canAccept() {
     return (
+      !this.isExample &&
       this.name.trim() &&
       this.email.trim().toLowerCase() === this.quote()?.clientEmail &&
       this.acknowledgements.every((a) => a.checked)
@@ -423,12 +459,20 @@ export class QuotationComponent {
     });
   }
   async download(format: 'pdf' | 'docx') {
+    if (this.isExample) {
+      await this.downloadFile('/review/sample-quotation.' + format, 'sample-quotation.' + format);
+      return;
+    }
     await this.downloadFile(
       `/export/${format}`,
       `quotation-revision-${this.quote()?.revision}.${format}`,
     );
   }
   async downloadSrs(file: { fileId: string; name: string }) {
+    if (this.isExample) {
+      await this.downloadFile('/review/sample-srs.pdf', 'sample-srs.pdf');
+      return;
+    }
     await this.downloadFile(`/srs/${file.fileId}`, file.name);
   }
   private async downloadFile(path: string, name: string) {
@@ -437,8 +481,8 @@ export class QuotationComponent {
     try {
       await downloadQuotationFile(
         this.http,
-        `${quoteApi()}/quotations${path}`,
-        new HttpHeaders({ 'x-quotation-token': this.token }),
+        this.isExample ? path : `${quoteApi()}/quotations${path}`,
+        this.isExample ? new HttpHeaders() : new HttpHeaders({ 'x-quotation-token': this.token }),
         name,
       );
     } catch (e: any) {
@@ -477,7 +521,7 @@ export class QuotationComponent {
     });
   }
   async pay(index: number) {
-    if (this.busy()) return;
+    if (this.isExample || this.busy()) return;
     if (this.pendingPayment) {
       await this.load();
       return;

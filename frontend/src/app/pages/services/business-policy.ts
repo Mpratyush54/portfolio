@@ -151,10 +151,11 @@ const policies: Record<
     :host {
       display: block;
       min-height: 100vh;
-      background: #f6f7f8;
-      color: #354356;
+      background: #07070c;
+      color: #c5c8d6;
       font:
-        15px/1.85 system-ui,
+        15px/1.85 'Outfit',
+        system-ui,
         sans-serif;
     }
     * {
@@ -171,7 +172,7 @@ const policies: Record<
       display: flex;
       justify-content: space-between;
       gap: 24px;
-      border-bottom: 1px solid #dce2e8;
+      border-bottom: 1px solid #292933;
     }
     header nav {
       display: flex;
@@ -180,11 +181,11 @@ const policies: Record<
     }
     .brand {
       font-weight: 700;
-      color: #182b40;
+      color: #f0f0f6;
       text-decoration: none;
     }
     a {
-      color: #24596a;
+      color: #d7e9fb;
       text-underline-offset: 4px;
     }
     main {
@@ -193,7 +194,7 @@ const policies: Record<
     }
     .eyebrow {
       font-size: 11px;
-      color: #667487;
+      color: #a4a8b7;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
@@ -201,20 +202,20 @@ const policies: Record<
       font-size: clamp(2rem, 5vw, 3rem);
       line-height: 1.2;
       letter-spacing: -0.04em;
-      color: #182b40;
+      color: #f0f0f6;
       margin: 18px 0 25px;
     }
     .intro {
       font-size: 17px;
-      color: #5e7182;
+      color: #b6bbcb;
     }
     section {
       padding: 18px 0;
-      border-bottom: 1px solid #e1e6ec;
+      border-bottom: 1px solid #292933;
     }
     h2 {
       font-size: 18px;
-      color: #203c50;
+      color: #f0f0f6;
       line-height: 1.5;
       margin-bottom: 12px;
     }
@@ -229,7 +230,7 @@ const policies: Record<
       display: flex;
       gap: 12px 24px;
       flex-wrap: wrap;
-      border-top: 1px solid #dce2e8;
+      border-top: 1px solid #292933;
       font-size: 12px;
     }
     a:focus-visible {

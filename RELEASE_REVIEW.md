@@ -37,3 +37,13 @@ PDF and Word exports now include document metadata, readable numbered clauses, a
 
 Validation: 54 backend tests and 41 frontend tests pass; the production build passes with the existing home stylesheet warning. A synthetic proposal was visually reviewed at desktop, 320px and 390px widths. All eight PDF pages and six Word pages were rendered and reviewed. No real client agreement or production data was created for QA.
 Verified live rollout: application image 2e5f42a2becdc04b177aa09ad0c0acccfa520330, manifest commit 02b8d90a3811fb9af595187a227164189d8bd099. GitHub build/publish and test runs succeeded; Argo Synced / Healthy and both deployments ready 1/1. Live health reports ready; unauthenticated quotation reads/exports remain rejected; online payments remain disabled.
+
+## Public services and Razorpay review update
+
+26 October 2026: replaced the academic/project work showcase with a dedicated public services catalogue. Legacy project links redirect to /work. No paid client work or customer endorsements are claimed. Five fixed-scope INR base packages cover business websites (14,999), backend/API work (24,999), DevOps deployment (9,999), AWS reviews (14,999) and a website/backend launch bundle (39,999). Deliverables, exclusions, input-dependent estimates, third-party costs and custom-scope quotations are explicit.
+
+The optional 30-minute technical consultation is distinct from free project enquiries and implementation. Production booking settings use the existing INR 1,199 base fee as a fixed fee, preserving disabled online payments. Public terms, privacy, cancellation/refunds and digital service delivery pages explain the service and quotation process. The 25/25/40/10 schedule and 30-calendar-day defect support match the project workflow. No Razorpay credentials were configured.
+
+Validation: 54 backend tests and 42 frontend tests pass, including public service visibility before checkout activation and normal page scrolling on /work. The Angular production build passes with the existing home stylesheet size warning. Desktop and 320px/390px visual reviews passed; legacy project redirects and public terms/contact navigation were checked. Fixed an anchor/base-URL interaction that sent Explore packages to the home route. A three-page merchant review PDF was rendered and visually checked; it contains public URLs, actual package scopes/prices and an illustrative milestone calculation, without publishing a private client quotation.
+
+The services and public policy pages use the landing page's Outfit typography, dark background, muted text, rounded cards and pill navigation after visual consistency review. Desktop and compact layouts were rechecked after this correction.

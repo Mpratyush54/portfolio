@@ -1,9 +1,10 @@
 :host {
   display: block;
-  background: #f6f7f8;
-  color: #233143;
+  background: #07070c;
+  color: #f0f0f6;
   font:
-    15px/1.65 system-ui,
+    15px/1.65 'Outfit',
+    system-ui,
     -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
@@ -23,7 +24,7 @@ a {
 }
 a:focus-visible,
 button:focus-visible {
-  outline: 3px solid #3c8797;
+  outline: 3px solid #7dd3fc;
   outline-offset: 4px;
 }
 .business-nav,
@@ -40,36 +41,47 @@ footer {
   justify-content: space-between;
   align-items: center;
   gap: 28px;
-  border-bottom: 1px solid #dde3e8;
+  border-bottom: 1px solid #25252f;
 }
 .brand {
   text-decoration: none;
   font-size: 19px;
   font-weight: 750;
+  color: #f0f0f6;
   letter-spacing: -0.03em;
 }
 .brand span {
   display: block;
   font-size: 11px;
   font-weight: 450;
-  color: #667587;
+  color: #a4a8b7;
   letter-spacing: 0;
   margin-top: 3px;
 }
 .business-nav nav {
   display: flex;
-  gap: 24px;
+  gap: 6px;
   align-items: center;
   flex-wrap: wrap;
+  padding: 5px;
+  border: 1px solid #25252f;
+  border-radius: 24px;
 }
 .business-nav nav a {
   text-decoration: none;
   font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  color: #b6bbcb;
+}
+.business-nav nav a[aria-current='page'] {
+  background: #24242f;
+  color: #f0f0f6;
 }
 .nav-cta {
-  background: #e5edef;
+  background: #20202a;
   padding: 10px 16px;
-  border-radius: 5px;
+  border-radius: 12px;
 }
 .intro {
   padding: 80px 0 48px;
@@ -77,7 +89,7 @@ footer {
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.13em;
-  color: #4c7180;
+  color: #b4b9ca;
   font-size: 11px;
   font-weight: 650;
   margin: 0 0 14px;
@@ -86,17 +98,17 @@ h1 {
   font-size: clamp(2.2rem, 5.2vw, 4rem);
   letter-spacing: -0.055em;
   line-height: 1.12;
-  color: #182c40;
+  color: #f0f0f6;
   margin: 0 0 26px;
 }
 h1 span {
-  color: #5e7182;
+  color: #b6bbcb;
 }
 .lead {
   max-width: 690px;
   font-size: 18px;
   line-height: 1.8;
-  color: #586878;
+  color: #b6bbcb;
   margin: 0 0 30px;
 }
 .hero-actions {
@@ -111,24 +123,24 @@ h1 span {
   justify-content: center;
   min-height: 46px;
   padding: 12px 20px;
-  border: 1px solid #254d60;
-  border-radius: 5px;
-  color: #fff;
-  background: #254d60;
+  border: 1px solid #e6e6f0;
+  border-radius: 12px;
+  color: #111118;
+  background: #e6e6f0;
   text-decoration: none;
   font-size: 13px;
   font-weight: 650;
 }
 .button:hover {
-  background: #19394a;
+  background: #ffffff;
 }
 .button.secondary {
-  color: #254d60;
-  background: #fff;
-  border-color: #bacbd3;
+  color: #e6e6f0;
+  background: #171720;
+  border-color: #3b3b48;
 }
 .button.secondary:hover {
-  background: #eef4f5;
+  background: #242430;
 }
 .text-link {
   font-size: 13px;
@@ -142,13 +154,13 @@ h1 span {
   flex-wrap: wrap;
   margin-top: 45px;
   padding-top: 24px;
-  border-top: 1px solid #dce3e8;
-  color: #667587;
+  border-top: 1px solid #292933;
+  color: #a4a8b7;
   font-size: 12px;
 }
 .trust-line span:before {
   content: '✓';
-  color: #427d77;
+  color: #c8cdd8;
   margin-right: 9px;
 }
 .packages-section {
@@ -166,11 +178,11 @@ h2 {
   font-size: clamp(1.7rem, 3vw, 2.3rem);
   letter-spacing: -0.04em;
   line-height: 1.22;
-  color: #182c40;
+  color: #f0f0f6;
   margin: 0 0 16px;
 }
 .section-heading p:last-child {
-  color: #667587;
+  color: #a4a8b7;
   font-size: 13px;
 }
 .packages {
@@ -180,16 +192,16 @@ h2 {
 }
 .package {
   padding: 28px;
-  background: white;
-  border: 1px solid #dce3e8;
-  border-radius: 7px;
+  background: #111118;
+  border: 1px solid #292933;
+  border-radius: 20px;
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
 .package.bundle {
   grid-column: span 2;
-  background: #edf3f5;
+  background: #171720;
 }
 .package-top {
   display: flex;
@@ -199,7 +211,7 @@ h2 {
   margin-bottom: 22px;
 }
 .package-index {
-  color: #8b99a7;
+  color: #a4a8b7;
   font:
     12px ui-monospace,
     monospace;
@@ -208,8 +220,8 @@ h2 {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #3c6475;
-  background: #dce9ed;
+  color: #d2d5e2;
+  background: #282834;
   padding: 4px 8px;
   border-radius: 4px;
 }
@@ -217,11 +229,11 @@ h2 {
   font-size: 20px;
   line-height: 1.35;
   letter-spacing: -0.03em;
-  color: #203c50;
+  color: #f0f0f6;
   margin: 0 0 12px;
 }
 .package-summary {
-  color: #697786;
+  color: #b3b7c7;
   font-size: 13px;
   margin: 0;
   min-height: 65px;
@@ -231,7 +243,7 @@ h2 {
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.04em;
-  color: #193d50;
+  color: #f0f0f6;
   margin: 26px 0;
 }
 .price span {
@@ -239,7 +251,7 @@ h2 {
   font-size: 11px;
   font-weight: 450;
   letter-spacing: 0;
-  color: #71808d;
+  color: #b3b7c7;
   margin-top: 7px;
   line-height: 1.6;
 }
@@ -248,12 +260,12 @@ h2 {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin: 0 0 14px;
-  color: #667587;
+  color: #a4a8b7;
 }
 .package ul {
   margin: 0 0 22px;
   padding-left: 18px;
-  color: #435566;
+  color: #c5c8d6;
   font-size: 13px;
 }
 .package li {
@@ -262,13 +274,13 @@ h2 {
 .package .exclusions,
 .package .timeline {
   font-size: 12px;
-  color: #6b7886;
+  color: #b3b7c7;
   margin: 0 0 20px;
   overflow-wrap: anywhere;
 }
 .package p strong {
   display: block;
-  color: #3d5364;
+  color: #d9dbe6;
   margin-bottom: 5px;
   font-weight: 650;
 }
@@ -279,16 +291,16 @@ h2 {
   max-width: 960px;
   margin: 28px 0 0;
   padding-top: 24px;
-  border-top: 1px solid #dce3e8;
+  border-top: 1px solid #292933;
 }
 .commercial-notes h3 {
   font-size: 14px;
-  color: #344d60;
+  color: #f0f0f6;
   margin: 0 0 16px;
 }
 .commercial-notes p {
   font-size: 12px;
-  color: #6b7886;
+  color: #b3b7c7;
   margin: 0 0 10px;
 }
 .consultation {
@@ -296,11 +308,11 @@ h2 {
   grid-template-columns: 1.5fr 1fr;
   gap: 60px;
   padding: 54px 0;
-  border-top: 1px solid #dce3e8;
-  border-bottom: 1px solid #dce3e8;
+  border-top: 1px solid #292933;
+  border-bottom: 1px solid #292933;
 }
 .consultation p {
-  color: #637384;
+  color: #b3b7c7;
   font-size: 14px;
 }
 .consultation-action {
@@ -308,7 +320,7 @@ h2 {
 }
 .consultation-action .price {
   font-size: 36px;
-  color: #193d50;
+  color: #f0f0f6;
 }
 .process {
   padding: 62px 0;
@@ -325,25 +337,25 @@ h2 {
   font:
     12px ui-monospace,
     monospace;
-  color: #7d929f;
+  color: #a4a8b7;
 }
 .process h3 {
   font-size: 16px;
   line-height: 1.4;
-  color: #294558;
+  color: #f0f0f6;
   margin: 16px 0 12px;
 }
 .process li p {
   font-size: 13px;
-  color: #697786;
+  color: #b3b7c7;
 }
 .closing {
   padding: 45px 0 64px;
-  border-top: 1px solid #dce3e8;
+  border-top: 1px solid #292933;
 }
 .closing p {
   max-width: 670px;
-  color: #637384;
+  color: #b3b7c7;
   margin-bottom: 24px;
 }
 .closing .text-link {
@@ -355,12 +367,12 @@ footer {
   gap: 40px;
   padding-top: 32px;
   padding-bottom: 40px;
-  border-top: 1px solid #dce3e8;
-  color: #637384;
+  border-top: 1px solid #292933;
+  color: #b3b7c7;
   font-size: 12px;
 }
 footer strong {
-  color: #294558;
+  color: #f0f0f6;
   font-size: 14px;
 }
 footer p {
@@ -469,7 +481,10 @@ button {
     font-size: 2.5rem;
   }
   .hero-actions {
-    gap: 14px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
   }
   .package ul {
     line-height: 1.8;
@@ -479,8 +494,32 @@ button {
   border: 0;
   padding: 0;
   background: none;
-  color: #24596a;
+  color: #d7e9fb;
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-@media(max-width:600px){.business-nav{gap:14px;padding-top:20px;padding-bottom:20px}.intro{padding-top:32px}h1{font-size:2.1rem}}
+@media (max-width: 600px) {
+  .business-nav {
+    gap: 14px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .intro {
+    padding-top: 32px;
+  }
+  h1 {
+    font-size: 2.1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .business-nav nav {
+    border: 0;
+    padding: 0;
+    gap: 6px;
+    border-radius: 0;
+  }
+  .business-nav nav a {
+    padding: 8px 10px;
+  }
+}

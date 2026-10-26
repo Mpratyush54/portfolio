@@ -15,7 +15,7 @@ export const routes: Routes = [
   { path: 'projects/systems', redirectTo: 'work', pathMatch: 'full' },
   { path: 'projects/:id', redirectTo: 'work', pathMatch: 'full' },
   { path: 'about', component: HomeComponent },
-  { path: 'contact', component: HomeComponent },
+  { path: 'contact', loadComponent: () => import('./pages/contact/contact').then(m => m.ContactComponent) },
   {
     path: 'book',
     loadComponent: () => import('./pages/book/book').then(m => m.BookComponent),

@@ -4,7 +4,8 @@
   "currency": "INR",
   "consultation": {
     "durationMinutes": 30,
-    "description": "A one-to-one technical consultation to review your requirements, discuss architecture and identify next steps. Development, implementation and a detailed SRS are quoted separately."
+    "description": "A one-to-one technical consultation to review your requirements, discuss architecture and identify next steps. Development, implementation and a detailed SRS are quoted separately.",
+    "baseFee": 1199
   },
   "packages": [
     {
@@ -84,10 +85,10 @@
     }
   ],
   "commercialNotes": [
-    "Prices are base service fees for the listed scope, not subscriptions. Any applicable taxes and the final payable total are disclosed in the written quotation before acceptance.",
-    "Additional pages, endpoints, integrations or other changes require a separate written quotation and client approval before work begins.",
-    "Project payments are 25% before onboarding, 25% after MVP approval, 40% after development completion approval and 10% after deployment approval.",
-    "Project delivery includes 30 calendar days of agreed-scope defect support from the recorded production deployment date. Ongoing operations and new features are separate services.",
-    "Third-party cloud, domain, API and licence charges are paid separately by the client. These offers are for development and technical services, not hosting resale or streaming subscriptions."
+    "Base fees cover the listed scope. Applicable taxes and the final payable total are confirmed in your written quotation before acceptance.",
+    "Extra pages, endpoints, integrations and revisions need a separate quotation and your approval before work starts.",
+    "25% before onboarding, 25% after MVP approval, 40% after completion approval and 10% after deployment approval.",
+    "30 calendar days of agreed-scope defect support from recorded production deployment. New features and ongoing operations are separate.",
+    "Cloud, domain, API and licence charges are separate client costs. These packages cover development and technical services, not hosting resale or streaming subscriptions."
   ]
 }

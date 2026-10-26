@@ -20,7 +20,7 @@ export type ServicesCatalog = {
   email: string;
   packages: ServicePackage[];
   commercialNotes: string[];
-  consultation: { durationMinutes: number; description: string };
+  consultation: { durationMinutes: number; description: string; baseFee?: number };
 };
 @Component({
   standalone: true,
@@ -41,6 +41,13 @@ export class ServicesComponent implements OnInit {
     paymentsEnabled: boolean;
   } | null>(null);
   error = signal(false);
+  readonly termLabels = [
+    'Fees and taxes',
+    'Changes to scope',
+    'Payment schedule',
+    'Defect support',
+    'Third-party costs',
+  ];
   showPackages() {
     document.getElementById('packages')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }

@@ -1,23 +1,37 @@
-<div class="contact-page container">
-  <header class="page-head" appReveal>
-    <p class="eyebrow">contact</p>
-    <h1 class="panel-title">let's build something.</h1>
-    <p class="lead">Send a note, or book a technical consultation.</p>
-    <button type="button" class="page-book" (click)="openBook()">Book a technical consultation</button>
-  </header>
-
-  <div class="contact-layout">
-    <div class="form-shell" appReveal [appRevealDelay]="60">
-      <app-contact-form (sent)="onSent()" (bookCall)="openBook()"></app-contact-form>
+<app-public-header active="contact" context="project enquiries" />
+<main class="contact-page">
+  <section class="contact-copy" aria-labelledby="contact-title">
+    <p class="eyebrow">Contact</p>
+    <h1 id="contact-title">Tell me about your project.</h1>
+    <p class="intro">
+      Share what you need built, improved or deployed. I will review your requirements and reply by
+      email.
+    </p>
+  </section>
+  <aside class="contact-notes">
+    <div class="contact-detail">
+      <span>Business enquiries</span
+      ><a href="mailto:developer@pratyushes.dev">developer&#64;pratyushes.dev</a>
     </div>
-
-    <aside class="aside" appReveal [appRevealDelay]="120">
-      <button type="button" class="aside-link as-btn" (click)="openBook()">book a technical consultation →</button>
-      <a href="mailto:mpratyush54@gmail.com" class="aside-link">mpratyush54@gmail.com</a>
-      <a href="/resume/Pratyush_mishra_SDE.pdf" target="_blank" class="aside-link">resume ↗</a>
-      <a href="https://www.linkedin.com/in/pratyushm07" target="_blank" rel="noopener" class="aside-link">linkedin ↗</a>
-      <a href="https://github.com/Mpratyush54" target="_blank" rel="noopener" class="aside-link">github ↗</a>
-      <a href="https://gitlab.com/techtank.capskengeri" target="_blank" rel="noopener" class="aside-link">gitlab ↗</a>
-    </aside>
-  </div>
-</div>
+    <div class="enquiry-note">
+      <h2>A free starting point</h2>
+      <p>
+        Sending an enquiry has no charge and does not require a consultation. Project work begins
+        after you review and accept a written quotation.
+      </p>
+    </div>
+    <div class="consultation-note">
+      <h2>Need technical advice?</h2>
+      <p>
+        Book a separate 30-minute consultation for requirements, architecture or deployment
+        questions.
+      </p>
+      <a routerLink="/book" class="consultation-link">View technical consultation</a>
+    </div>
+  </aside>
+  <section class="form-panel" aria-label="Send an enquiry"><app-contact-form /></section>
+</main>
+<footer>
+  <a routerLink="/work">Services and pricing</a><a routerLink="/terms">Service terms</a
+  ><a routerLink="/privacy">Privacy</a><a routerLink="/refunds">Cancellation and refunds</a>
+</footer>

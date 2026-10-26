@@ -1,26 +1,22 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { Title, Meta } from '@angular/platform-browser';
 import { ContactFormComponent } from '../../components/contact-form/contact-form';
-import { RevealDirective } from '../../directives/reveal.directive';
-import { BudEventsService } from '../../services/bud-events.service';
-import { ShellService } from '../../services/shell.service';
-
+import { PublicHeaderComponent } from '../../components/public-header/public-header';
 @Component({
   selector: 'app-contact',
   standalone: true,
-  imports: [CommonModule, ContactFormComponent, RevealDirective],
+  imports: [RouterLink, ContactFormComponent, PublicHeaderComponent],
   templateUrl: './contact.html',
-  styleUrl: './contact.scss'
+  styleUrl: './contact.scss',
 })
 export class ContactComponent {
-  private bud = inject(BudEventsService);
-  private shell = inject(ShellService);
-
-  onSent(): void {
-    this.bud.celebrate();
-  }
-
-  openBook(): void {
-    this.shell.openDiscovery();
+  constructor() {
+    inject(Title).setTitle('Project enquiry | Pratyush Mishra');
+    inject(Meta).updateTag({
+      name: 'description',
+      content:
+        'Send a free project enquiry for website development, backend APIs or cloud services. Share your requirements with Pratyush Mishra.',
+    });
   }
 }

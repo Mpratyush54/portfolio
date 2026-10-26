@@ -3,16 +3,14 @@
   <main>
     <section class="intro">
       <p class="eyebrow">Professional services</p>
-      <h1>Software for your business.<br /><span>Scope and pricing, upfront.</span></h1>
+      <h1>Development and cloud services.<br /><span>Defined scope. Clear pricing.</span></h1>
       <p class="lead">
         I build business websites, backend APIs and cloud deployment workflows. Choose a defined
         package below, or request a custom quotation for a larger project.
       </p>
       <div class="hero-actions">
         <a routerLink="/contact" class="button">Request a project quotation</a
-        ><button type="button" class="text-link" (click)="showPackages()">
-          Explore packages ↓
-        </button>
+        ><button type="button" class="text-link" (click)="showPackages()">Explore packages</button>
       </div>
       <div class="trust-line">
         <span>Defined deliverables</span><span>Written agreement</span
@@ -23,7 +21,7 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">01 / Services &amp; pricing</p>
-          <h2>A clear starting point.</h2>
+          <h2>Services and pricing</h2>
         </div>
         <p>
           One-time fees in INR for the listed scope.<br />Extra work is quoted before it begins.
@@ -51,100 +49,122 @@
                 {{ p.fee | currency: 'INR' : 'symbol' : '1.0-0' }}<span>base service fee</span>
               </p>
               <h4>Included in this scope</h4>
-              <ul>
+              <ul class="scope-list">
                 @for (item of p.scope; track item) {
                   <li>{{ item }}</li>
                 }
               </ul>
               <p class="exclusions"><strong>Outside this scope</strong>{{ p.exclusions }}</p>
               <p class="timeline"><strong>Planning estimate</strong>{{ p.timeline }}</p>
-              <a routerLink="/book" class="button secondary">Discuss this package →</a>
+              <a routerLink="/book" class="button secondary">Discuss this package</a>
             </article>
           }
         </div>
-        <div class="commercial-notes">
-          <h3>Before you commission work</h3>
-          @for (note of c.commercialNotes; track note) {
-            <p>{{ note }}</p>
-          }
-        </div>
+        <section class="commercial-notes" aria-labelledby="commercial-heading">
+          <div class="terms-heading">
+            <h2 id="commercial-heading">Project terms</h2>
+            <p>Confirmed in your written quotation.</p>
+          </div>
+          <dl class="commercial-terms">
+            @for (note of c.commercialNotes; track note; let i = $index) {
+              <div>
+                <dt>{{ termLabels[i] }}</dt>
+                <dd>{{ note }}</dd>
+              </div>
+            }
+          </dl>
+        </section>
       } @else if (!error()) {
         <p role="status">Loading service details…</p>
       }
     </section>
-    <section class="consultation" id="consultation">
-      <div>
-        <p class="eyebrow">02 / Technical consultation</p>
-        <h2>A focused 30-minute session.</h2>
-        <p>
-          Bring your project brief, technical question or deployment challenge. We will review the
-          requirements, discuss options and identify practical next steps.
-        </p>
-        <p>
-          The session covers advice and a high-level action plan. Development work, a detailed SRS
-          and implementation are separate quoted services. You do not need to buy a consultation to
-          send a project enquiry.
-        </p>
+    <section class="consultation" id="consultation" aria-labelledby="consultation-heading">
+      <div class="consultation-copy">
+        <p class="eyebrow">Technical consultation</p>
+        <h2 id="consultation-heading">One focused, 30-minute session.</h2>
+        <p>Review your project requirements, backend architecture or cloud deployment with me.</p>
+        <dl class="consultation-scope">
+          <div>
+            <dt>What you receive</dt>
+            <dd>Technical advice, options to consider and a high-level action plan.</dd>
+          </div>
+          <div>
+            <dt>Quoted separately</dt>
+            <dd>Implementation, development work and a detailed SRS.</dd>
+          </div>
+        </dl>
+        <a routerLink="/contact" class="inline-link"
+          >Prefer to send your requirements? Project enquiries are free.</a
+        >
       </div>
       <div class="consultation-action">
+        <p class="fee-label">Technical consultation</p>
         @if (consultation(); as fee) {
           <p class="price">
             {{ fee.minLabel }}
             @if (fee.maxPaise !== fee.minPaise) {
-              <span>to {{ fee.maxLabel }}, depending on the selected slot</span>
+              <span>to {{ fee.maxLabel }}, by selected slot</span>
             } @else {
-              <span>for one 30-minute session</span>
+              <span>one 30-minute remote session</span>
             }
           </p>
           @if (!fee.paymentsEnabled) {
-            <p>
-              Online checkout is pending payment-gateway activation. The service details and fee
-              remain visible; contact me to enquire.
-            </p>
+            <p class="availability">Online checkout is pending payment-gateway activation.</p>
           }
         } @else {
-          <p>The current consultation fee is shown on the consultation page when available.</p>
+          <p class="price">
+            {{ catalog()?.consultation?.baseFee ?? 1199 | currency: 'INR' : 'symbol' : '1.0-0'
+            }}<span>published fee for 30 minutes</span>
+          </p>
+          <p class="availability">Confirm availability and the current fee on the booking page.</p>
         }
-        <a routerLink="/book" class="button">View consultation details →</a>
+        <a routerLink="/book" class="button">View consultation details</a>
       </div>
     </section>
-    <section class="process" id="process">
-      <p class="eyebrow">03 / From brief to handover</p>
-      <h2>How an engagement works.</h2>
-      <ol>
-        <li>
-          <span>01</span>
-          <h3>Send your requirements</h3>
+    <section class="process" id="process" aria-labelledby="process-heading">
+      <div class="section-heading">
+        <h2 id="process-heading">Project process</h2>
+        <p>From your first enquiry to production handover.</p>
+      </div>
+      <div class="process-list" role="list">
+        <article role="listitem">
+          <div class="step-heading">
+            <span class="step-number">01</span>
+            <h3>Requirements</h3>
+          </div>
+          <p>Send your brief, workflows and timeline. The initial project enquiry is free.</p>
+        </article>
+        <article role="listitem">
+          <div class="step-heading">
+            <span class="step-number">02</span>
+            <h3>Written quotation</h3>
+          </div>
           <p>
-            Share the pages, workflows, integrations and timeline you need. A project enquiry is
-            free.
+            Review deliverables, acceptance criteria, SRS attachments, exclusions, taxes and the
+            complete agreement in your private proposal.
           </p>
-        </li>
-        <li>
-          <span>02</span>
-          <h3>Review your quotation</h3>
+        </article>
+        <article role="listitem">
+          <div class="step-heading">
+            <span class="step-number">03</span>
+            <h3>Milestone delivery</h3>
+          </div>
           <p>
-            Receive a private, client-specific proposal with exact deliverables, SRS attachments
-            where applicable, exclusions, taxes, total price and the full agreement.
+            Explicitly accept the agreement. Payments follow onboarding, MVP approval, completion
+            approval and deployment approval: 25% / 25% / 40% / 10%.
           </p>
-        </li>
-        <li>
-          <span>03</span>
-          <h3>Approve and pay by milestone</h3>
+        </article>
+        <article role="listitem">
+          <div class="step-heading">
+            <span class="step-number">04</span>
+            <h3>Handover and support</h3>
+          </div>
           <p>
-            Accept the agreement explicitly, then pay 25% before onboarding, 25% after MVP approval,
-            40% after completion approval and 10% after deployment approval.
+            Receive the agreed handover after full payment. Agreed-scope defect support runs for 30
+            calendar days from recorded production deployment.
           </p>
-        </li>
-        <li>
-          <span>04</span>
-          <h3>Deployment and handover</h3>
-          <p>
-            Receive the agreed handover after full payment, plus 30 calendar days of agreed-scope
-            defect support from recorded production deployment.
-          </p>
-        </li>
-      </ol>
+        </article>
+      </div>
     </section>
     <section class="closing">
       <h2>Need a different scope?</h2>
@@ -153,7 +173,7 @@
         covered by a custom written quotation.
       </p>
       <a routerLink="/contact" class="button">Send your project brief</a
-      ><a routerLink="/book" class="text-link">Or book a technical consultation →</a>
+      ><a routerLink="/book" class="text-link">Book a technical consultation</a>
     </section>
   </main>
   <footer>

@@ -8,7 +8,7 @@ The public project token supplied by the site owner is configured for US Cloud. 
 - Kubernetes reads the same JSON shape from `kubernetes/analytics-config.yaml` (`portfolio-analytics` ConfigMap). The frontend mounts the whole ConfigMap directory at `/usr/share/nginx/html/browser/runtime`; it deliberately does not use a `subPath` mount.
 - Nginx serves runtime configuration with `Cache-Control: no-store`. Change `enabled`, `projectToken` or `apiHost` in the tracked ConfigMap and let Argo sync it. Kubernetes propagates the mounted ConfigMap update; new page loads pick it up without rebuilding images or restarting/deleting a server. An already open tab keeps its initial configuration until refreshed.
 - Setting `enabled` to `false` disables SDK loading on the next page load. A missing, malformed, insecure-host or timed-out configuration also leaves optional analytics disabled; booking/navigation still work.
-- Normal source changes still require the PRs to merge and the image build/Argo rollout to complete. This work has not been deployed to production.
+- Normal source changes still require the PRs to merge and the image build/Argo rollout to complete. The integration is deployed to production. Runtime token corrections propagate through Argo without restarting the server.
 
 Integration uses the [PostHog Angular SDK guide](https://posthog.com/docs/libraries/angular) and [JavaScript configuration reference](https://posthog.com/docs/libraries/js/config), with `posthog-js` 1.438.21 loaded dynamically after a public route and valid configuration are available.
 
@@ -40,3 +40,7 @@ Checks cover desktop, the exact 1499×543 touch viewport, 768px tablet, 390px ph
 The deployment review upgraded Angular within major version 21 to its patched 21.2 releases and removed the unused ngx-markdown/marked bootstrap and dependencies. No application template or service used MarkdownModule. Production dependency audits now report zero findings for frontend and backend. PostHog remains at the already-tested version. Development-tool advisories are excluded from these production audit counts. The existing home.scss warning budget remains below its error threshold.
 
 PostHog validation covered five viewport layouts plus a resize-back state, with 12 real-SDK events intercepted and decoded locally and no private test data found. Private admin/proposal routes remain excluded. No QA events were sent to the live analytics project.
+
+## Ingestion correction (26 October 2026)
+
+Authenticated project settings revealed that the supplied token had the project ID accidentally appended. The runtime configuration now uses the exact public project token from PostHog project 687744. Capture API HTTP 200 alone did not establish ingestion; confirm events in the authenticated project before reporting success.

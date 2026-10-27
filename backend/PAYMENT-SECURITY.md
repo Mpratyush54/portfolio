@@ -34,9 +34,16 @@ admin UI requests below that threshold do not spend the failure quota.
 
 ## Client addresses
 
-Express trusts one ingress hop. The backend service is ClusterIP; ingress must
-overwrite client-supplied forwarding headers. Cloudflare's visitor-IP header is
-used only when the ingress-verified source belongs to Cloudflare's published IP
+Express trusts one proxy hop. The backend service is ClusterIP. On the production
+host, Nginx routes `/api/` directly to that private service and overwrites
+`X-Forwarded-For` with its connection's remote address. It must never append
+caller-provided addresses. The previous extra Kubernetes ingress hop erased
+visitor identity and grouped unrelated clients under one quota.
+`ops/configure-api-proxy.py` validates and reloads this site-only configuration;
+re-run it if the service is deleted and recreated with another ClusterIP.
+Do not expose the backend service as NodePort or LoadBalancer without reviewing
+the trusted proxy boundary. Other site traffic continues through ingress.
+Cloudflare's visitor-IP header is used only when the proxy-verified source belongs to Cloudflare's published IP
 ranges (checked 2026-10-27). Review those ranges when changing proxies/CDNs or
 Cloudflare origin ranges. IPv4-mapped addresses are normalized and IPv6 addresses
 share a /64 quota to prevent evasion by rotating interface addresses.

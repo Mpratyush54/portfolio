@@ -75,6 +75,17 @@ describe('Distributed rate limits and webhook processing with MongoDB', () => {
     for(let i=0;i<10;i++) assert.equal((await fetch((i%2?a:b)+'/admin')).status,401);
     const blocked=await fetch(b+'/admin');assert.equal(blocked.status,429);assert.ok(Number(blocked.headers.get('retry-after'))>0);
     assert.equal((await fetch(a+'/admin',{headers})).status,429);
+    assert.equal((await Counter.findOne().lean()).count,10);
+  });
+  it('does not leave failed-login debt after a burst of valid authenticated admin requests', async () => {
+    const env={ADMIN_EMAIL:'admin@example.com',ADMIN_PASSWORD:'test-secret'};
+    const app=express();app.get('/admin',createAdminAuth(env),(_,res)=>res.json({ok:true}));
+    const origin=await listen(app),headers={'x-admin-email':env.ADMIN_EMAIL,'x-admin-password':env.ADMIN_PASSWORD};
+    const responses=await Promise.all(Array.from({length:30},()=>fetch(origin+'/admin',{headers})));
+    assert.ok(responses.some(r=>r.status===200));
+    assert.ok(responses.every(r=>[200,429].includes(r.status)));
+    assert.equal((await fetch(origin+'/admin',{headers})).status,200);
+    assert.equal((await Counter.findOne().lean()).count,0);
   });
   it('does not let invalid-webhook throttling consume the valid delivery path', async () => {
     const now=Date.now();

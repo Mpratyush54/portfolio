@@ -4,22 +4,25 @@ const Counter = require('../models/RequestLimit');
 const { httpError } = require('./bookingValidation');
 const { clientAddress, rateAddress } = require('./clientAddress');
 
-async function consume({ scope, subject, limit, windowMs, now = Date.now() }) {
+async function consume({ scope, subject, limit, windowMs, now = Date.now(), reserve = false }) {
   if (mongoose.connection.readyState !== 1) throw httpError(503, 'Request protection is temporarily unavailable.');
   const bucket = Math.floor(now / windowMs);
   const id = crypto.createHash('sha256').update(JSON.stringify([scope, subject, bucket])).digest('hex');
+  const retryAfter = Math.max(1, Math.ceil(((bucket + 1) * windowMs - now) / 1000));
+  const denied = () => Object.assign(httpError(429, 'Too many requests. Please try again shortly.'), { retryAfter });
+  const filter = reserve ? { _id: id, count: { $lt: limit } } : { _id: id };
   let counter;
   try {
-    counter = await Counter.findOneAndUpdate({ _id: id }, {
+    counter = await Counter.findOneAndUpdate(filter, {
       $inc: { count: 1 }, $setOnInsert: { expiresAt: new Date((bucket + 2) * windowMs) },
     }, { upsert: true, new: true });
   } catch (error) {
     if (error.code !== 11000) throw httpError(503, 'Request protection is temporarily unavailable.');
-    counter = await Counter.findOneAndUpdate({ _id: id }, { $inc: { count: 1 } }, { new: true });
+    counter = await Counter.findOneAndUpdate(filter, { $inc: { count: 1 } }, { new: true });
+    if (reserve && !counter) throw denied();
   }
   if (!counter) throw httpError(503, 'Request protection is temporarily unavailable.');
-  const retryAfter = Math.max(1, Math.ceil(((bucket + 1) * windowMs - now) / 1000));
-  if (counter.count > limit) throw Object.assign(httpError(429, 'Too many requests. Please try again shortly.'), { retryAfter });
+  if (counter.count > limit) throw denied();
   return { key: id, remaining: limit - counter.count, retryAfter };
 }
 async function release(reservation) {

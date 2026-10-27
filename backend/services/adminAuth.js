@@ -12,7 +12,7 @@ function createAdminAuth(env = process.env, { consumeLimit = consume, releaseLim
     // still reveal a correct guess after the failed-attempt budget was exhausted.
     let reservation;
     try {
-      reservation = await consumeLimit({ scope: 'admin-invalid-login', subject: rateAddress(clientAddress(req)), limit: 10, windowMs: 15 * 60000 });
+      reservation = await consumeLimit({ scope: 'admin-invalid-login', subject: rateAddress(clientAddress(req)), limit: 10, windowMs: 15 * 60000, reserve: true });
     } catch (error) { return respond(res, error); }
     const email = String(req.headers['x-admin-email'] || '').trim().toLowerCase();
     const expectedEmail = (env.ADMIN_EMAIL || 'mpratyush54@gmail.com').trim().toLowerCase();

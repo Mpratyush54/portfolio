@@ -23,7 +23,7 @@ spec:
         tier: backend
       annotations:
         # Rewritten by CI on every main build so the pod template always changes
-        portfolio.pratyushes.dev/deploy-sha: "83196b91b0ae87a3333ba38ba499546e5c2332d6"
+        portfolio.pratyushes.dev/deploy-sha: "20dd93f8f8e3c402267ba6918cdf7e3ffb70bde7"
         portfolio.pratyushes.dev/config-revision: "live-payments-2026-10-27-1"
     spec:
       imagePullSecrets:
@@ -31,7 +31,7 @@ spec:
       containers:
         - name: backend
           # Tag is rewritten by CI to the short git SHA after each build
-          image: ghcr.io/mpratyush54/portfolio-backend:83196b91b0ae87a3333ba38ba499546e5c2332d6
+          image: ghcr.io/mpratyush54/portfolio-backend:20dd93f8f8e3c402267ba6918cdf7e3ffb70bde7
           imagePullPolicy: Always
           ports:
             - containerPort: 5000

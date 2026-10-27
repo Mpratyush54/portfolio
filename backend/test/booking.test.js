@@ -60,6 +60,14 @@ describe('Booking and admin with a real MongoDB', () => {
     assert.equal(await Booking.countDocuments({ status: 'pending_payment' }), 1);
     assert.equal(sequence, 1);
   });
+  it('rejects a populated spam field before reserving a slot and accepts the normal empty field', async () => {
+    const input = await details();
+    await rejectsStatus(service.create({ ...input, website: 'https://spam.example' }), 400);
+    assert.equal(sequence, 0);
+    assert.equal(await Booking.countDocuments(), 0);
+    assert.ok((await service.create({ ...input, website: '' })).orderId);
+    assert.equal(sequence, 1);
+  });
   it('frees the reservation when order creation fails', async () => {
     const input = await details();
     gateway.orders.create = async () => { throw new Error('gateway failure'); };

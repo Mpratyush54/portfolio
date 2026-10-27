@@ -119,6 +119,23 @@ describe('Discovery checkout', () => {
     expect(closed.step).toBe('time');
     expect(fixture.nativeElement.querySelector('button.pay')).toBeNull();
   });
+  it('keeps the hidden spam field out of normal autofill and keyboard input', async () => {
+    const fixture = TestBed.createComponent(DiscoveryBookComponent);
+    fixture.detectChanges();
+    http.expectOne((req) => req.url.endsWith('/bookings/slots')).flush(component.cfg);
+    await fixture.whenStable();
+    const form = fixture.componentInstance;
+    form.step = 'details';
+    fixture.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+    const trap = fixture.nativeElement.querySelector('input[name="website"]') as HTMLInputElement;
+    expect(trap.readOnly).toBe(true);
+    expect(trap.tabIndex).toBe(-1);
+    expect(trap.closest('[inert][aria-hidden="true"]')).not.toBeNull();
+    expect(form.website).toBe('');
+    expect(fixture.nativeElement.querySelector('input[name="name"]').readOnly).toBe(false);
+    expect(fixture.nativeElement.querySelector('input[name="email"]').autocomplete).toBe('email');
+  });
   it('retries verification without charging again after a network failure', async () => {
     const { pending } = await openCheckout();
     options.handler(response);

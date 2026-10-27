@@ -7,6 +7,7 @@ const Booking = require('../models/Booking');
 const Settings = require('../models/BookingSettings');
 const Contact = require('../models/ContactMessage');
 const RequestLimit = require('../models/RequestLimit');
+const Receipt = require('../models/WebhookReceipt');
 const DigestDelivery = require('../models/DigestDelivery');
 const { createDigestRunner } = require('../services/digest');
 const { createBookingService, validSignature } = require('../services/bookingService');
@@ -18,7 +19,7 @@ const { createBookingRouter, handleBookingError } = require('../services/booking
 const { createAdminAuth } = require('../services/adminAuth');
 
 describe('Booking and admin with a real MongoDB', () => {
-  let mongo, service, gateway, emails, sequence, payment;
+  let mongo, service, gateway, emails, sequence, payment, fetches;
   before(async () => {
     mongo = await MongoMemoryServer.create();
     await mongoose.connect(mongo.getUri());
@@ -27,11 +28,11 @@ describe('Booking and admin with a real MongoDB', () => {
   });
   after(async () => { await mongoose.disconnect(); if (mongo) await mongo.stop(); });
   beforeEach(async () => {
-    await Promise.all([Booking.deleteMany({}), Settings.deleteMany({}), Contact.deleteMany({}), RequestLimit.deleteMany({}), DigestDelivery.deleteMany({})]);
-    emails = 0; sequence = 0; payment = null;
+    await Promise.all([Booking.deleteMany({}), Settings.deleteMany({}), Contact.deleteMany({}), RequestLimit.deleteMany({}), DigestDelivery.deleteMany({}), Receipt.deleteMany({})]);
+    emails = 0; sequence = 0; payment = null; fetches = 0;
     gateway = {
       orders: { create: async () => ({ id: `order_${++sequence}` }) },
-      payments: { fetch: async () => payment },
+      payments: { fetch: async () => { fetches++; return payment; } },
     };
     service = createBookingService({ gateway: () => gateway, sendEmails: async () => { emails++; } });
     await service.init();
@@ -115,6 +116,22 @@ describe('Booking and admin with a real MongoDB', () => {
     await rejectsStatus(service.verify({ ...paymentFor(order), razorpay_signature: 'bad' }), 400);
     assert.equal(validSignature('x', '0'.repeat(64), ''), false);
   });
+  it('does not fulfil refunded payments or a provider response for a different payment ID', async () => {
+    const order=await service.create(await details());
+    await rejectsStatus(service.verify(paymentFor(order,{amount_refunded:100})),409);
+    const signed=paymentFor(order);payment.id='pay_different';
+    await rejectsStatus(service.verify(signed),400);
+    assert.equal((await Booking.findById(order.bookingId)).status,'pending_payment');
+    assert.equal(emails,0);
+  });
+  it('keeps the email checkout budget when callers rotate IP addresses', async () => {
+    const input=await details();
+    for(let i=0;i<8;i++) {
+      try {await service.create(input,`192.0.2.${i+1}`);} catch(e) {assert.equal(e.status,409);}
+    }
+    await rejectsStatus(service.create(input,'192.0.2.99'),429);
+    assert.equal(sequence,1);
+  });
   it('concurrent verification confirms and emails once', async () => {
     const order = await service.create(await details());
     const verification = paymentFor(order);
@@ -129,6 +146,7 @@ describe('Booking and admin with a real MongoDB', () => {
     const signature = crypto.createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET).update(raw).digest('hex');
     await service.webhook(raw, signature);
     await service.webhook(raw, signature);
+    assert.equal(fetches, 1);
     assert.equal((await Booking.findById(order.bookingId)).status, 'paid');
     assert.equal(emails, 2);
     await rejectsStatus(service.webhook(Buffer.from('{}'), signature), 400);

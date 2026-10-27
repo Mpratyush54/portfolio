@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const Quote = require('../models/Quotation');
 const { httpError } = require('./bookingValidation');
-const { validSignature } = require('./bookingService');
+const { validSignature, validId, parseWebhook, onceCaptured } = require('./paymentSecurity');
 const LABELS = ['Onboarding', 'MVP', 'Development complete', 'Deployment'];
 const ACKS = ['scope', 'payments', 'terms', 'authority'];
 const quotationTemplate = require('./quotationTemplate');
@@ -586,11 +586,12 @@ function createQuotationService({ gateway }) {
     if (!api) throw httpError(503, 'Payment verification unavailable.');
     const p = await api.payments.fetch(paymentId);
     if (
-      p.order_id !== orderId ||
+      !p || p.order_id !== orderId ||
       p.id !== paymentId ||
       p.amount !== expected ||
       p.currency !== 'INR' ||
       p.status !== 'captured' ||
+      p.captured !== true ||
       (p.amount_refunded || 0) !== 0
     )
       throw httpError(409, 'Payment is not captured for this instalment.');
@@ -628,6 +629,8 @@ function createQuotationService({ gateway }) {
     return true;
   }
   async function verify(token, body) {
+    if (!body || Array.isArray(body) || !validId(body.razorpay_order_id, 'order') || !validId(body.razorpay_payment_id, 'pay'))
+      throw httpError(400, 'Invalid payment identifiers.');
     const q = await portal(token);
     if (
       !q.milestones.some((m) => m.orderId === body.razorpay_order_id || m.payments.some((p) => p.orderId === body.razorpay_order_id)) ||
@@ -642,25 +645,11 @@ function createQuotationService({ gateway }) {
     return view(await portal(token));
   }
   async function webhook(raw, signature) {
-    if (
-      !Buffer.isBuffer(raw) ||
-      !validSignature(raw, signature, process.env.RAZORPAY_WEBHOOK_SECRET)
-    )
-      throw httpError(400, 'Invalid webhook signature.');
-    let event;
-    try {
-      event = JSON.parse(raw.toString('utf8'));
-    } catch {
-      throw httpError(400, 'Invalid webhook body.');
-    }
+    const event = parseWebhook(raw, signature);
     if (event.event === 'payment.captured') {
       const payment = event.payload?.payment?.entity;
-      if (
-        typeof payment?.order_id !== 'string' ||
-        typeof payment?.id !== 'string'
-      )
-        throw httpError(400, 'Invalid payment event.');
-      await confirm(payment.order_id, payment.id);
+      ready();
+      await onceCaptured('quotation', payment, () => confirm(payment.order_id, payment.id));
     }
     return { received: true };
   }

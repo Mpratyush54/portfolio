@@ -1,21 +1,18 @@
-const crypto = require('crypto');
 const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Settings = require('../models/BookingSettings');
 const RequestLimit = require('../models/RequestLimit');
+const WebhookReceipt = require('../models/WebhookReceipt');
 const defaults = require('./bookingSettings');
 const slots = require('./bookingSlots');
 const { httpError, validateSettings } = require('./bookingValidation');
+const { consume } = require('./rateLimits');
+const { rateAddress } = require('./clientAddress');
+const { validSignature, validId, parseWebhook, onceCaptured } = require('./paymentSecurity');
 
 const HOLD_MS = 20 * 60 * 1000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const slotKey = (date, slot) => `${date}|${slot}`;
-
-function validSignature(payload, signature, secret) {
-  if (!secret || typeof signature !== 'string' || !/^[a-f0-9]{64}$/i.test(signature)) return false;
-  const expected = crypto.createHmac('sha256', secret).update(payload).digest();
-  return crypto.timingSafeEqual(expected, Buffer.from(signature, 'hex'));
-}
 
 function createBookingService({ gateway, sendEmails, emailReady = () => true }) {
   let initialized = false;
@@ -26,7 +23,7 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
 
   async function init() {
     initialized = false;
-    await Promise.all([Booking.init(), Settings.init(), RequestLimit.init()]);
+    await Promise.all([Booking.init(), Settings.init(), RequestLimit.init(), WebhookReceipt.init()]);
     // Older bookings did not own a unique key. Reserve their active slots before
     // enabling checkout. Conflicting historic records stop initialization safely.
     const old = await Booking.find({ slotKey: { $exists: false }, status: { $in: ['paid', 'pending_payment'] } });
@@ -98,13 +95,8 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
     // Share the abuse budget across replicas so a single client cannot reserve
     // the entire calendar without paying. Bucket documents expire automatically.
     if (ip) {
-      const bucketMs = 15 * 60_000;
-      const bucket = Math.floor(Date.now() / bucketMs);
-      const key = crypto.createHash('sha256').update(`booking:${ip}:${bucket}`).digest('hex');
-      const limit = await RequestLimit.findOneAndUpdate({ _id: key }, {
-        $inc: { count: 1 }, $setOnInsert: { expiresAt: new Date((bucket + 2) * bucketMs) },
-      }, { upsert: true, new: true });
-      if (limit.count > 8) throw httpError(429, 'Too many checkout attempts. Please try again in 15 minutes.');
+      await consume({ scope: 'booking-orders-ip', subject: rateAddress(ip), limit: 8, windowMs: 15 * 60000 });
+      await consume({ scope: 'booking-orders-email', subject: details.email, limit: 8, windowMs: 15 * 60000 });
     }
     const { start, end } = slots.bookingWindow();
     const pricing = slots.priceForDate(details.date, await taken(start, end), start, end, config);
@@ -122,7 +114,7 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
       throw error;
     }
     try {
-      const order = await rp.orders.create({ amount: pricing.amountPaise, currency: 'INR',
+      const order = await rp.orders.create({ amount: pricing.amountPaise, currency: 'INR', partial_payment: false,
         receipt: `disc_${booking._id}`, notes: { bookingId: String(booking._id), type: 'discovery_call' } });
       if (!order?.id) throw new Error('Gateway did not return an order ID');
       await Booking.updateOne({ _id: booking._id }, { $set: { razorpayOrderId: order.id } });
@@ -162,10 +154,10 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
     const rp = gateway();
     if (!rp) throw httpError(503, 'Payments are unavailable.');
     const payment = await rp.payments.fetch(paymentId);
-    if (payment.order_id !== booking.razorpayOrderId || payment.amount !== booking.amountPaise || payment.currency !== booking.currency) {
+    if (!payment || payment.id !== paymentId || payment.order_id !== booking.razorpayOrderId || payment.amount !== booking.amountPaise || payment.currency !== booking.currency) {
       throw httpError(400, 'Payment does not match this booking.');
     }
-    if (payment.status !== 'captured' || !payment.captured) throw httpError(409, 'Payment is still processing. Please retry confirmation shortly.');
+    if (payment.status !== 'captured' || payment.captured !== true || (payment.amount_refunded || 0) !== 0) throw httpError(409, 'Payment is not captured in full. Please retry confirmation or contact support.');
     if (booking.status === 'paid') {
       if (booking.razorpayPaymentId !== paymentId) throw httpError(409, 'Booking already has a different payment.');
       await notify(booking);
@@ -203,7 +195,7 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
   async function verify(body) {
     requireReady();
     if (!body || typeof body.bookingId !== 'string' || !/^[a-f0-9]{24}$/i.test(body.bookingId)
-      || typeof body.razorpay_order_id !== 'string' || typeof body.razorpay_payment_id !== 'string') {
+      || !validId(body.razorpay_order_id, 'order') || !validId(body.razorpay_payment_id, 'pay')) {
       throw httpError(400, 'Invalid payment fields.');
     }
     const booking = await Booking.findById(body.bookingId);
@@ -216,18 +208,13 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
 
   async function webhook(rawBody, signature) {
     requireReady();
-    if (!Buffer.isBuffer(rawBody) || !validSignature(rawBody, signature, process.env.RAZORPAY_WEBHOOK_SECRET)) {
-      throw httpError(400, 'Invalid webhook signature.');
-    }
-    let event;
-    try { event = JSON.parse(rawBody.toString('utf8')); } catch { throw httpError(400, 'Invalid webhook body.'); }
+    const event = parseWebhook(rawBody, signature);
     if (event.event !== 'payment.captured') return { received: true };
     const payment = event.payload?.payment?.entity;
-    if (typeof payment?.order_id !== 'string' || typeof payment?.id !== 'string') throw httpError(400, 'Invalid payment event.');
     const booking = await Booking.findOne({ razorpayOrderId: payment.order_id });
     // Other orders on the same Razorpay account are outside this integration.
     if (!booking) return { received: true };
-    await confirm(booking, payment.id);
+    await onceCaptured('booking', payment, () => confirm(booking, payment.id));
     return { received: true };
   }
 

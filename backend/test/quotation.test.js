@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const Quote = require('../models/Quotation');
+const Receipt = require('../models/WebhookReceipt');
 const {
   createQuotationService,
   validate,
@@ -37,7 +38,7 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     await mongo.stop();
   });
   beforeEach(async () => {
-    await Quote.deleteMany({});
+    await Promise.all([Quote.deleteMany({}), Receipt.deleteMany({})]);
     orders = 0;
     payment = null;
     service = createQuotationService({
@@ -46,7 +47,7 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
           create: async () => ({ id: 'order_' + ++orders }),
           fetchPayments: async (id) => ({ items: payment?.order_id === id ? [payment] : [] }),
         },
-        payments: { fetch: async () => payment },
+        payments: { fetch: async () => payment && ({ captured: payment.status === 'captured', ...payment }) },
       }),
     });
   });
@@ -312,6 +313,19 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
       (await service.portal(i.token)).milestones[0].paidAt,
       undefined,
     );
+  });
+  it('rejects inconsistent capture flags, refunded payments and a different provider payment ID', async () => {
+    const i = await accepted();
+    const order = await service.order(i.token, 0);
+    const base = { id: 'pay_checks', order_id: order.orderId, amount: order.amountPaise, currency: 'INR', status: 'captured', captured: true };
+    for (const invalid of [{ captured: false }, { amount_refunded: 1 }, { currency: 'USD' }, { id: 'pay_other' }]) {
+      payment = { ...base, ...invalid };
+      await fail(service.confirm(order.orderId, base.id), 409);
+    }
+    const q = service.view(await service.portal(i.token));
+    assert.equal(q.milestones[0].paidPaise, 0);
+    assert.equal(q.milestones[0].payments.length, 0);
+    assert.equal(q.milestones[0].paidAt, undefined);
   });
   it('rejects stale draft writes and revokes links without deleting contracts', async () => {
     const q = await service.create(body());

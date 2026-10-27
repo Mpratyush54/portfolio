@@ -3,6 +3,7 @@ const { handleBookingError } = require('./bookingRoutes');
 const { createQuotationFiles } = require('./quotationFiles');
 const { exportQuotation } = require('./quotationExport');
 const { disposition } = require('./quotationFiles');
+const { limitRequests } = require('./rateLimits');
 function createQuotationRouter(service, admin) {
   const router = express.Router();
   const files = createQuotationFiles(service);
@@ -89,6 +90,7 @@ function createQuotationRouter(service, admin) {
   router.get(
     '/admin/quotations/:id/export/:format',
     admin,
+    limitRequests('admin-quotation-export', 10, 60000, () => 'admin'),
     sendFile(async (r, res) =>
       sendExport(await service.get(r.params.id), r.params.format, res),
     ),
@@ -137,6 +139,15 @@ function createQuotationRouter(service, admin) {
   router.use('/quotations', (req, res, next) => {
     req.inviteToken = req.get('x-quotation-token');
     next();
+  });
+  router.use('/quotations', (req, res, next) => {
+    const scope = req.path.startsWith('/order/') ? 'order'
+      : req.path === '/verify' ? 'verify'
+      : req.path.startsWith('/export/') ? 'export'
+      : req.method === 'GET' ? 'read' : 'write';
+    const limits = { order: 10, verify: 30, export: 6, read: 120, write: 30 };
+    return limitRequests(`quotation-${scope}`, limits[scope], 60000,
+      r => typeof r.inviteToken === 'string' && /^[a-f0-9]{64}$/.test(r.inviteToken) ? r.inviteToken : 'invalid')(req, res, next);
   });
   router.get(
     '/quotations/current',

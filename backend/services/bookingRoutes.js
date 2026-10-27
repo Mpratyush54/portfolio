@@ -2,9 +2,12 @@ const express = require('express');
 const Booking = require('../models/Booking');
 const slots = require('./bookingSlots');
 const defaults = require('./bookingSettings');
+const { clientAddress } = require('./clientAddress');
+const { limitRequests } = require('./rateLimits');
 
 function handleBookingError(res, error) {
-  if (!error.status) console.error('[Booking]', error.message);
+  if (error.status === 429) res.set('Retry-After', String(error.retryAfter || 60));
+  if (!error.status) console.error('[Booking] Operation failed; upstream/request details suppressed.');
   return res.status(error.status || 503).json({ error: error.status ? error.message : 'Booking service is temporarily unavailable.' });
 }
 
@@ -31,10 +34,10 @@ function createBookingRouter(service, requireAdmin, gateway) {
     } catch (error) { handleBookingError(res, error); }
   });
   router.post('/bookings/create-order', async (req, res) => {
-    try { res.json(await service.create(req.body, req.ip || '')); }
+    try { res.json(await service.create(req.body, clientAddress(req))); }
     catch (error) { handleBookingError(res, error); }
   });
-  router.post('/bookings/verify', async (req, res) => {
+  router.post('/bookings/verify', limitRequests('booking-verification-reference', 20, 60000, req => typeof req.body?.bookingId === 'string' ? req.body.bookingId.slice(0, 100) : 'invalid'), async (req, res) => {
     try { res.json(await service.verify(req.body)); }
     catch (error) { handleBookingError(res, error); }
   });

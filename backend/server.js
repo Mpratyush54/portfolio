@@ -5,6 +5,10 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const { apiRateLimits, consume } = require('./services/rateLimits');
+const { clientAddress, rateAddress } = require('./services/clientAddress');
+const { webhookGuard } = require('./services/paymentSecurity');
+const guardWebhook = webhookGuard();
 
 app.use(cors());
 // Only enable forwarding behind the known ingress hop; never trust arbitrary
@@ -12,18 +16,19 @@ app.use(cors());
 const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
 if (Number.isSafeInteger(proxyHops) && proxyHops > 0) app.set('trust proxy', proxyHops);
 // Capture the exact signed bytes before the JSON body parser.
-app.post('/api/bookings/webhook', express.raw({ type: 'application/json', limit: '64kb' }), async (req, res) => {
+app.post('/api/bookings/webhook', express.raw({ type: 'application/json', limit: '64kb' }), guardWebhook, async (req, res) => {
   try { res.json(await bookingService.webhook(req.body, req.headers['x-razorpay-signature'])); }
   catch (error) { handleBookingError(res, error); }
 });
-app.post('/api/quotations/webhook', express.raw({ type: 'application/json', limit: '64kb' }), async (req, res) => {
+app.post('/api/quotations/webhook', express.raw({ type: 'application/json', limit: '64kb' }), guardWebhook, async (req, res) => {
   try {
     res.json(await quotationService.webhook(req.body, req.get('x-razorpay-signature')));
   } catch (error) { handleBookingError(res, error); }
 });
+app.use('/api', apiRateLimits());
 app.use(express.json({ limit: '48kb' }));
 
-const Razorpay = require('razorpay');
+const { createGateway } = require('./services/razorpayGateway');
 const { sendVisitorApprovalEmail, sendBookingPaidEmails, INTENT_LABEL } = require('./services/mailer');
 const contactStore = require('./services/contactStore');
 const ContactMessage = require('./models/ContactMessage');
@@ -36,52 +41,6 @@ const { createAdminAuth } = require('./services/adminAuth');
 const { bookingSmtpReady } = require('./services/mailer');
 const bookingService = createBookingService({ gateway: getRazorpay, sendEmails: sendBookingPaidEmails, emailReady: bookingSmtpReady });
 const { startDailyDigestScheduler, runDailyDigest } = require('./services/digest');
-
-// In-memory rate limiter
-const rateStore = new Map();
-const WINDOW_MS = 60 * 60 * 1000;
-const MAX_REQUESTS = 3;
-
-function getRateKey(ip, email) {
-  return `${ip}::${email}`;
-}
-
-function isRateLimited(ip, email) {
-  const now = Date.now();
-  const key = getRateKey(ip, email);
-  const globalKey = `ip::${ip}`;
-
-  [key, globalKey].forEach((k) => {
-    if (!rateStore.has(k)) {
-      rateStore.set(k, []);
-    }
-    const timestamps = rateStore.get(k).filter((t) => now - t < WINDOW_MS);
-    rateStore.set(k, timestamps);
-  });
-
-  const byIpAndEmail = rateStore.get(key).length;
-  const byIp = rateStore.get(globalKey).length;
-
-  return byIpAndEmail >= MAX_REQUESTS || byIp >= MAX_REQUESTS * 2;
-}
-
-function recordAttempt(ip, email) {
-  const now = Date.now();
-  const key = getRateKey(ip, email);
-  const globalKey = `ip::${ip}`;
-  rateStore.get(key).push(now);
-  rateStore.get(globalKey).push(now);
-}
-
-// Periodic cleanup
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of rateStore) {
-    const filtered = v.filter((t) => now - t < WINDOW_MS);
-    if (filtered.length) rateStore.set(k, filtered);
-    else rateStore.delete(k);
-  }
-}, 60 * 1000);
 
 const curatedProjects = require('./data/projects');
 
@@ -110,10 +69,7 @@ const { createContactActions } = require('./services/contactActions');
 const contactActions = createContactActions({ connected: () => isMongoConnected, sendEmail: sendVisitorApprovalEmail });
 
 function getRazorpay() {
-  const key_id = process.env.RAZORPAY_KEY_ID;
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
-  if (!key_id || !key_secret) return null;
-  return new Razorpay({ key_id, key_secret });
+  return createGateway(process.env);
 }
 
 // Merge curated data with optional live metadata from DB
@@ -263,7 +219,7 @@ const VALID_INTENTS = new Set(['hire', 'freelance', 'hi']);
 app.post('/api/contact', async (req, res) => {
   try {
     const { name, email, phone, company, message, website, intent } = req.body || {};
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = clientAddress(req);
 
     // Honeypot — bots fill hidden fields; humans leave them empty
     if (website) {
@@ -302,11 +258,8 @@ app.post('/api/contact', async (req, res) => {
       return res.status(400).json({ error: 'One or more fields exceed the maximum length.' });
     }
 
-    if (isRateLimited(ip, trimmed.email.toLowerCase())) {
-      return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
-    }
-
-    recordAttempt(ip, trimmed.email.toLowerCase());
+    await consume({ scope: 'contact-ip', subject: rateAddress(ip), limit: 6, windowMs: 3600000 });
+    await consume({ scope: 'contact-ip-email', subject: [rateAddress(ip), trimmed.email.toLowerCase()], limit: 3, windowMs: 3600000 });
 
     // Store only — emails go out after admin approval
     if (isMongoConnected) {
@@ -321,7 +274,8 @@ app.post('/api/contact', async (req, res) => {
       intentLabel: INTENT_LABEL[intent],
     });
   } catch (err) {
-    console.error('[Contact] Error:', err);
+    if (err.status) return handleBookingError(res, err);
+    console.error('[Contact] Failed to save contact message.');
     res.status(500).json({ error: 'Failed to save message. Please try again later.' });
   }
 });
@@ -347,7 +301,7 @@ app.use('/api', createQuotationRouter(quotationService, requireAdmin));
 app.use((error, req, res, next) => {
   if (error.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON body.' });
   if (error.type === 'entity.too.large') return res.status(413).json({ error: 'Request is too large.' });
-  console.error(error);
+  console.error('[API] Request failed; request and upstream details suppressed.');
   res.status(500).json({ error: 'Request failed.' });
 });
 

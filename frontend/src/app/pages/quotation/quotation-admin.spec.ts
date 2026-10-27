@@ -35,6 +35,22 @@ describe('Guided quotation editor', () => {
     await fixture.whenStable();
   });
   afterEach(() => http.verify());
+  it('loads server-side pages with filters instead of fetching every agreement', async () => {
+    c.page = 201; c.search = 'Client'; c.status = 'accepted';
+    const loading = c.load();
+    const request = http.expectOne(r => r.url.endsWith('/admin/quotations'));
+    expect(request.request.params.get('page')).toBe('201');
+    expect(request.request.params.get('q')).toBe('Client');
+    request.flush({ rows: [{_id:'last',title:'Last quotation'}], total:5003, page:201, pageSize:25, pages:201 });
+    await loading;
+    expect(c.rows().length).toBe(1); expect(c.total).toBe(5003); expect(c.selected()).toBeNull();
+  });
+  it('keeps the initial-payment slider and other phase shares at exactly 100%', () => {
+    c.editor = {paymentSchedule:[25,25,40,10].map((percent,i)=>({percent,timing:i?'after':'before'}))};
+    c.initialPercent(97); expect(c.scheduleTotal()).toBe(100);
+    expect(c.editor.paymentSchedule.map((m:any)=>m.percent)).toEqual([97,1,1,1]);
+    c.initialPercent(40); expect(c.scheduleTotal()).toBe(100);
+  });
   it('starts with populated agreement sections and reuses prior provider details', async () => {
     c.rows.set([
       {

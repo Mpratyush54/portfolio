@@ -232,7 +232,7 @@ function defaults() {
     additionalTerms: '',
   };
 }
-function compile(input) {
+function compile(input, paymentSchedule) {
   if (!input || input.version !== 1)
     throw httpError(400, 'Unsupported quotation builder version.');
   const text = (v, label, max, required = true) => {
@@ -357,7 +357,11 @@ function compile(input) {
     clean.clauses.push({
       id: clause.id,
       title: clause.title,
-      text: text(supplied.text, clause.title, 2500),
+      text: text(paymentSchedule && clause.id === 'milestones'
+        ? require('./paymentPlan').wording(paymentSchedule)
+        : paymentSchedule && clause.id === 'review' && supplied.text === clause.text
+          ? 'The client explicitly approves the agreed delivery for an after-phase payment, or the written phase plan for a before-phase payment. A phase-plan approval authorises the stated advance payment; it does not state that development is already delivered. Agreed-scope defects are corrected and reviewed again. Silence never counts as approval. Dependent work and delivery dates may pause while payment, required inputs or review are outstanding.'
+          : supplied.text, clause.title, 2500),
     });
   }
   const terms =

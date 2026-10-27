@@ -15,6 +15,14 @@ function validBuilder() {
     'Home and Contact pages; booking flow; approve after all listed forms work on mobile and desktop.';
   return b;
 }
+test('custom percentages and before-phase triggers appear consistently in the compiled agreement', () => {
+  const schedule = [{percent:40,timing:'before'},{percent:30,timing:'before'},{percent:20,timing:'after'},{percent:10,timing:'after'}];
+  const result = template.compile(validBuilder(), schedule);
+  assert.match(result.terms,/Onboarding: 40% payable before project work begins/);
+  assert.match(result.terms,/MVP: 30% payable before this phase begins/);
+  assert.match(result.terms,/does not state that development is already delivered/);
+  assert.doesNotMatch(result.terms,/bringing the paid total to 50%/);
+});
 test('generates complete quotation fields and all 16 agreement sections from selections', () => {
   const b = validBuilder();
   b.features.push('booking');

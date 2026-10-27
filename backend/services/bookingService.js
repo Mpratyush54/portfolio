@@ -135,7 +135,7 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
     for (const audience of ['owner', 'visitor']) {
       const status = audience === 'owner' ? 'emailOwnerStatus' : 'emailVisitorStatus';
       const claimedAt = audience === 'owner' ? 'emailOwnerClaimedAt' : 'emailVisitorClaimedAt';
-      const claim = await Booking.findOneAndUpdate({ _id: booking._id, status: 'paid', $or: [
+      const claim = await Booking.findOneAndUpdate({ _id: booking._id, status: { $in: ['paid', 'payment_review'] }, $or: [
         { [status]: { $exists: false } }, { [status]: 'failed' },
         { [status]: 'sending', [claimedAt]: { $lt: new Date(Date.now() - 5 * 60_000) } },
       ] }, { $set: { [status]: 'sending', [claimedAt]: new Date() } }, { new: true });
@@ -145,7 +145,7 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
         await Booking.updateOne({ _id: claim._id }, { $set: { [status]: 'sent' } });
       } catch (error) {
         await Booking.updateOne({ _id: claim._id }, { $set: { [status]: 'failed' } });
-        console.error('[Booking email]', error.message);
+        console.error('[Booking email] Delivery failed; details suppressed.');
       }
     }
   }
@@ -158,12 +158,12 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
       throw httpError(400, 'Payment does not match this booking.');
     }
     if (payment.status !== 'captured' || payment.captured !== true || (payment.amount_refunded || 0) !== 0) throw httpError(409, 'Payment is not captured in full. Please retry confirmation or contact support.');
-    if (booking.status === 'paid') {
+    if (['paid', 'completed'].includes(booking.status)) {
       if (booking.razorpayPaymentId !== paymentId) throw httpError(409, 'Booking already has a different payment.');
       await notify(booking);
       return { success: true, status: 'paid', date: booking.date, slot: booking.slot };
     }
-    if (booking.status === 'payment_review') return { success: false, status: 'payment_review' };
+    if (booking.status === 'payment_review') { await notify(booking); return { success: false, status: 'payment_review' }; }
     const paymentFields = { razorpayPaymentId: paymentId, paidAt: new Date() };
     let confirmed;
     try {
@@ -180,7 +180,7 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
       const review = await Booking.findOneAndUpdate({ _id: booking._id, status: { $in: ['pending_payment', 'cancelled'] } }, {
         $set: { ...paymentFields, status: 'payment_review' }, $unset: { slotKey: 1 },
       }, { new: true });
-      if (review) return { success: false, status: 'payment_review' };
+      if (review) { await notify(review); return { success: false, status: 'payment_review' }; }
       const latest = await Booking.findById(booking._id);
       if (latest?.status === 'paid' && latest.razorpayPaymentId === paymentId) {
         await notify(latest);
@@ -220,7 +220,7 @@ function createBookingService({ gateway, sendEmails, emailReady = () => true }) 
 
   async function retryNotifications() {
     if (!ready() || !emailReady()) return;
-    const pending = await Booking.find({ status: 'paid', $or: [
+    const pending = await Booking.find({ status: { $in: ['paid', 'payment_review'] }, $or: [
       { emailOwnerStatus: { $ne: 'sent' } }, { emailVisitorStatus: { $ne: 'sent' } },
     ] }).limit(50);
     for (const booking of pending) await notify(booking);

@@ -6,4 +6,5 @@ module.exports = mongoose.model('DigestDelivery', new mongoose.Schema({
   token: String,
   claimedAt: Date,
   sentAt: Date,
+  windowEnd: Date,
 }));

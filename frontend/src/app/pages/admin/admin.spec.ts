@@ -13,17 +13,25 @@ describe('Admin asynchronous requests', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
+  it('searches and paginates bookings while retaining the filtered total', () => {
+    component.bookPage=3; component.bookSearch='client@example.com'; component.bookFrom='2026-11-01';
+    component.loadBookings();
+    const request=http.expectOne(r=>r.url.includes('/admin/bookings?'));
+    expect(request.request.url).toContain('page=3');expect(request.request.url).toContain('from=2026-11-01');
+    request.flush({rows:[{_id:'match'}],total:2000,pages:80,page:3});
+    expect(component.bookTotal).toBe(2000);expect(component.bookings.length).toBe(1);
+  });
   it('ignores an older booking filter response', () => {
     component.loadBookings();
-    const first = http.expectOne(req => req.url.endsWith('/admin/bookings?status=paid'));
+    const first = http.expectOne(req => req.url.includes('/admin/bookings?') && req.url.includes('status=paid'));
     component.setBookFilter('all');
-    const second = http.expectOne(req => req.url.endsWith('/admin/bookings'));
+    const second = http.expectOne(req => req.url.includes('/admin/bookings?') && req.url.includes('status=all'));
     second.flush([{ _id: 'new' }]); first.flush([{ _id: 'old' }]);
     expect(component.bookings[0]._id).toBe('new');
   });
   it('clears credentials and ignores responses after sign-out', () => {
     component.loadContacts();
-    const request = http.expectOne(req => req.url.endsWith('/admin/contacts?status=pending'));
+    const request = http.expectOne(req => req.url.includes('/admin/contacts?') && req.url.includes('status=pending'));
     component.logout(); request.flush([{ _id: 'private' }]);
     expect(component.password).toBe('');
     expect(component.contacts).toEqual([]);

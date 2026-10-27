@@ -1,3 +1,4 @@
+process.env.QUOTATION_INVITE_SECRET = 'a'.repeat(64);
 const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('crypto');

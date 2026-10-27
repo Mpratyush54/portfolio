@@ -49,7 +49,7 @@ function createQuotationRouter(service, admin) {
   router.get(
     '/admin/quotations',
     admin,
-    run(() => service.list()),
+    run((r) => r.query.page ? service.page(r.query) : service.list()),
   );
   router.get(
     '/admin/quotations/defaults',
@@ -61,6 +61,23 @@ function createQuotationRouter(service, admin) {
     admin,
     run((r) => service.saveDraft(r.body)),
   );
+  router.get('/admin/quotations/:id', admin, run(async (r) => service.view(await service.get(r.params.id), true)));
+  router.get('/admin/quotations/:id/receipts', admin, run(async (r) => {
+    const q = await service.get(r.params.id);
+    return require('../models/PaymentReceipt').find({ quotationId: q._id }).sort({ paidAt: -1 }).select('-claim').lean();
+  }));
+  router.get('/admin/quotations/:id/receipts/:paymentId/pdf', admin, sendFile(async (r, res) => {
+    const q = await service.get(r.params.id);
+    const receipt = await require('../models/PaymentReceipt').findOne({ quotationId: q._id, paymentId: r.params.paymentId }).lean();
+    if (!receipt) throw Object.assign(new Error('Receipt not found.'), { status: 404 });
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': disposition(`receipt-${receipt.paymentId}.pdf`), 'Cache-Control': 'no-store' });
+    res.send(await require('./paymentReceipts').pdf(receipt));
+  }));
+  router.post('/admin/quotations/:id/receipts/:paymentId/retry', admin, run(async (r) => {
+    const q = await service.get(r.params.id);
+    await require('../models/PaymentReceipt').updateOne({ quotationId: q._id, paymentId: r.params.paymentId, status: 'failed' }, { $set: { status: 'pending' }, $unset: { nextAttemptAt: 1 } });
+    return { success: true };
+  }));
   router.post(
     '/admin/quotations/:id/srs',
     admin,
@@ -98,7 +115,7 @@ function createQuotationRouter(service, admin) {
   router.post(
     '/admin/quotations/preview',
     admin,
-    run((r) => service.preview(r.body.builder)),
+    run((r) => service.preview(r.body.builder, r.body.paymentSchedule)),
   );
   router.post(
     '/admin/quotations',
@@ -118,13 +135,35 @@ function createQuotationRouter(service, admin) {
   router.post(
     '/admin/quotations/:id/invite',
     admin,
-    run((r) => service.invite(r.params.id, r.body.version)),
+    run((r) => service.invite(r.params.id, r.body.version, r.body)),
   );
   router.post(
     '/admin/quotations/:id/revoke',
     admin,
     run((r) => service.revoke(r.params.id)),
   );
+  router.get('/admin/quotations/:id/invitations', admin, run(async (r) => {
+    const q = await service.get(r.params.id);
+    const links = await require('./quotationInvitations').list(r.params.id);
+    if (q.tokenHash) links.unshift({ _id: 'legacy', label: 'Previous invitation (copy unavailable; create a new managed link)', expiresAt: q.tokenExpiresAt, createdAt: q.createdAt, emailStatus: 'unknown' });
+    return links;
+  }));
+  router.post('/admin/quotations/:id/invitations/:inviteId/:action', admin, run(async (r) => {
+    const q = await service.get(r.params.id), links = require('./quotationInvitations');
+    if (r.params.inviteId === 'legacy' && r.params.action === 'revoke') {
+      q.tokenHash = undefined; q.tokenExpiresAt = undefined; await q.save(); return { success: true };
+    }
+    const link = await links.owned(q._id, r.params.inviteId, r.params.action !== 'revoke');
+    if (r.params.action === 'revoke') { link.revokedAt = new Date(); await link.save(); return { success: true }; }
+    if (!['invited', 'accepted'].includes(q.status)) throw Object.assign(new Error('Quotation is not active.'), { status: 409 });
+    if (r.params.action === 'copy') return { token: links.token(link) };
+    if (r.params.action === 'email') {
+      // An email may already be in flight; do not invalidate its claim or send it twice.
+      if (link.emailStatus === 'sending') return { status: 'sending' };
+      link.emailStatus = 'pending'; link.emailNextAttemptAt = undefined; await link.save(); return { status: 'pending' };
+    }
+    throw Object.assign(new Error('Unknown invitation action.'), { status: 400 });
+  }));
   router.post(
     '/admin/quotations/:id/release/:index',
     admin,

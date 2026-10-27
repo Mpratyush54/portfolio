@@ -93,7 +93,7 @@ describe('Booking and admin with a real MongoDB', () => {
     const second = await service.create(await details());
     const result = await service.verify(paymentFor(first));
     assert.equal(result.status, 'payment_review');
-    assert.equal(emails, 0);
+    assert.equal(emails, 2); // Receipt and owner alert explain that scheduling needs review.
     assert.equal((await service.verify(paymentFor(second))).status, 'paid');
     assert.equal(await Booking.countDocuments({ status: 'paid' }), 1);
   });

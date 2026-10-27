@@ -50,6 +50,16 @@ spec:
               value: "5000"
             - name: TRUST_PROXY_HOPS
               value: "1"
+            - name: QUOTATION_INVITE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: QUOTATION_INVITE_SECRET
+            - name: MAIL_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: MAIL_FROM
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:

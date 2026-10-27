@@ -22,6 +22,23 @@ import { AgreementTextComponent } from './agreement-text';
         <button [disabled]="busy() || !!editor" (click)="newDraft()">New quotation</button
         ><button [disabled]="busy()" (click)="load()">Refresh</button>
       </div>
+      <form class="list-tools" (ngSubmit)="page = 1; load()">
+        <label>Search quotations<input name="quoteSearch" [(ngModel)]="search" placeholder="Client, email, project or quotation ID" maxlength="120" /></label>
+        <label>Status<select name="quoteStatus" [(ngModel)]="status"><option value="">All statuses</option><option value="draft">Draft</option><option value="invited">Invited</option><option value="accepted">Accepted</option><option value="cancelled">Superseded</option></select></label>
+        <label>Created from<input type="date" name="quoteFrom" [(ngModel)]="from" /></label><label>Created to<input type="date" name="quoteTo" [(ngModel)]="to" /></label>
+        <button [disabled]="busy()">Search</button>
+      </form>
+      <p class="list-meta" aria-live="polite">{{ total }} quotations · page {{ page }} of {{ pages }}</p>
+      <div class="quote-list">
+        @for (row of rows(); track row._id) {
+          <button class="quote-row" [class.selected]="selected()?._id === row._id" (click)="open(row)" [disabled]="busy() || !!editor">
+            <span><strong>{{ row.title }}</strong><small>{{ row.clientName }} · {{ row.clientEmail }}</small></span>
+            <span>{{ row.status }} · {{ row.totalPaise / 100 | currency:'INR' }}<small>Revision {{ row.revision }}</small></span>
+          </button>
+        } @empty { <p>No quotations match these filters.</p> }
+      </div>
+      <div class="actions"><button (click)="movePage(-1)" [disabled]="busy() || page <= 1">Previous</button><button (click)="movePage(1)" [disabled]="busy() || page >= pages">Next</button></div>
+      @if (pages > 1) { <label>Go to page<input type="number" min="1" [max]="pages" [(ngModel)]="page" (change)="load()" /></label> }
       @if (error()) {
         <p role="alert" class="error">{{ error() }}</p>
       }
@@ -86,6 +103,22 @@ import { AgreementTextComponent } from './agreement-text';
             ><label>Valid until<input type="date" [(ngModel)]="editor.validDate" /></label>
           </div>
           @if (editor.builder; as b) {
+            @if (editor.paymentSchedule) {
+            <fieldset>
+              <legend>Payment schedule</legend>
+              <p>Set the four phase percentages and when each payment is due. Changes apply to this draft and freeze when invited.</p>
+              <label>Initial payment: {{ editor.paymentSchedule[0].percent }}%
+                <input type="range" min="1" max="97" [ngModel]="editor.paymentSchedule[0].percent" (ngModelChange)="initialPercent($event)" />
+              </label>
+              @for (phase of editor.paymentSchedule; track $index; let i = $index) {
+                <div class="fields">
+                  <label>{{ phaseLabels[i] }} (%)<input type="number" min="1" max="97" [(ngModel)]="phase.percent" /></label>
+                  <label>Payment timing<select [(ngModel)]="phase.timing" [disabled]="i === 0 || i === 3"><option value="before">Before phase starts</option><option value="after">After delivery approval</option></select></label>
+                </div>
+              }
+              <p [class.error]="scheduleTotal() !== 100">Total: {{ scheduleTotal() }}% · must equal 100%. A before-phase payment still requires the client's explicit approval of the phase plan.</p>
+            </fieldset>
+            }
             <fieldset>
               <legend>Provider details</legend>
               <p>
@@ -369,8 +402,9 @@ import { AgreementTextComponent } from './agreement-text';
           </div>
         </div>
       }
-      @for (q of rows(); track q._id) {
+      @if (selected(); as q) {
         <article>
+          <button (click)="selected.set(null)" [disabled]="!!editor">Close quotation details</button>
           <h3>{{ q.title }} · revision {{ q.revision }}</h3>
           <p>
             {{ q.clientName }} · {{ q.clientEmail }} · {{ q.status }} ·
@@ -404,7 +438,7 @@ import { AgreementTextComponent } from './agreement-text';
                 {{
                   q.status === 'draft'
                     ? 'Freeze terms and create invite'
-                    : 'Replace private invite link'
+                    : 'Create another private invitation'
                 }}</button
               ><button
                 [disabled]="busy() || !!editor || q.draftReady === false"
@@ -415,10 +449,27 @@ import { AgreementTextComponent } from './agreement-text';
             }
             @if (q.status === 'invited' || q.status === 'accepted') {
               <button [disabled]="busy() || !!editor" (click)="revoke(q)">
-                Revoke private link
+                Revoke all invitation links
               </button>
             }
           </div>
+          @if (q.status === 'invited' || q.status === 'accepted') {
+            <fieldset><legend>Invitation links</legend>
+              <label>New link label<input [(ngModel)]="invitationLabel" placeholder="e.g. Client finance team" maxlength="100" /></label>
+              <label class="check"><input type="checkbox" [(ngModel)]="emailInvitation" /> Email new invitations to {{ q.clientEmail }}</label>
+              <button (click)="loadInvitations(q)" [disabled]="busy()">Load invitation history</button>
+              @for (link of invitationRows(); track link._id) {
+                <div class="invitation-row"><strong>{{ link.label }}</strong> · {{ link.createdAt | date:'medium' }}
+                  <span>{{ link.revokedAt ? 'Revoked' : 'Expires ' + (link.expiresAt | date:'mediumDate') }} · Email: {{ link.emailStatus }}</span>
+                  @if (!link.revokedAt) {
+                    <button (click)="linkAction(q, link, 'copy')" [disabled]="busy() || link._id === 'legacy'">Copy this link</button>
+                    <button (click)="linkAction(q, link, 'email')" [disabled]="busy() || link._id === 'legacy' || link.emailStatus === 'sending'">Email this link</button>
+                    <button (click)="linkAction(q, link, 'revoke')" [disabled]="busy()">Revoke this link</button>
+                  }
+                </div>
+              }
+            </fieldset>
+          }
           <div class="actions">
             <button
               [disabled]="busy() || q.draftReady === false || (!!editor && editingId === q._id)"
@@ -441,6 +492,15 @@ import { AgreementTextComponent } from './agreement-text';
           }
           @if (q.acceptance) {
             <p>Accepted by {{ q.acceptance.name }} on {{ q.acceptance.at | date: 'medium' }}</p>
+          }
+          @if (paymentEmails().length) {
+            <fieldset><legend>Payment receipts</legend>
+              @for (receipt of paymentEmails(); track receipt.paymentId) {
+                <p>{{ receipt.paidAt | date:'medium' }} · {{ receipt.amountPaise / 100 | currency:'INR' }} · Email: {{ receipt.status }}</p>
+                <button (click)="receiptPdf(q, receipt.paymentId)" [disabled]="busy()">Download receipt</button>
+                @if (receipt.status === 'failed') { <button (click)="retryReceipt(q, receipt.paymentId)" [disabled]="busy()">Retry email</button> }
+              }
+            </fieldset>
           }
           @for (m of q.milestones; track $index; let i = $index) {
             <p>
@@ -477,7 +537,7 @@ import { AgreementTextComponent } from './agreement-text';
             }
             @if (q.status === 'accepted' && i > 0 && q.milestones[i - 1].paidAt && !m.approvedAt) {
               <label
-                >Delivery notes, review link and acceptance evidence<textarea
+                >{{ m.timing === 'before' ? 'Phase plan and proposed work for client approval' : 'Delivery notes, review link and acceptance evidence' }}<textarea
                   [(ngModel)]="evidence[q._id + i]"
                   maxlength="3000"
                 ></textarea>
@@ -487,7 +547,7 @@ import { AgreementTextComponent } from './agreement-text';
                 (click)="release(q, i)"
               >
                 {{
-                  i === 3
+                  m.timing === 'before' ? 'Request phase approval and advance payment' : i === 3
                     ? 'Record production deployment and request review'
                     : 'Request client milestone review'
                 }}
@@ -628,6 +688,16 @@ import { AgreementTextComponent } from './agreement-text';
         align-items: center;
         padding: 8px 0;
       }
+      .list-tools { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin:24px 0 12px; }
+      .list-tools label { flex:1; min-width:180px; }
+      .list-meta { color:#a5a7b5; font-size:14px; }
+      .quote-list { border-top:1px solid #353641; }
+      button.quote-row { display:flex; justify-content:space-between; gap:20px; width:100%; text-align:left; border:0; border-bottom:1px solid #353641; border-radius:0; padding:16px 12px; background:transparent; color:inherit; }
+      .quote-row small { display:block; margin-top:5px; color:#a5a7b5; overflow-wrap:anywhere; }
+      .quote-row span:first-child { flex:1; min-width:0; overflow-wrap:anywhere; }
+      button.quote-row.selected { background:#242530; }
+      .invitation-row { padding:16px 0; border-top:1px solid #353641; }
+      .invitation-row span { display:block; margin:8px 0; }
       .generated-preview {
         border: 1px solid #dce2e8;
         background: #fff;
@@ -715,6 +785,48 @@ export class QuotationAdminComponent {
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   rows = signal<Quotation[]>([]);
+  selected = signal<Quotation | null>(null);
+  invitationRows = signal<any[]>([]);
+  paymentEmails = signal<any[]>([]);
+  async receiptPdf(q: Quotation, paymentId: string) {
+    await this.run(() => downloadQuotationFile(this.http, `${quoteApi()}/admin/quotations/${q._id}/receipts/${paymentId}/pdf`, this.headers, `receipt-${paymentId}.pdf`));
+  }
+  async retryReceipt(q: Quotation, paymentId: string) {
+    await this.run(async () => { await this.request('post', `/${q._id}/receipts/${paymentId}/retry`, {}); this.paymentEmails.set(await this.request('get', `/${q._id}/receipts`)); });
+  }
+  invitationLabel = ''; emailInvitation = true;
+  async loadInvitations(q: Quotation) {
+    await this.run(async () => this.invitationRows.set(await this.request('get', `/${q._id}/invitations`)));
+  }
+  async linkAction(q: Quotation, link: any, action: 'copy' | 'email' | 'revoke') {
+    await this.run(async () => {
+      const result = await this.request('post', `/${q._id}/invitations/${link._id}/${action}`, {});
+      if (result.token) { this.inviteUrl.set(`${location.origin}/proposal#${result.token}`); await this.copy(); }
+      this.invitationRows.set(await this.request('get', `/${q._id}/invitations`));
+    });
+  }
+  page = 1; pages = 1; total = 0; search = ''; status = ''; from = ''; to = '';
+  phaseLabels = ['Onboarding', 'MVP', 'Development complete', 'Deployment'];
+  scheduleTotal() { return this.editor?.paymentSchedule?.reduce((s: number, m: any) => s + Number(m.percent || 0), 0) || 0; }
+  initialPercent(value: number) {
+    const left = 100 - Number(value), rest = this.editor.paymentSchedule.slice(1);
+    const weight = rest.reduce((s: number, m: any) => s + Number(m.percent || 1), 0);
+    let allocated = 0;
+    rest.forEach((m: any, i: number) => {
+      m.percent = i === 2 ? left - allocated : Math.max(1, Math.min(left - allocated - (2 - i), Math.round(left * (Number(m.percent || 1) / weight))));
+      allocated += m.percent;
+    });
+    this.editor.paymentSchedule[0].percent = Number(value); this.changed();
+  }
+  movePage(delta: number) { this.page += delta; void this.load(); }
+  async open(row: Quotation) {
+    await this.run(async () => {
+      this.invitationRows.set([]); this.paymentEmails.set([]);
+      this.selected.set(await this.request('get', `/${row._id}`));
+      const [links, receipts] = await Promise.all([this.request('get', `/${row._id}/invitations`), this.request('get', `/${row._id}/receipts`)]);
+      this.invitationRows.set(links); this.paymentEmails.set(receipts);
+    });
+  }
   busy = signal(false);
   error = signal('');
   inviteUrl = signal('');
@@ -751,6 +863,7 @@ export class QuotationAdminComponent {
       'builder',
       'totalRupees',
       'validDate',
+      'paymentSchedule',
       ...(!this.editor.builder ? ['seller', 'scope', 'exclusions', 'timeline', 'terms'] : []),
     ];
     return cleanDraftText(
@@ -786,6 +899,7 @@ export class QuotationAdminComponent {
   }
   private startEditor(q: Quotation | null) {
     this.currentQuote.set(q);
+    this.selected.set(q);
     this.draftId = crypto.randomUUID();
     this.pending = null;
     this.savedSnapshot = JSON.stringify(this.snapshot());
@@ -797,6 +911,7 @@ export class QuotationAdminComponent {
     this.editingId = q._id;
     this.editor.version = q.__v;
     this.currentQuote.set(q);
+    this.selected.set(q);
     this.rows.update((rows) => [q, ...rows.filter((r) => r._id !== q._id)]);
   }
   async canLeave() {
@@ -814,9 +929,7 @@ export class QuotationAdminComponent {
   }
   async reloadDraft() {
     await this.run(async () => {
-      const rows = await this.request('get');
-      this.rows.set(rows);
-      const q = rows.find((r: Quotation) => r._id === this.editingId);
+      const q = await this.request('get', `/${this.editingId}`);
       if (!q || q.status !== 'draft') {
         this.editor = null;
         this.dirty.set(false);
@@ -832,12 +945,22 @@ export class QuotationAdminComponent {
     void this.load();
   }
   private async request(method: 'get' | 'post' | 'put', path = '', body?: any): Promise<any> {
-    return firstValueFrom(
+    const result: any = await firstValueFrom(
       this.http.request(method.toUpperCase(), `${quoteApi()}/admin/quotations${path}`, {
         body,
         headers: this.headers,
+        ...(method === 'get' && !path ? { params: { page: this.page, pageSize: 25, q: this.search, status: this.status, from: this.from, to: this.to } } : {}),
       }),
     );
+    if (method === 'get' && !path) {
+      if (Array.isArray(result)) return result;
+      this.page = result.page; this.pages = result.pages; this.total = result.total;
+      if (this.selected() && !this.editor) {
+        this.selected.set(await this.request('get', `/${this.selected()!._id}`));
+      }
+      return result.rows;
+    }
+    return result;
   }
   private async run(fn: () => Promise<void>) {
     if (this.busy()) return;
@@ -873,6 +996,7 @@ export class QuotationAdminComponent {
         timeline: '',
         terms: '',
         builder: d.builder,
+        paymentSchedule: [25, 25, 40, 10].map((percent, i) => ({ percent, timing: i ? 'after' : 'before' })),
         totalRupees: 0,
         validDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
       };
@@ -891,6 +1015,9 @@ export class QuotationAdminComponent {
       validDate: q.validUntil.slice(0, 10),
       ...structuredClone(q.draftEditor || {}),
     };
+    if (this.editor.builder) this.editor.paymentSchedule ||= q.milestones?.length === 4
+      ? q.milestones.map((m, i) => ({ percent: m.percent, timing: m.timing || (i ? 'after' : 'before') }))
+      : [25, 25, 40, 10].map((percent, i) => ({ percent, timing: i ? 'after' : 'before' }));
     this.startEditor(q);
   }
   private async loadCatalog() {
@@ -911,7 +1038,7 @@ export class QuotationAdminComponent {
   }
   async preview() {
     await this.run(async () => {
-      const p = await this.request('post', '/preview', { builder: this.editor.builder });
+      const p = await this.request('post', '/preview', { builder: this.editor.builder, paymentSchedule: this.editor.paymentSchedule });
       this.previewText.set(
         ['seller', 'scope', 'exclusions', 'timeline', 'terms'].map((key, i) => ({
           title: [
@@ -1031,9 +1158,10 @@ export class QuotationAdminComponent {
   }
   async invite(q: Quotation) {
     await this.run(async () => {
-      const result = await this.request('post', `/${q._id}/invite`, { version: q.__v });
+      const result = await this.request('post', `/${q._id}/invite`, { version: q.__v, label: this.invitationLabel, sendEmail: this.emailInvitation });
       this.inviteUrl.set(`${location.origin}/proposal#${result.token}`);
       this.copied.set(false);
+      this.invitationRows.set(await this.request('get', `/${q._id}/invitations`));
       this.rows.set(await this.request('get'));
     });
   }

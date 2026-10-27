@@ -1,3 +1,5 @@
+process.env.QUOTATION_INVITE_SECRET = 'a'.repeat(64);
+process.env.QUOTATION_INVITE_SECRET = 'a'.repeat(64);
 const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('crypto');
@@ -149,14 +151,14 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     );
     await fail(service.order(i.token, 0), 409);
   });
-  it('keeps hashed capabilities private and rotates old links', async () => {
+  it('keeps capabilities private and preserves separately managed invitation links', async () => {
     const i = await invited();
     assert.equal(i.quotation.tokenHash, undefined);
     assert.equal(i.quotation.acceptance, undefined);
     const db = await Quote.findById(i.quotation._id);
     assert.notEqual(db.tokenHash, i.token);
     const next = await invite(db.id);
-    await fail(service.portal(i.token), 404);
+    assert.equal((await service.portal(i.token)).id, db.id);
     assert.equal((await service.portal(next.token)).id, db.id);
   });
   it('rejects expired acceptance', async () => {

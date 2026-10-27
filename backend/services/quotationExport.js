@@ -29,6 +29,7 @@ const date = (value) =>
   });
 const cumulative = (q, index) =>
   `${q.milestones.slice(0, index + 1).reduce((sum, m) => sum + m.percent, 0)}%`;
+const phaseLabel = (m, i) => `${m.label}\n${m.timing === 'before' || (!m.timing && i === 0) ? 'Before phase starts' : 'After delivery approval'}`;
 function sections(q) {
   const result = [
     {
@@ -44,7 +45,7 @@ function sections(q) {
       text: q.milestones
         .map(
           (m, i) =>
-            `${i + 1}. ${m.label}: ${m.percent}% - ${money(m.amountPaise)}${m.paidAt ? ' | Captured ' + new Date(m.paidAt).toISOString() : ''}`,
+            `${i + 1}. ${m.label}: ${m.percent}% - ${money(m.amountPaise)} | ${m.timing === 'before' || (!m.timing && i === 0) ? 'Before phase starts' : 'After delivery approval'}${m.paidAt ? ' | Captured ' + new Date(m.paidAt).toISOString() : ''}`,
         )
         .join('\n'),
     },
@@ -238,7 +239,7 @@ async function exportPdf(q) {
       };
       row(['MILESTONE', 'SHARE', 'AMOUNT', 'CUMULATIVE PAID'], true);
       q.milestones.forEach((m, i) =>
-        row([m.label, `${m.percent}%`, money(m.amountPaise), cumulative(q, i)]),
+        row([phaseLabel(m, i), `${m.percent}%`, money(m.amountPaise), cumulative(q, i)]),
       );
       doc.y += 10;
       for (const m of q.milestones.filter((m) => m.paidAt))
@@ -347,7 +348,7 @@ async function exportDocx(q) {
       const data = [
           ['Milestone', 'Share', 'Amount', 'Cumulative paid'],
           ...q.milestones.map((m, i) => [
-            m.label,
+            phaseLabel(m, i),
             `${m.percent}%`,
             money(m.amountPaise),
             cumulative(q, i),

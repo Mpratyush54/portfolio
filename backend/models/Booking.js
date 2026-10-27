@@ -29,9 +29,14 @@ const BookingSchema = new mongoose.Schema({
   emailVisitorStatus: { type: String, enum: ['sending', 'sent', 'failed'] },
   emailVisitorClaimedAt: Date,
   ip: { type: String, default: '' },
+  assignedTo: String,
+  meetingUrl: String,
+  adminNotes: String,
 }, { timestamps: true });
 
 BookingSchema.index({ date: 1, slot: 1, status: 1 });
+BookingSchema.index({ status: 1, createdAt: -1, _id: -1 });
+BookingSchema.index({ createdAt: -1, _id: -1 });
 BookingSchema.index({ slotKey: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Booking', BookingSchema);

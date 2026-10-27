@@ -184,12 +184,14 @@ app.post('/api/admin/sync', requireAdmin, async (req, res) => {
 
 app.get('/api/admin/contacts', requireAdmin, async (req, res) => {
   try {
+    if (isMongoConnected && req.query.page) return res.json(await require('./services/adminLists').page(ContactMessage, req.query,
+      ['pending', 'approved', 'rejected'], { select: '-ip -approvalClaim -approvalClaimAt' }));
     const status = req.query.status;
     if (status && !['pending', 'approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'Invalid contact status.' });
     let rows = [];
     if (isMongoConnected) {
       const q = status ? { status } : {};
-      rows = await ContactMessage.find(q).sort({ createdAt: -1 }).lean();
+      rows = await ContactMessage.find(q).sort({ createdAt: -1 }).limit(100).select('-ip -approvalClaim -approvalClaimAt').lean();
     } else {
       rows = contactStore.list();
       if (status) rows = rows.filter(r => r.status === status);
@@ -198,6 +200,12 @@ app.get('/api/admin/contacts', requireAdmin, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+app.get('/api/admin/notification-settings', requireAdmin, async (req, res) => {
+  try { res.json(await require('./services/adminPreferences').read()); } catch (e) { handleBookingError(res, e); }
+});
+app.put('/api/admin/notification-settings', requireAdmin, async (req, res) => {
+  try { res.json(await require('./services/adminPreferences').save(req.body)); } catch (e) { handleBookingError(res, e); }
 });
 
 app.post('/api/admin/contacts/:id/approve', requireAdmin, async (req, res) => {
@@ -312,8 +320,12 @@ app.listen(PORT, () => {
   setInterval(async () => {
     if (retryingNotifications) return;
     retryingNotifications = true;
-    try { await bookingService.retryNotifications(); }
-    catch (error) { console.error('[Booking notifications]', error.message); }
+    try {
+      await bookingService.retryNotifications();
+      await require('./paymentReceipts').retry();
+      await require('./quotationInvitations').retry();
+    }
+    catch { console.error('[Notifications] Worker failed; details suppressed.'); }
     finally { retryingNotifications = false; }
   }, 60_000).unref();
 });

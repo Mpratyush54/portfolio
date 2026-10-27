@@ -3,6 +3,7 @@ const milestone = new mongoose.Schema(
   {
     label: String,
     percent: Number,
+    timing: { type: String, enum: ['before', 'after'] },
     amountPaise: Number,
     releasedAt: Date,
     evidence: String,
@@ -74,4 +75,6 @@ const schema = new mongoose.Schema(
   },
   { timestamps: true, optimisticConcurrency: true },
 );
+schema.index({ status: 1, updatedAt: -1, _id: -1 });
+schema.index({ updatedAt: -1, _id: -1 });
 module.exports = mongoose.model('Quotation', schema);

@@ -31,6 +31,7 @@ type BookingRow = {
   razorpayPaymentId?: string;
   createdAt: string;
   paidAt?: string;
+  assignedTo?: string; meetingUrl?: string; adminNotes?: string; updatedAt: string;
 };
 
 @Component({
@@ -60,12 +61,27 @@ type BookingRow = {
         <header class="admin-header">
           <h1>Admin Panel</h1>
           <button type="button" class="ghost" (click)="signOut()">Sign out</button>
-          <p class="subtitle">Daily digest emails you when there are submissions. Tap Send yes to email the visitor.</p>
+          <p class="subtitle">Manage quotations, bookings and client communication.</p>
         </header>
 
+        <nav class="admin-tabs" aria-label="Admin sections">
+          @for (item of adminTabs; track item.id) { <button (click)="tab = item.id" [class.on]="tab === item.id">{{ item.label }}</button> }
+        </nav>
         <div class="admin-grid">
-          <div class="admin-card span-2"><app-quotation-admin [headers]="headers()" /></div>
-          <div class="admin-card glass-panel span-2">
+          <div class="admin-card span-2" [hidden]="tab !== 'quotations'"><app-quotation-admin [headers]="headers()" /></div>
+          <div class="admin-card glass-panel span-2" [hidden]="tab !== 'settings'">
+            <h2>Email notifications</h2>
+            <p>Daily summaries include new contacts and paid bookings since the last summary. No email is sent for an empty period.</p>
+            @if (notificationSettings) {
+              <p>Sender: {{ notificationSettings.sender }} · Summary recipient: {{ notificationSettings.recipient }}</p>
+              <p>{{ notificationSettings.smtpConfigured ? 'Email configured' : 'Email configuration required' }}</p>
+              <div class="settings-row"><label>Hour (India time)<input type="number" min="0" max="23" [(ngModel)]="notificationSettings.digestHour" /></label><label>Minute<input type="number" min="0" max="59" [(ngModel)]="notificationSettings.digestMinute" /></label></div>
+              <button (click)="saveNotifications()" [disabled]="savingNotifications">Save summary time</button>
+            }
+            <button (click)="loadNotifications()">Reload email settings</button>
+            <p aria-live="polite">{{ notificationMessage }}</p>
+          </div>
+          <div class="admin-card glass-panel span-2" [hidden]="tab !== 'settings'">
             <div class="card-head">
               <h2>Booking settings</h2>
               <button type="button" class="ghost save-btn" (click)="saveBookingSettings()" [disabled]="savingSettings || !settingsLoaded">
@@ -113,7 +129,7 @@ type BookingRow = {
             }
           </div>
 
-          <div class="admin-card glass-panel span-2">
+          <div class="admin-card glass-panel span-2" [hidden]="tab !== 'bookings'">
             <div class="card-head">
               <h2>Discovery bookings</h2>
               <div class="filters">
@@ -123,6 +139,14 @@ type BookingRow = {
                 <button type="button" class="ghost" (click)="loadBookings()" [disabled]="loadingBookings">Refresh</button>
               </div>
             </div>
+            <form class="list-tools" (ngSubmit)="bookPage = 1; loadBookings()">
+              <label>Search<input name="bookSearch" [(ngModel)]="bookSearch" placeholder="Name, email or reference" maxlength="120" /></label>
+              <label>Status<select name="bookStatus" [(ngModel)]="bookFilter"><option value="all">All</option><option value="paid">Paid</option><option value="payment_review">Payment review</option><option value="pending_payment">Awaiting payment</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+              <label>From<input type="date" name="bookFrom" [(ngModel)]="bookFrom" /></label>
+              <label>To<input type="date" name="bookTo" [(ngModel)]="bookTo" /></label>
+              <button>Search</button>
+            </form>
+            <div class="pagination"><span>{{ bookTotal }} records · page {{ bookPage }} of {{ bookPages }}</span><button (click)="bookPage = bookPage - 1; loadBookings()" [disabled]="bookPage <= 1">Previous</button><button (click)="bookPage = bookPage + 1; loadBookings()" [disabled]="bookPage >= bookPages">Next</button></div>
             @if (loadingBookings) {
               <div class="loading">Loading bookings…</div>
             } @else if (!bookings.length) {
@@ -144,6 +168,13 @@ type BookingRow = {
                       </div>
                       <span class="status" [attr.data-s]="b.status === 'paid' ? 'approved' : 'pending'">{{ b.status }}</span>
                     </header>
+                    <details><summary>Assignment and follow-up</summary>
+                      <label>Assigned to<input [(ngModel)]="b.assignedTo" maxlength="120" /></label>
+                      <label>Meeting link<input [(ngModel)]="b.meetingUrl" type="url" placeholder="https://…" maxlength="500" /></label>
+                      <label>Internal notes<textarea [(ngModel)]="b.adminNotes" maxlength="2000"></textarea></label>
+                      <button (click)="saveAssignment(b)" [disabled]="!!busyBooking">Save assignment</button>
+                      @if (b.status === 'paid') { <button (click)="saveAssignment(b, true)" [disabled]="!!busyBooking">Mark completed</button> }
+                    </details>
                     @if (b.note) {
                       <p class="msg-body">{{ b.note }}</p>
                     }
@@ -159,7 +190,7 @@ type BookingRow = {
             }
           </div>
 
-          <div class="admin-card glass-panel span-2">
+          <div class="admin-card glass-panel span-2" [hidden]="tab !== 'contacts'">
             <div class="card-head">
               <h2>Contact inbox</h2>
               <div class="filters">
@@ -169,6 +200,14 @@ type BookingRow = {
               </div>
             </div>
 
+            <form class="list-tools" (ngSubmit)="contactPage = 1; loadContacts()">
+              <label>Search<input name="contactSearch" [(ngModel)]="contactSearch" placeholder="Name, email or reference" maxlength="120" /></label>
+              <label>Status<select name="contactStatus" [(ngModel)]="filter"><option value="all">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label>
+              <label>From<input type="date" name="contactFrom" [(ngModel)]="contactFrom" /></label>
+              <label>To<input type="date" name="contactTo" [(ngModel)]="contactTo" /></label>
+              <button>Search</button>
+            </form>
+            <div class="pagination"><span>{{ contactTotal }} records · page {{ contactPage }} of {{ contactPages }}</span><button (click)="contactPage = contactPage - 1; loadContacts()" [disabled]="contactPage <= 1">Previous</button><button (click)="contactPage = contactPage + 1; loadContacts()" [disabled]="contactPage >= contactPages">Next</button></div>
             @if (loadingContacts) {
               <div class="loading">Loading inbox…</div>
             } @else if (!contacts.length) {
@@ -209,7 +248,7 @@ type BookingRow = {
             }
           </div>
 
-          <div class="admin-card glass-panel">
+          <div class="admin-card glass-panel" [hidden]="tab !== 'settings'">
             <h2>Project Statistics</h2>
             @if (syncStatus) {
               <div class="stats-grid">
@@ -218,11 +257,11 @@ type BookingRow = {
                   <span class="stat-label">Total Projects</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-value github">{{ syncStatus.sources.github }}</span>
+                  <span class="stat-value github">{{ syncStatus.sources?.github ?? 0 }}</span>
                   <span class="stat-label">GitHub</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-value gitlab">{{ syncStatus.sources.gitlab }}</span>
+                  <span class="stat-value gitlab">{{ syncStatus.sources?.gitlab ?? 0 }}</span>
                   <span class="stat-label">GitLab</span>
                 </div>
                 <div class="stat-item">
@@ -235,7 +274,7 @@ type BookingRow = {
             }
           </div>
 
-          <div class="admin-card glass-panel">
+          <div class="admin-card glass-panel" [hidden]="tab !== 'settings'">
             <h2>Sync Repositories</h2>
             <p class="card-desc">Fetches live metadata for curated projects.</p>
             <button class="sync-btn" (click)="triggerSync()" [disabled]="isSyncing">
@@ -247,7 +286,7 @@ type BookingRow = {
             }
           </div>
 
-          <div class="admin-card glass-panel">
+          <div class="admin-card glass-panel" [hidden]="tab !== 'settings'">
             <h2>Quick Links</h2>
             <div class="links-list">
               <a routerLink="/contact" class="admin-link">Contact page →</a>
@@ -268,9 +307,10 @@ type BookingRow = {
     .login-btn { padding: 12px 24px; border-radius: 12px; border: none; background: #e8e8f0; color: #0a0a10; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
     .login-error { color: #fca5a5; font-size: 0.85rem; margin-top: 12px; }
 
-    .admin-container { padding: 60px 20px 100px; max-width: 1100px; margin: 0 auto; color: #e8e8f0; }
-    .admin-header { text-align: center; margin-bottom: 40px; }
-    .admin-header h1 { font-size: 2.2rem; margin-bottom: 8px; }
+    .admin-container { padding: 28px 20px 80px; max-width: 1200px; margin: 0 auto; color: #e8e8f0; }
+    .admin-header { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; margin-bottom:24px; }
+    .admin-header p { grid-column:1 / -1; margin:4px 0; }
+    .admin-header h1 { font-size: 1.8rem; margin:0; }
     .admin-header .subtitle { color: rgba(180,186,200,0.7); font-size: 1rem; }
     .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
     .admin-grid > *, .msg, .msg header > div, .settings-row label { min-width: 0; }
@@ -340,6 +380,12 @@ type BookingRow = {
     .blocked-list button { border: none; background: transparent; color: #fca5a5; cursor: pointer; font-family: inherit; font-size: 0.78rem; font-weight: 650; }
     .empty-inline { margin: 0; color: rgba(180,186,200,0.55); font-size: 0.85rem; text-transform: none; letter-spacing: 0; }
     .settings-ok { color: #86efac; font-size: 0.85rem; margin: 12px 0 0; }
+    [hidden] { display: none !important; }
+    .admin-tabs, .list-tools, .pagination { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin:16px 0; }
+    .admin-tabs button, .pagination button, .list-tools button { padding:10px 16px; border:1px solid #40414d; background:#171821; color:#eee; border-radius:8px; cursor:pointer; }
+    .admin-tabs .on { background:#e8e8f0; color:#13141a; }
+    .list-tools label, details label { display:grid; gap:6px; flex:1; min-width:140px; margin:10px 0; }
+    .list-tools input, .list-tools select, details input, details textarea { width:100%; box-sizing:border-box; padding:10px; background:#161720; color:#eee; border:1px solid #40414d; border-radius:6px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 800px) { .admin-grid { grid-template-columns: 1fr; } .span-2 { grid-column: auto; } .settings-row { grid-template-columns: 1fr; } }
   `]
@@ -365,14 +411,20 @@ export class AdminComponent implements OnInit, OnDestroy {
   syncResult = '';
   syncResultError = false;
 
+  notificationSettings: any = null; savingNotifications = false; notificationMessage = '';
+  tab = 'quotations';
+  adminTabs = [{id:'quotations',label:'Quotations'}, {id:'bookings',label:'Bookings'}, {id:'contacts',label:'Contact inbox'}, {id:'settings',label:'Settings'}];
+  bookPage = 1; bookPages = 1; bookTotal = 0; bookSearch = ''; bookFrom = ''; bookTo = '';
+  contactPage = 1; contactPages = 1; contactTotal = 0; contactSearch = ''; contactFrom = ''; contactTo = '';
+  busyBooking = '';
   contacts: ContactRow[] = [];
-  filter: 'pending' | 'all' = 'pending';
+  filter: 'pending' | 'all' | 'approved' | 'rejected' = 'pending';
   loadingContacts = false;
   busyId: string | null = null;
   inboxError = '';
 
   bookings: BookingRow[] = [];
-  bookFilter: 'paid' | 'all' | 'payment_review' = 'paid';
+  bookFilter: 'paid' | 'all' | 'payment_review' | 'pending_payment' | 'completed' | 'cancelled' = 'paid';
   loadingBookings = false;
   bookingsError = '';
 
@@ -420,7 +472,7 @@ export class AdminComponent implements OnInit, OnDestroy {
         this.syncStatus = s;
         this.loadContacts();
         this.loadBookings();
-        this.loadBookingSettings();
+        this.loadBookingSettings(); this.loadNotifications();
       },
       error: (e) => {
         if (session !== this.session) return;
@@ -538,12 +590,12 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   setFilter(f: 'pending' | 'all') {
-    this.filter = f;
+    this.filter = f; this.contactPage = 1;
     this.loadContacts();
   }
 
   setBookFilter(f: 'paid' | 'all' | 'payment_review') {
-    this.bookFilter = f;
+    this.bookFilter = f; this.bookPage = 1;
     this.loadBookings();
   }
 
@@ -552,11 +604,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     const request = ++this.bookingRequest;
     this.loadingBookings = true;
     this.bookingsError = '';
-    const q = this.bookFilter === 'all' ? '' : `?status=${this.bookFilter}`;
-    this.http.get<BookingRow[]>(`${this.apiUrl}/admin/bookings${q}`, { headers: this.headers() }).subscribe({
+    const q = '?' + new URLSearchParams({ page: String(this.bookPage), pageSize:'25', status:this.bookFilter, q:this.bookSearch, from:this.bookFrom, to:this.bookTo });
+    this.http.get<any>(`${this.apiUrl}/admin/bookings${q}`, { headers: this.headers() }).subscribe({
       next: (rows) => {
         if (request !== this.bookingRequest || !this.isAuthenticated) return;
-        this.bookings = rows || [];
+        this.bookings = rows.rows || rows || []; this.bookTotal = rows.total ?? this.bookings.length; this.bookPages = rows.pages || 1; this.bookPage = rows.page || 1;
         this.loadingBookings = false;
       },
       error: (e) => {
@@ -567,16 +619,35 @@ export class AdminComponent implements OnInit, OnDestroy {
     });
   }
 
+  saveAssignment(b: BookingRow, completed = false) {
+    if (this.busyBooking) return;
+    this.busyBooking = b._id;
+    const session = this.session;
+    this.http.put(`${this.apiUrl}/admin/bookings/${b._id}`, {assignedTo:b.assignedTo || '', meetingUrl:b.meetingUrl || '', adminNotes:b.adminNotes || '', updatedAt:b.updatedAt, completed}, {headers:this.headers()}).subscribe({
+      next: () => { if (session !== this.session) return; this.busyBooking = ''; this.loadBookings(); },
+      error: e => { if (session !== this.session) return; this.busyBooking = ''; this.bookingsError = e.error?.error || 'Could not save assignment.'; }
+    });
+  }
+  loadNotifications() {
+    const session = this.session;
+    this.http.get(`${this.apiUrl}/admin/notification-settings`, {headers:this.headers()}).subscribe({next: row => { if (session === this.session && this.isAuthenticated) this.notificationSettings = row; }, error: () => { this.notificationMessage = 'Could not load email settings.'; }});
+  }
+  saveNotifications() {
+    if (this.savingNotifications || !this.notificationSettings) return;
+    this.savingNotifications = true;
+    const session = this.session;
+    this.http.put(`${this.apiUrl}/admin/notification-settings`, this.notificationSettings, {headers:this.headers()}).subscribe({next: row => { if (session !== this.session) return; this.notificationSettings = row; this.savingNotifications = false; this.notificationMessage = 'Daily summary time saved.'; }, error: e => { if (session !== this.session) return; this.savingNotifications = false; this.notificationMessage = e.error?.error || 'Could not save email settings.'; }});
+  }
   loadContacts() {
     if (!this.isAuthenticated) return;
     const request = ++this.contactRequest;
     this.loadingContacts = true;
     this.inboxError = '';
-    const q = this.filter === 'pending' ? '?status=pending' : '';
-    this.http.get<ContactRow[]>(`${this.apiUrl}/admin/contacts${q}`, { headers: this.headers() }).subscribe({
+    const q = '?' + new URLSearchParams({ page: String(this.contactPage), pageSize:'25', status:this.filter, q:this.contactSearch, from:this.contactFrom, to:this.contactTo });
+    this.http.get<any>(`${this.apiUrl}/admin/contacts${q}`, { headers: this.headers() }).subscribe({
       next: (rows) => {
         if (request !== this.contactRequest || !this.isAuthenticated) return;
-        this.contacts = rows || [];
+        this.contacts = rows.rows || rows || []; this.contactTotal = rows.total ?? this.contacts.length; this.contactPages = rows.pages || 1; this.contactPage = rows.page || 1;
         this.loadingContacts = false;
       },
       error: (e) => {

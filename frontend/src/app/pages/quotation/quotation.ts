@@ -12,6 +12,7 @@ export const quoteApi = () =>
 export type Milestone = {
   label: string;
   percent: number;
+  timing?: 'before' | 'after';
   amountPaise: number;
   paidPaise?: number;
   remainingPaise?: number;
@@ -181,7 +182,7 @@ export type Quotation = {
               </div>
               @for (m of q.milestones; track $index) {
                 <div role="row">
-                  <span role="cell">{{ m.label }}</span
+                  <span role="cell">{{ m.label }}<small>{{ m.timing === 'before' || (!m.timing && $index === 0) ? 'Before phase starts' : 'After delivery approval' }}</small></span
                   ><span role="cell">{{ m.percent }}%</span
                   ><span role="cell">{{ m.amountPaise / 100 | currency: 'INR' }}</span>
                 </div>
@@ -192,6 +193,7 @@ export type Quotation = {
               @for (m of q.milestones; track $index; let i = $index) {
                 <li>
                   <h3>{{ m.label }} · {{ m.percent }}%</h3>
+                  @if (m.payments?.length || m.paidAt) { <p>A payment receipt is sent to your email after capture is verified. Keep the payment reference for any questions.</p> }
                   <strong>{{ m.amountPaise / 100 | currency: 'INR' }}</strong>
                   <p>
                     {{
@@ -229,7 +231,7 @@ export type Quotation = {
                     </label>
                     <div class="actions">
                       <button [disabled]="busy()" (click)="review(i, true)">
-                        Approve this delivery</button
+                        {{ m.timing === 'before' ? 'Approve phase plan and payment' : 'Approve this delivery' }}</button
                       ><button
                         class="secondary"
                         [disabled]="busy() || !feedback[i]"
@@ -315,7 +317,7 @@ export type Quotation = {
                 Accept quotation and pay {{ payable(q.milestones[0]) / 100 | currency: 'INR' }}
               </button>
               </div>
-              <p>Accept and pay records your agreement, then opens checkout for the onboarding payment (25% of the project). You confirm payment in checkout.</p>
+              <p>Accept and pay records your agreement, then opens checkout for the onboarding payment ({{ q.milestones[0].percent }}% of the project). You confirm payment in checkout.</p>
               @if (!q.paymentsEnabled) { <p>Online payments are not enabled yet. You can still accept the quotation.</p> }
             }
             @if (q.acceptance; as a) {
@@ -385,7 +387,7 @@ export class QuotationComponent {
     },
     {
       id: 'payments',
-      text: 'I agree to the 25% / 25% / 40% / 10% payment schedule and total price.',
+      text: 'I agree to the phase percentages, payment timing and total price shown in this quotation.',
       checked: false,
     },
     {

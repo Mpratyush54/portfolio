@@ -3,6 +3,7 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const DigestDelivery = require('../models/DigestDelivery');
 const ContactMessage = require('../models/ContactMessage');
+const Booking = require('../models/Booking');
 const contactStore = require('./contactStore');
 const { sendDailyDigest, smtpReady } = require('./mailer');
 
@@ -22,7 +23,7 @@ function writeState(state) {
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
-function todayKey(tz = process.env.DIGEST_TZ || 'Asia/Kolkata') {
+function todayKey(tz = 'Asia/Kolkata') {
   try {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: tz,
@@ -52,8 +53,21 @@ function createDigestRunner({ send = sendDailyDigest, ready = smtpReady } = {}) 
     if (!ready()) return { sent: false, reason: 'smtp' };
     if (process.env.MONGO_URI && !isMongoConnected) return { sent: false, reason: 'storage' };
     const key = todayKey();
-    const pending = await loadPending(isMongoConnected);
-    if (!pending.length) return { sent: false, reason: 'empty', count: 0 };
+    let pending, bookings = [], contactCount = 0, bookingCount = 0;
+    const until = new Date();
+    if (isMongoConnected) {
+      const last = await DigestDelivery.findOne({ status: 'sent' }).sort({ windowEnd: -1, sentAt: -1 }).lean();
+      const since = last?.windowEnd || last?.sentAt || new Date(Date.now() - 86400000);
+      const contactsQuery = { createdAt: { $gt: since, $lte: until } };
+      const bookingsQuery = { status: { $in: ['paid', 'completed', 'payment_review'] },
+        $or: [{ createdAt: { $gt: since, $lte: until } }, { paidAt: { $gt: since, $lte: until } }] };
+      [pending, bookings, contactCount, bookingCount] = await Promise.all([
+        ContactMessage.find(contactsQuery).sort({ createdAt: -1 }).limit(50).lean(),
+        Booking.find(bookingsQuery).sort({ paidAt: -1 }).limit(50).select('-ip -razorpaySignature').lean(),
+        ContactMessage.countDocuments(contactsQuery), Booking.countDocuments(bookingsQuery),
+      ]);
+    } else { pending = await loadPending(false); contactCount = pending.length; }
+    if (!pending.length && !bookings.length) return { sent: false, reason: 'empty', count: 0 };
     const token = randomUUID();
     if (isMongoConnected) {
       const stale = new Date(Date.now() - 5 * 60_000);
@@ -74,10 +88,10 @@ function createDigestRunner({ send = sendDailyDigest, ready = smtpReady } = {}) 
       localSending = true;
     }
     try {
-      await send(pending);
-      if (isMongoConnected) await DigestDelivery.updateOne({ _id: key, token }, { $set: { status: 'sent', sentAt: new Date() } });
+      await send(pending, bookings, { contactCount, bookingCount });
+      if (isMongoConnected) await DigestDelivery.updateOne({ _id: key, token }, { $set: { status: 'sent', sentAt: new Date(), windowEnd: until } });
       else writeState({ lastSentDay: key, lastCount: pending.length, lastSentAt: new Date().toISOString() });
-      return { sent: true, count: pending.length };
+      return { sent: true, count: contactCount + bookingCount, contactCount, bookingCount };
     } catch (error) {
       if (isMongoConnected) await DigestDelivery.updateOne({ _id: key, token }, { $set: { status: 'failed' } });
       throw error;
@@ -87,45 +101,23 @@ function createDigestRunner({ send = sendDailyDigest, ready = smtpReady } = {}) 
 
 const runDailyDigest = createDigestRunner();
 
-function msUntilNextDigestHour() {
-  const hour = Math.min(23, Math.max(0, parseInt(process.env.DIGEST_HOUR || '9', 10)));
-  const tz = process.env.DIGEST_TZ || 'Asia/Kolkata';
-
-  // Approximate next run using UTC offset via formatting local parts
-  const now = new Date();
-  let localHour = now.getUTCHours();
-  let localMin = now.getUTCMinutes();
-  try {
-    const parts = new Intl.DateTimeFormat('en-GB', {
-      timeZone: tz,
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).formatToParts(now);
-    localHour = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
-    localMin = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
-  } catch { /* use UTC */ }
-
-  let delayMin = (hour - localHour) * 60 - localMin;
-  if (delayMin <= 1) delayMin += 24 * 60;
-  return delayMin * 60 * 1000;
+function digestDue(now, hour, minute) {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+  const h = +parts.find(p => p.type === 'hour').value, m = +parts.find(p => p.type === 'minute').value;
+  return h * 60 + m >= hour * 60 + minute;
 }
-
 function startDailyDigestScheduler(getMongoFlag) {
-  const scheduleNext = () => {
-    const wait = msUntilNextDigestHour();
-    console.log(`[Digest] next check in ${Math.round(wait / 60000)} min`);
-    setTimeout(async () => {
-      try {
-        await runDailyDigest({ isMongoConnected: !!getMongoFlag() });
-      } catch (err) {
-        console.error('[Digest] failed', err);
-      } finally {
-        scheduleNext();
-      }
-    }, wait);
+  let running = false;
+  const tick = async () => {
+    if (running || !getMongoFlag()) return;
+    running = true;
+    try {
+      const prefs = await require('./adminPreferences').read();
+      if (digestDue(new Date(), prefs.digestHour, prefs.digestMinute)) await runDailyDigest({ isMongoConnected: true });
+    } catch { console.error('[Digest] Scheduled summary failed; will retry.'); }
+    finally { running = false; }
   };
-  scheduleNext();
+  void tick();
+  return setInterval(tick, 60000).unref();
 }
-
-module.exports = { runDailyDigest, startDailyDigestScheduler, loadPending, createDigestRunner };
+module.exports = { runDailyDigest, startDailyDigestScheduler, loadPending, createDigestRunner, digestDue };

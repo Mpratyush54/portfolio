@@ -222,6 +222,7 @@ app-agreement-text {
   border-top: 1px solid #dce2e8;
   margin-top: 24px;
 }
+.payment-summary small { display: block; margin-top: 5px; font-size: 11px; color: #576576; }
 .payment-summary > div {
   display: grid;
   grid-template-columns: 1.6fr 0.7fr 1fr;

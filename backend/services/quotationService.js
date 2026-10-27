@@ -7,6 +7,8 @@ const LABELS = ['Onboarding', 'MVP', 'Development complete', 'Deployment'];
 const ACKS = ['scope', 'payments', 'terms', 'authority'];
 const quotationTemplate = require('./quotationTemplate');
 const { cleanEditor } = require('./quotationText');
+const invitations = require('./quotationInvitations');
+const Invitation = require('../models/QuotationInvitation');
 const DEFAULT_TERMS = quotationTemplate.clauses
   .map((c, i) => `${i + 1}. ${c.title}\n${c.text}`)
   .join('\n\n');
@@ -29,6 +31,7 @@ function snapshot(q) {
       label: m.label,
       percent: m.percent,
       amountPaise: m.amountPaise,
+      ...(m.timing ? { timing: m.timing } : {}),
     })),
   };
   // Keep existing agreements' fingerprints stable when they have no attachments.
@@ -54,7 +57,7 @@ function payableAmount(m) {
 function validate(body) {
   body = cleanEditor(body);
   if (body.builder)
-    body = { ...body, ...quotationTemplate.compile(body.builder) };
+    body = { ...body, ...quotationTemplate.compile(body.builder, body.paymentSchedule) };
   const data = { builder: body.builder || null };
   for (const [key, max] of Object.entries({
     title: 160,
@@ -84,6 +87,12 @@ function validate(body) {
   )
     throw httpError(400, 'Total must be ₹100 to ₹10,00,000 in whole paise.');
   data.totalPaise = body.totalPaise;
+  if (body.paymentSchedule && !body.builder) {
+    const wording = require('./paymentPlan').wording(body.paymentSchedule);
+    // Text-only legacy drafts need an explicit authoritative schedule too.
+    data.terms += '\n\nPayment schedule for this quotation (takes precedence over any generic phase percentages above)\n' + wording;
+    if (data.terms.length > 14000) throw httpError(400, 'Terms and payment schedule exceed 14000 characters.');
+  }
   data.validUntil = new Date(body.validUntil);
   if (
     !Number.isFinite(data.validUntil.getTime()) ||
@@ -93,13 +102,14 @@ function validate(body) {
     throw httpError(400, 'Quote validity must be in the next 90 days.');
   // Allocate residual paise to the final instalment; never round the total upward.
   let allocated = 0;
-  data.milestones = [25, 25, 40, 10].map((percent, i) => {
+  data.milestones = require('./paymentPlan').plan(body.paymentSchedule).map(({ percent, timing }, i) => {
     const amountPaise =
       i === 3
         ? data.totalPaise - allocated
         : Math.floor((data.totalPaise * percent) / 100);
     allocated += amountPaise;
-    return { label: LABELS[i], percent, amountPaise };
+    if (amountPaise < 100) throw httpError(400, 'Each phase must be at least ₹1.');
+    return { label: LABELS[i], percent, amountPaise, ...(body.paymentSchedule ? { timing } : {}) };
   });
   return data;
 }
@@ -132,9 +142,12 @@ function createQuotationService({ gateway }) {
     ready();
     if (typeof token !== 'string' || !/^[a-f\d]{64}$/.test(token))
       throw httpError(404, 'Invitation not found.');
+    const invitation = await Invitation.findOne({ tokenHash: hash(token), revokedAt: null, expiresAt: { $gt: new Date() } });
     const q = await Quote.findOne({
+      ...(invitation ? { _id: invitation.quotationId } : {
       tokenHash: hash(token),
       tokenExpiresAt: { $gt: new Date() },
+      }),
       status: { $in: ['invited', 'accepted'] },
     });
     if (!q)
@@ -209,6 +222,7 @@ function createQuotationService({ gateway }) {
       'builder',
       'totalRupees',
       'validDate',
+      'paymentSchedule',
     ];
     const editor = cleanEditor(
       Object.fromEntries(
@@ -306,6 +320,7 @@ function createQuotationService({ gateway }) {
         label: m.label,
         percent: m.percent,
         amountPaise: m.amountPaise,
+        ...(m.timing ? { timing: m.timing } : {}),
       })),
       revision: q.revision + 1,
       previousId: q._id,
@@ -320,7 +335,7 @@ function createQuotationService({ gateway }) {
     }
     return view(revised);
   }
-  async function invite(id, version) {
+  async function invite(id, version, options = {}) {
     const q = await get(id);
     if (q.draftReady === false)
       throw httpError(
@@ -336,18 +351,18 @@ function createQuotationService({ gateway }) {
       throw httpError(409, 'Quotation is cancelled.');
     if (q.status !== 'accepted' && q.validUntil <= new Date())
       throw httpError(409, 'Update the expired quotation first.');
-    const token = crypto.randomBytes(32).toString('hex');
-    q.tokenHash = hash(token);
-    q.tokenExpiresAt = new Date(Date.now() + 365 * 86400000);
+    const created = await invitations.create(q, options.label, options.sendEmail ?? false);
+    const token = created.token;
     if (q.status === 'draft') q.status = 'invited';
-    await save(q);
-    return { token, quotation: view(q) };
+    try { await save(q); } catch (e) { await Invitation.deleteOne({ _id: created.invite._id }); throw e; }
+    return { token, invitation: created.invite._id, quotation: view(q) };
   }
   async function revoke(id) {
     const q = await get(id);
     q.tokenHash = undefined;
     q.tokenExpiresAt = undefined;
     await save(q);
+    await Invitation.updateMany({ quotationId: q._id, revokedAt: null }, { $set: { revokedAt: new Date() } });
     return view(q);
   }
   async function accept(token, body) {
@@ -598,6 +613,7 @@ function createQuotationService({ gateway }) {
     if (recorded || m.paidAt) {
       if ((recorded?.paymentId ?? m.paymentId) !== paymentId)
         throw httpError(409, 'Payment requires manual reconciliation.');
+      if (recorded) await require('./paymentReceipts').record(q, index, recorded);
       return true;
     }
     if (q.status !== 'accepted' || !m.approvedAt || (index > 0 && !q.milestones[index - 1].paidAt))
@@ -626,6 +642,8 @@ function createQuotationService({ gateway }) {
       if (attempt >= 4) throw httpError(409, 'Payment status changed. Retry verification.');
       return confirm(orderId, paymentId, attempt + 1);
     }
+    await require('./paymentReceipts').record(await Quote.findById(q._id), index,
+      { orderId, paymentId, amountPaise: expected, at: now });
     return true;
   }
   async function verify(token, body) {
@@ -672,12 +690,20 @@ function createQuotationService({ gateway }) {
     portal,
     get,
     defaults: DEFAULT_TERMS,
-    template: () => ({
-      terms: DEFAULT_TERMS,
-      catalog: quotationTemplate.catalog,
-      builder: quotationTemplate.defaults(),
-    }),
-    preview: (builder) => quotationTemplate.compile(builder),
+    template: async () => {
+      ready();
+      const builder = quotationTemplate.defaults();
+      const recent = await Quote.findOne({ 'builder.provider.name': { $exists: true, $ne: '' } }).sort({ updatedAt: -1 }).select('builder.provider').lean();
+      if (recent?.builder?.provider) builder.provider = recent.builder.provider;
+      return { terms: DEFAULT_TERMS, catalog: quotationTemplate.catalog, builder };
+    },
+    preview: (builder, schedule) => quotationTemplate.compile(builder, schedule),
+    page: async (query) => {
+      ready();
+      return require('./adminLists').page(Quote, query, ['draft', 'invited', 'accepted', 'cancelled'], {
+        sortField: 'updatedAt', select: 'title clientName clientEmail status revision totalPaise draftReady updatedAt createdAt __v',
+      });
+    },
     list: async () => {
       ready();
       return (await Quote.find().sort({ updatedAt: -1 }).limit(100)).map((q) =>

@@ -128,6 +128,11 @@ function createQuotationRouter(service, admin) {
     admin,
     run((r) => service.release(r.params.id, r.params.index, r.body.evidence)),
   );
+  router.post(
+    '/admin/quotations/:id/collection/:index',
+    admin,
+    run((r) => service.collection(r.params.id, r.params.index, r.body)),
+  );
   // Capability is in a request header, never an access-log URL or query string.
   router.use('/quotations', (req, res, next) => {
     req.inviteToken = req.get('x-quotation-token');

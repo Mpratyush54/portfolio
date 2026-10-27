@@ -73,6 +73,16 @@ describe('Durable quotation drafts, SRS files and document exports', () => {
   beforeEach(async () => {
     await Quote.deleteMany({});
   });
+  it('protects collection changes with admin authentication, even for a valid client invite', async () => {
+    const q = await service.saveDraft(draft());
+    const invitation = await service.invite(q._id, q.__v);
+    const response = await fetch(origin + `/admin/quotations/${q._id}/collection/0`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-quotation-token': invitation.token },
+      body: JSON.stringify({ version: 1, amountPaise: 500000, reason: 'Client supplied amount' }),
+    });
+    assert.equal(response.status, 401);
+    assert.equal((await service.get(q._id)).milestones[0].collectionPaise, undefined);
+  });
   async function request(path, { method = 'GET', body, headers = {} } = {}) {
     return fetch(origin + path, {
       method,

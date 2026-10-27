@@ -13,6 +13,12 @@ export type Milestone = {
   label: string;
   percent: number;
   amountPaise: number;
+  paidPaise?: number;
+  remainingPaise?: number;
+  payablePaise?: number;
+  orderId?: string;
+  collections?: { amountPaise: number; reason: string; at: string }[];
+  payments?: { orderId: string; paymentId: string; amountPaise: number; at: string }[];
   evidence?: string;
   feedback?: string;
   releasedAt?: string;
@@ -207,6 +213,12 @@ export type Quotation = {
                   @if (m.paidAt) {
                     <p>Received {{ m.paidAt | date: 'medium' }} · {{ m.paymentId }}</p>
                   }
+                  @if (m.paidPaise && !m.paidAt) {
+                    <p>Paid so far: {{ m.paidPaise / 100 | currency: 'INR' }} · Remaining: {{ (m.remainingPaise ?? 0) / 100 | currency: 'INR' }}</p>
+                  }
+                  @for (payment of m.payments || []; track payment.paymentId) {
+                    <p>{{ payment.at | date: 'medium' }} · Received {{ payment.amountPaise / 100 | currency: 'INR' }} · {{ payment.paymentId }}</p>
+                  }
                   @if (q.status === 'accepted' && m.releasedAt && !m.approvedAt) {
                     <p>Review this delivery against the agreed scope before approving payment.</p>
                     <label
@@ -230,7 +242,7 @@ export type Quotation = {
                   @if (q.status === 'accepted' && m.approvedAt && !m.paidAt) {
                     <button [disabled]="busy() || !q.paymentsEnabled" (click)="pay(i)">
                       {{
-                        busy() ? 'Please wait…' : 'Pay ' + (m.amountPaise / 100 | currency: 'INR')
+                        busy() ? 'Please wait…' : 'Pay ' + (payable(m) / 100 | currency: 'INR')
                       }}
                     </button>
                     @if (!q.paymentsEnabled) {
@@ -295,10 +307,16 @@ export type Quotation = {
                   ><input type="checkbox" [(ngModel)]="a.checked" />{{ a.text }}</label
                 >
               }
-              <button [disabled]="busy() || !canAccept()" (click)="accept()">
+              <div class="actions">
+              <button class="secondary" [disabled]="busy() || !canAccept()" (click)="accept()">
                 Accept quotation and terms
               </button>
-              <p>Accepting does not charge you. The first 25% payment opens separately.</p>
+              <button [disabled]="busy() || !canAccept() || !q.paymentsEnabled" (click)="acceptAndPay()">
+                Accept quotation and pay {{ payable(q.milestones[0]) / 100 | currency: 'INR' }}
+              </button>
+              </div>
+              <p>Accept and pay records your agreement, then opens checkout for the onboarding payment (25% of the project). You confirm payment in checkout.</p>
+              @if (!q.paymentsEnabled) { <p>Online payments are not enabled yet. You can still accept the quotation.</p> }
             }
             @if (q.acceptance; as a) {
               <h3>Accepted by the client</h3>
@@ -310,6 +328,16 @@ export type Quotation = {
                 This revision has not been accepted. A preview or downloaded copy does not record
                 agreement.
               </p>
+            }
+            @if (!isExample && q.status === 'accepted') {
+              @for (m of q.milestones; track $index; let i = $index) {
+                @if (m.approvedAt && !m.paidAt && (i === 0 || q.milestones[i - 1].paidAt)) {
+                  <h3>{{ m.label }} payment</h3>
+                  <p>Paid: {{ (m.paidPaise || 0) / 100 | currency: 'INR' }} · Milestone balance: {{ (m.remainingPaise ?? m.amountPaise) / 100 | currency: 'INR' }}</p>
+                  <p>Pay now: {{ payable(m) / 100 | currency: 'INR' }}. Any remaining balance stays due; the next milestone opens after full payment.</p>
+                  <button [disabled]="busy() || !q.paymentsEnabled" (click)="pay(i)">Pay {{ payable(m) / 100 | currency: 'INR' }}</button>
+                }
+              }
             }
           </section>
           @if (q.deployedAt) {
@@ -389,8 +417,10 @@ export class QuotationComponent {
           }),
         ),
       );
+      return true;
     } catch (e: any) {
       this.error.set(e.error?.error || 'Could not save. Refresh and try again.');
+      return false;
     } finally {
       this.busy.set(false);
     }
@@ -443,13 +473,18 @@ export class QuotationComponent {
       this.acknowledgements.every((a) => a.checked)
     );
   }
+  payable(m: Milestone) { return m.payablePaise ?? m.amountPaise; }
   accept() {
-    void this.action('accept', {
+    return this.action('accept', {
       name: this.name,
       email: this.email,
       digest: this.quote()?.digest,
       acknowledgements: this.acknowledgements.filter((a) => a.checked).map((a) => a.id),
     });
+  }
+  async acceptAndPay() {
+    if (!this.canAccept()) return;
+    if (await this.accept()) await this.pay(0);
   }
   review(index: number, approve: boolean) {
     void this.action(`review/${index}`, {
@@ -538,6 +573,11 @@ export class QuotationComponent {
         ),
       );
       if (!window.Razorpay) throw new Error('Checkout could not load.');
+      if (order.alreadyPaid) {
+        this.quote.set(order.quotation);
+        this.busy.set(false);
+        return;
+      }
       const checkout = new window.Razorpay({
         key: order.keyId,
         order_id: order.orderId,

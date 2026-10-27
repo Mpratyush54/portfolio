@@ -458,6 +458,23 @@ import { AgreementTextComponent } from './agreement-text';
             @if (m.feedback) {
               <p class="preserve">Client feedback: {{ m.feedback }}</p>
             }
+            @if (q.status === 'accepted' && m.approvedAt && !m.paidAt && (i === 0 || q.milestones[i - 1].paidAt)) {
+              <fieldset>
+                <legend>{{ m.label }} collection</legend>
+                <p>Paid: {{ (m.paidPaise || 0) / 100 | currency: 'INR' }} · Balance: {{ (m.remainingPaise ?? m.amountPaise) / 100 | currency: 'INR' }} · Pay now: {{ (m.payablePaise ?? m.amountPaise) / 100 | currency: 'INR' }}</p>
+                @if (m.orderId) {
+                  <p>A checkout is already prepared. Reconcile that payment before changing the amount.</p>
+                } @else {
+                  <label>Collect now (₹)<input type="number" min="1" step="0.01" [max]="(m.remainingPaise ?? m.amountPaise) / 100" [(ngModel)]="collectionAmounts[q._id + i]" /></label>
+                  <label>Reason for this arrangement<textarea maxlength="500" [(ngModel)]="collectionReasons[q._id + i]"></textarea></label>
+                  <p>This changes the next payment only. The full quotation price and unpaid balance stay due. After this payment, checkout requests the remaining milestone balance.</p>
+                  <button [disabled]="busy() || !!editor || !collectionAmounts[q._id + i] || !collectionReasons[q._id + i]" (click)="setCollection(q, i)">Save collection amount</button>
+                }
+                @for (entry of m.collections || []; track $index) {
+                  <p>{{ entry.at | date: 'medium' }} · {{ entry.amountPaise / 100 | currency: 'INR' }} · {{ entry.reason }}</p>
+                }
+              </fieldset>
+            }
             @if (q.status === 'accepted' && i > 0 && q.milestones[i - 1].paidAt && !m.approvedAt) {
               <label
                 >Delivery notes, review link and acceptance evidence<textarea
@@ -1038,6 +1055,21 @@ export class QuotationAdminComponent {
   async release(q: Quotation, i: number) {
     await this.run(async () => {
       await this.request('post', `/${q._id}/release/${i}`, { evidence: this.evidence[q._id + i] });
+      this.rows.set(await this.request('get'));
+    });
+  }
+  collectionAmounts: Record<string, number> = {};
+  collectionReasons: Record<string, string> = {};
+  async setCollection(q: Quotation, i: number) {
+    const paise = Number(this.collectionAmounts[q._id + i]) * 100;
+    if (!Number.isFinite(paise) || Math.abs(paise - Math.round(paise)) > 0.000001) {
+      this.error.set('Enter an amount in whole paise.');
+      return;
+    }
+    await this.run(async () => {
+      await this.request('post', `/${q._id}/collection/${i}`, {
+        version: q.__v, amountPaise: Math.round(paise), reason: this.collectionReasons[q._id + i],
+      });
       this.rows.set(await this.request('get'));
     });
   }

@@ -48,6 +48,21 @@ describe('Guided quotation editor', () => {
     expect(c.editor.builder.clauses[0].text).toBe('Complete standard clause');
     expect(c.editor.terms).toBe('');
   });
+  it('sends an authenticated, versioned next collection without changing the quoted total', async () => {
+    const q = { _id: 'q', __v: 8, totalPaise: 11600000 } as Quotation;
+    c.collectionAmounts['q0'] = 5000;
+    c.collectionReasons['q0'] = 'Client agreed a smaller first payment';
+    const pending = c.setCollection(q, 0);
+    const request = http.expectOne((r) => r.url.endsWith('/q/collection/0'));
+    expect(request.request.headers.get('x-admin-password')).toBe('test');
+    expect(request.request.body).toEqual({ version: 8, amountPaise: 500000, reason: c.collectionReasons['q0'] });
+    expect(request.request.body.totalPaise).toBeUndefined();
+    request.flush(q);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    http.expectOne((r) => r.url.endsWith('/admin/quotations')).flush([q]);
+    await pending;
+    expect(c.rows()[0].totalPaise).toBe(11600000);
+  });
   it('adds and removes checkbox choices without duplicating them', () => {
     c.editor = { builder: builder() };
     c.toggle('features', 'booking', true);

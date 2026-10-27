@@ -42,7 +42,10 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     payment = null;
     service = createQuotationService({
       gateway: () => ({
-        orders: { create: async () => ({ id: 'order_' + ++orders }) },
+        orders: {
+          create: async () => ({ id: 'order_' + ++orders }),
+          fetchPayments: async (id) => ({ items: payment?.order_id === id ? [payment] : [] }),
+        },
         payments: { fetch: async () => payment },
       }),
     });
@@ -204,6 +207,74 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     assert.equal(orders, 1);
     await pay(i.token, 0);
     assert.equal(await service.confirm('order_1', 'pay_0'), true);
+  });
+  it('collects an admin-approved part payment once, preserves debt and locks the next milestone', async () => {
+    const i = await accepted();
+    let q = await service.portal(i.token);
+    const originalDigest = service.view(q).digest;
+    await service.collection(q.id, 0, { version: q.__v, amountPaise: 5000, reason: 'Client agreed smaller initial collection' });
+    const order = await service.order(i.token, 0);
+    assert.equal(order.amountPaise, 5000);
+    q = await service.portal(i.token);
+    await fail(service.collection(q.id, 0, { version: q.__v, amountPaise: 6000, reason: 'Attempt to change issued checkout' }), 409);
+    payment = { id: 'partial', order_id: order.orderId, amount: 5000, currency: 'INR', status: 'captured' };
+    await Promise.all([service.confirm(order.orderId, 'partial'), service.confirm(order.orderId, 'partial')]);
+    q = service.view(await service.portal(i.token));
+    assert.equal(q.milestones[0].paidPaise, 5000);
+    assert.equal(q.milestones[0].remainingPaise, 20000);
+    assert.equal(q.milestones[0].paidAt, undefined);
+    assert.equal(q.milestones[0].payments.length, 1);
+    assert.equal(q.digest, originalDigest);
+    assert.equal(q.totalPaise, 100003);
+    await fail(service.release(q._id, 1, 'Trying to bypass outstanding balance'), 409);
+    await fail(service.revise(q._id), 409);
+    const balance = await service.order(i.token, 0);
+    assert.equal(balance.amountPaise, 20000);
+    // An old signed retry must not clear or credit the newer balance order.
+    assert.equal(await service.confirm(order.orderId, 'partial'), true);
+    assert.equal((await service.portal(i.token)).milestones[0].orderId, balance.orderId);
+    payment = { id: 'balance', order_id: balance.orderId, amount: 20000, currency: 'INR', status: 'captured' };
+    await service.confirm(balance.orderId, 'balance');
+    q = service.view(await service.portal(i.token));
+    assert.ok(q.milestones[0].paidAt);
+    assert.equal(q.milestones[0].paidPaise, 25000);
+    assert.equal(q.milestones[0].remainingPaise, 0);
+    assert.equal(q.milestones[0].payments.length, 2);
+    await service.release(q._id, 1, 'MVP now eligible for client review');
+  });
+  it('rejects invalid, stale and premature collection arrangements', async () => {
+    const i = await accepted();
+    const q = await service.portal(i.token);
+    for (const amountPaise of [0, -1, 99, 24999, 25001, 1.5, '5000']) {
+      await fail(service.collection(q.id, 0, { version: q.__v, amountPaise, reason: 'Client arrangement' }), 400);
+    }
+    await fail(service.collection(q.id, 0, { version: q.__v + 1, amountPaise: 5000, reason: 'Client arrangement' }), 409);
+    await fail(service.collection(q.id, 1, { version: q.__v, amountPaise: 5000, reason: 'Client arrangement' }), 409);
+    await fail(service.collection(q.id, 0, { version: q.__v, amountPaise: 5000, reason: '' }), 400);
+  });
+  it('rejects cross-quotation verification even with an otherwise valid signature', async () => {
+    const first = await accepted(), second = await accepted();
+    const order = await service.order(first.token, 0);
+    await fail(service.verify(second.token, {
+      razorpay_order_id: order.orderId, razorpay_payment_id: 'pay',
+      razorpay_signature: crypto.createHmac('sha256', 'secret').update(order.orderId + '|pay').digest('hex'),
+    }), 400);
+  });
+  it('recovers a captured payment after the browser callback and webhook were lost', async () => {
+    const i = await accepted();
+    const order = await service.order(i.token, 0);
+    payment = { id: 'lost_callback', order_id: order.orderId, amount: order.amountPaise, currency: 'INR', status: 'captured' };
+    const recovered = await service.order(i.token, 0);
+    assert.equal(recovered.alreadyPaid, true);
+    assert.ok(recovered.quotation.milestones[0].paidAt);
+    assert.equal(orders, 1);
+  });
+  it('blocks competing checkout while a gateway payment is processing', async () => {
+    const i = await accepted();
+    const order = await service.order(i.token, 0);
+    payment = { id: 'processing', order_id: order.orderId, amount: order.amountPaise, currency: 'INR', status: 'authorized' };
+    await fail(service.order(i.token, 0), 409);
+    assert.equal(orders, 1);
   });
   it('serialises simultaneous order creation', async () => {
     const i = await accepted();

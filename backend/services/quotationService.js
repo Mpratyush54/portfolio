@@ -44,6 +44,13 @@ function snapshot(q) {
 function digest(q) {
   return hash(JSON.stringify(snapshot(q)));
 }
+function paidAmount(m) {
+  // Older contracts recorded one full payment without a ledger.
+  return m.paidAt ? m.amountPaise : (m.payments || []).reduce((sum, p) => sum + p.amountPaise, 0);
+}
+function payableAmount(m) {
+  return m.orderId ? (m.orderAmountPaise ?? m.amountPaise) : (m.collectionPaise ?? (m.amountPaise - paidAmount(m)));
+}
 function validate(body) {
   body = cleanEditor(body);
   if (body.builder)
@@ -149,6 +156,9 @@ function createQuotationService({ gateway }) {
       gateway() && process.env.RAZORPAY_WEBHOOK_SECRET,
     );
     data.milestones.forEach((m) => {
+      m.paidPaise = paidAmount(m);
+      m.remainingPaise = m.amountPaise - m.paidPaise;
+      m.payablePaise = m.paidAt ? 0 : payableAmount(m);
       delete m.orderBusy;
       delete m.orderLock;
       delete m.orderLockedAt;
@@ -278,7 +288,7 @@ function createQuotationService({ gateway }) {
     if (q.status === 'cancelled')
       throw httpError(409, 'This quotation already has a replacement.');
     // Paid contracts require an explicit change order; never silently replace them.
-    if (q.milestones.some((m) => m.paidAt || m.orderId || m.orderBusy))
+    if (q.milestones.some((m) => m.paidAt || m.orderId || m.orderBusy || m.payments.length))
       throw httpError(
         409,
         'Payments have started. Create a separate change quotation.',
@@ -457,12 +467,23 @@ function createQuotationService({ gateway }) {
       throw httpError(503, 'Payments are not enabled yet.');
     const result = (id) => ({
       orderId: id,
-      amountPaise: m.amountPaise,
+      amountPaise: payableAmount(m),
       currency: 'INR',
       keyId: process.env.RAZORPAY_KEY_ID,
       index,
     });
-    if (m.orderId) return result(m.orderId);
+    if (m.orderId) {
+      const payments = await api.orders.fetchPayments(m.orderId);
+      const captured = payments.items.find((p) => p.status === 'captured');
+      if (captured) {
+        await confirm(m.orderId, captured.id);
+        return { alreadyPaid: true, quotation: view(await portal(token)) };
+      }
+      // Do not issue a competing order while a previous attempt can still capture.
+      if (payments.items.some((p) => p.status !== 'failed'))
+        throw httpError(409, 'A payment is processing. Wait and refresh its status before trying again.');
+      return result(m.orderId);
+    }
     const lockToken = crypto.randomUUID();
     const lock = await Quote.updateOne(
       {
@@ -494,9 +515,10 @@ function createQuotationService({ gateway }) {
       );
     try {
       const created = await api.orders.create({
-        amount: m.amountPaise,
+        amount: payableAmount(m),
         currency: 'INR',
-        receipt: `q${q._id}_${index}`,
+        partial_payment: false,
+        receipt: `q${q._id}_${index}_${(m.payments || []).length}`,
         notes: { quotationId: String(q._id), milestone: String(index) },
       });
       const saved = await Quote.updateOne(
@@ -504,6 +526,7 @@ function createQuotationService({ gateway }) {
         {
           $set: {
             [`milestones.${index}.orderId`]: created.id,
+            [`milestones.${index}.orderAmountPaise`]: payableAmount(m),
             [`milestones.${index}.orderBusy`]: false,
           },
           $unset: { [`milestones.${index}.orderLock`]: 1 },
@@ -528,43 +551,85 @@ function createQuotationService({ gateway }) {
       throw error;
     }
   }
-  async function confirm(orderId, paymentId) {
+  async function collection(id, index, body) {
+    const q = await get(id);
+    index = Number(index);
+    const m = q.milestones[index];
+    if (body.version !== q.__v) throw httpError(409, 'Reload the latest payment status.');
+    if (q.status !== 'accepted' || !Number.isInteger(index) || !m?.approvedAt || m.paidAt ||
+        (index > 0 && !q.milestones[index - 1].paidAt))
+      throw httpError(409, 'This milestone is not payable.');
+    // An issued order can still capture later. Never replace its amount.
+    if (m.orderId || m.orderBusy) throw httpError(409, 'Checkout already prepared. Its payment must be reconciled before changing the amount.');
+    const remaining = m.amountPaise - paidAmount(m);
+    if (!Number.isSafeInteger(body.amountPaise) || body.amountPaise < 100 || body.amountPaise > remaining ||
+        (remaining - body.amountPaise > 0 && remaining - body.amountPaise < 100))
+      throw httpError(400, 'Enter at least ₹1, no more than the balance, leaving either zero or at least ₹1 due.');
+    if (typeof body.reason !== 'string' || body.reason.trim().length < 5 || body.reason.length > 500)
+      throw httpError(400, 'Provide a reason (5–500 characters) for the collection arrangement.');
+    m.collectionPaise = body.amountPaise;
+    m.collections.push({ amountPaise: body.amountPaise, reason: body.reason.trim(), at: new Date() });
+    return view(await save(q), true);
+  }
+  async function confirm(orderId, paymentId, attempt = 0) {
     ready();
-    const q = await Quote.findOne({ 'milestones.orderId': orderId });
+    if (typeof orderId !== 'string' || typeof paymentId !== 'string')
+      throw httpError(400, 'Invalid payment identifiers.');
+    const q = await Quote.findOne({ $or: [{ 'milestones.orderId': orderId }, { 'milestones.payments.orderId': orderId }] });
     if (!q) return false;
-    const index = q.milestones.findIndex((m) => m.orderId === orderId),
+    const index = q.milestones.findIndex((m) => m.orderId === orderId || m.payments.some((p) => p.orderId === orderId)),
       m = q.milestones[index];
+    const recorded = m.payments.find((p) => p.orderId === orderId);
+    const expected = recorded?.amountPaise ?? m.orderAmountPaise ?? m.amountPaise;
     const api = gateway();
     if (!api) throw httpError(503, 'Payment verification unavailable.');
     const p = await api.payments.fetch(paymentId);
     if (
       p.order_id !== orderId ||
-      p.amount !== m.amountPaise ||
+      p.id !== paymentId ||
+      p.amount !== expected ||
       p.currency !== 'INR' ||
-      p.status !== 'captured'
+      p.status !== 'captured' ||
+      (p.amount_refunded || 0) !== 0
     )
       throw httpError(409, 'Payment is not captured for this instalment.');
-    if (m.paidAt) {
-      if (m.paymentId !== paymentId)
+    if (recorded || m.paidAt) {
+      if ((recorded?.paymentId ?? m.paymentId) !== paymentId)
         throw httpError(409, 'Payment requires manual reconciliation.');
       return true;
     }
-    await Quote.updateOne(
-      { _id: q._id, [`milestones.${index}.paidAt`]: null },
+    if (q.status !== 'accepted' || !m.approvedAt || (index > 0 && !q.milestones[index - 1].paidAt))
+      throw httpError(409, 'Payment requires manual reconciliation.');
+    const total = paidAmount(m) + expected;
+    if (total > m.amountPaise) throw httpError(409, 'Payment exceeds the milestone balance.');
+    const now = new Date();
+    const complete = total === m.amountPaise;
+    const updated = await Quote.updateOne(
+      { _id: q._id, __v: q.__v, [`milestones.${index}.orderId`]: orderId },
       {
-        $set: {
-          [`milestones.${index}.paidAt`]: new Date(),
+        $set: complete ? {
+          [`milestones.${index}.paidAt`]: now,
           [`milestones.${index}.paymentId`]: paymentId,
+        } : {},
+        $push: { [`milestones.${index}.payments`]: { orderId, paymentId, amountPaise: expected, at: now } },
+        $unset: {
+          [`milestones.${index}.orderId`]: 1,
+          [`milestones.${index}.orderAmountPaise`]: 1,
+          [`milestones.${index}.collectionPaise`]: 1,
         },
         $inc: { __v: 1 },
       },
     );
+    if (!updated.modifiedCount) {
+      if (attempt >= 4) throw httpError(409, 'Payment status changed. Retry verification.');
+      return confirm(orderId, paymentId, attempt + 1);
+    }
     return true;
   }
   async function verify(token, body) {
     const q = await portal(token);
     if (
-      !q.milestones.some((m) => m.orderId === body.razorpay_order_id) ||
+      !q.milestones.some((m) => m.orderId === body.razorpay_order_id || m.payments.some((p) => p.orderId === body.razorpay_order_id)) ||
       !validSignature(
         `${body.razorpay_order_id}|${body.razorpay_payment_id}`,
         body.razorpay_signature,
@@ -609,6 +674,7 @@ function createQuotationService({ gateway }) {
     release,
     review,
     order,
+    collection,
     verify,
     confirm,
     webhook,

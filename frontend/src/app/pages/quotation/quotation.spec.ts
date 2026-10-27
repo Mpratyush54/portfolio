@@ -67,6 +67,30 @@ describe('Quotation acceptance and payment recovery', () => {
     expect(component.quote()?.status).toBe('accepted');
     http.expectNone((r) => r.url.includes('/order/'));
   });
+  it('opens checkout only after combined acceptance succeeds and uses the server collection amount', async () => {
+    component.name = 'Client';
+    component.email = q.clientEmail;
+    component.acknowledgements.forEach((a) => (a.checked = true));
+    let options: any;
+    window.Razorpay = class { constructor(value: any) { options = value; } open() {} on() {} };
+    const combined = component.acceptAndPay();
+    http.expectNone((r) => r.url.includes('/order/'));
+    http.expectOne((r) => r.url.endsWith('/accept')).flush({ ...q, status: 'accepted', milestones: [{ ...q.milestones[0], payablePaise: 5000 }] });
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    http.expectOne((r) => r.url.endsWith('/order/0')).flush({ orderId: 'partial', keyId: 'test', amountPaise: 5000, currency: 'INR' });
+    await combined;
+    expect(options.amount).toBe(5000);
+    expect(options.order_id).toBe('partial');
+  });
+  it('never starts checkout when acceptance fails', async () => {
+    component.name = 'Client'; component.email = q.clientEmail;
+    component.acknowledgements.forEach((a) => (a.checked = true));
+    const combined = component.acceptAndPay();
+    http.expectOne((r) => r.url.endsWith('/accept')).flush({ error: 'Terms changed' }, { status: 409, statusText: 'Conflict' });
+    await combined;
+    http.expectNone((r) => r.url.includes('/order/'));
+    expect(component.error()).toBe('Terms changed');
+  });
   it('ties delivery approval to the version the client actually reviewed', async () => {
     component.review(1, true);
     const request = http.expectOne((r) => r.url.endsWith('/quotations/review/1'));

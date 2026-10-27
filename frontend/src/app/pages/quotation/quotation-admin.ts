@@ -288,19 +288,26 @@ import { AgreementTextComponent } from './agreement-text';
               >
             </fieldset>
             <section class="agreement-editor">
-              <h3>Full agreement - {{ b.clauses.length }} editable sections</h3>
+              <h3>Full agreement - {{ b.clauses.length }} sections</h3>
               <p>
-                Complete standard clauses are already filled in. Expand a section to customise it.
+                Complete standard clauses are already filled in. Payment triggers come from the schedule above; expand other sections to customise them.
                 The preview fills in the review period, revisions, schedule, contact, venue and
                 portfolio choice.
               </p>
               @for (clause of b.clauses; track clause.id; let i = $index) {
                 <details>
                   <summary>{{ i + 1 }}. {{ clause.title }}</summary>
+                  @if (clause.id === 'milestones' && editor.paymentSchedule) {
+                    <p>Generated from your payment schedule. Use the phase controls above to change these terms.</p>
+                    @for (phase of editor.paymentSchedule; track $index; let phaseIndex = $index) {
+                      <p>{{ phaseLabels[phaseIndex] }}: {{ phase.percent }}% · {{ phase.timing === 'before' ? 'Before phase starts' : 'After delivery approval' }}</p>
+                    }
+                  } @else {
                   <label
                     >{{ clause.title
                     }}<textarea [(ngModel)]="clause.text" maxlength="2500" rows="8"></textarea>
                   </label>
+                  }
                 </details>
               }
               <label
@@ -365,8 +372,7 @@ import { AgreementTextComponent } from './agreement-text';
           }
           <p>
             Default support: 30 calendar days of agreed-scope bug fixes from deployment. Review
-            every clause and your business/tax details before sharing. The final price is split 25%
-            / 25% / 40% / 10%.
+            every clause and your business/tax details before sharing. The final price follows the payment schedule above.
           </p>
           <fieldset>
             <legend>SRS requirements documents</legend>

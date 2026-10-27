@@ -24,6 +24,7 @@ spec:
       annotations:
         # Rewritten by CI on every main build so the pod template always changes
         portfolio.pratyushes.dev/deploy-sha: "a24ef933c9d70266eadcad0102699d220ab50a32"
+        portfolio.pratyushes.dev/config-revision: "live-payments-2026-10-27-1"
     spec:
       imagePullSecrets:
         - name: ghcr-pull

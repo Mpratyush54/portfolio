@@ -556,7 +556,8 @@ function createQuotationService({ gateway }) {
     index = Number(index);
     const m = q.milestones[index];
     if (body.version !== q.__v) throw httpError(409, 'Reload the latest payment status.');
-    if (q.status !== 'accepted' || !Number.isInteger(index) || !m?.approvedAt || m.paidAt ||
+    const invitedOnboarding = q.status === 'invited' && index === 0 && q.validUntil > new Date();
+    if (!Number.isInteger(index) || !m || m.paidAt || (!invitedOnboarding && (q.status !== 'accepted' || !m.approvedAt)) ||
         (index > 0 && !q.milestones[index - 1].paidAt))
       throw httpError(409, 'This milestone is not payable.');
     // An issued order can still capture later. Never replace its amount.

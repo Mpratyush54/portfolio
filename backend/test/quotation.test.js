@@ -242,6 +242,15 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     assert.equal(q.milestones[0].payments.length, 2);
     await service.release(q._id, 1, 'MVP now eligible for client review');
   });
+  it('allows admin to arrange a smaller onboarding payment before acceptance without changing terms', async () => {
+    const i = await invited();
+    const q = await service.portal(i.token);
+    const updated = await service.collection(q.id, 0, { version: q.__v, amountPaise: 5000, reason: 'Smaller onboarding payment agreed with client' });
+    assert.equal(updated.digest, i.quotation.digest);
+    await fail(service.order(i.token, 0), 409);
+    await service.accept(i.token, { name: 'Client', email: 'client@example.com', digest: updated.digest, acknowledgements: ['scope', 'payments', 'terms', 'authority'] });
+    assert.equal((await service.order(i.token, 0)).amountPaise, 5000);
+  });
   it('rejects invalid, stale and premature collection arrangements', async () => {
     const i = await accepted();
     const q = await service.portal(i.token);

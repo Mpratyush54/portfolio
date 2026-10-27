@@ -458,7 +458,7 @@ import { AgreementTextComponent } from './agreement-text';
             @if (m.feedback) {
               <p class="preserve">Client feedback: {{ m.feedback }}</p>
             }
-            @if (q.status === 'accepted' && m.approvedAt && !m.paidAt && (i === 0 || q.milestones[i - 1].paidAt)) {
+            @if (!m.paidAt && ((q.status === 'invited' && i === 0) || (q.status === 'accepted' && m.approvedAt && (i === 0 || q.milestones[i - 1].paidAt)))) {
               <fieldset>
                 <legend>{{ m.label }} collection</legend>
                 <p>Paid: {{ (m.paidPaise || 0) / 100 | currency: 'INR' }} · Balance: {{ (m.remainingPaise ?? m.amountPaise) / 100 | currency: 'INR' }} · Pay now: {{ (m.payablePaise ?? m.amountPaise) / 100 | currency: 'INR' }}</p>

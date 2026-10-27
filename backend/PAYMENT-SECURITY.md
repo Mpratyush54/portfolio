@@ -41,6 +41,8 @@ caller-provided addresses. The previous extra Kubernetes ingress hop erased
 visitor identity and grouped unrelated clients under one quota.
 `ops/configure-api-proxy.py` validates and reloads this site-only configuration;
 re-run it if the service is deleted and recreated with another ClusterIP.
+It also removes a stale duplicate domain alias in the legacy streaming proxy
+configuration, which otherwise takes precedence over the intended site server.
 Do not expose the backend service as NodePort or LoadBalancer without reviewing
 the trusted proxy boundary. Other site traffic continues through ingress.
 Cloudflare's visitor-IP header is used only when the proxy-verified source belongs to Cloudflare's published IP

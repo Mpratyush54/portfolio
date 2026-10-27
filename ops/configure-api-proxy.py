@@ -26,7 +26,13 @@ block, headers = re.subn(r'proxy_set_header X-Forwarded-For\s+[^;]+;',
 if passes != 1 or headers != 1 or len(re.findall(r'location /api/ \{', original)) != 1:
     raise SystemExit('Unexpected API proxy configuration; no changes applied.')
 updated = original[:match.start()] + block + original[match.end():]
-if updated == original:
+legacy_path = pathlib.Path('/etc/nginx/conf.d/rtmp-hls.conf')
+legacy = legacy_path.read_text() if legacy_path.exists() else ''
+# This stale alias otherwise wins Nginx's server-name selection and silently
+# bypasses the dedicated site configuration. Keep its other domain untouched.
+legacy_updated = legacy.replace('server_name api.pratyushh.online pratyushes.dev;',
+                                'server_name api.pratyushh.online;')
+if updated == original and legacy_updated == legacy:
     print('API proxy already configured.')
 else:
     backup = path.with_name(path.name + '.before-api-address-fix')
@@ -34,11 +40,19 @@ else:
         backup.write_text(original)
         backup.chmod(0o600)
     path.write_text(updated)
+    if legacy_updated != legacy:
+        legacy_backup = legacy_path.with_name(legacy_path.name + '.before-api-address-fix')
+        if not legacy_backup.exists():
+            legacy_backup.write_text(legacy)
+            legacy_backup.chmod(0o600)
+        legacy_path.write_text(legacy_updated)
     try:
         subprocess.run(['nginx', '-t'], check=True, capture_output=True)
         subprocess.run(['systemctl', 'reload', 'nginx'], check=True, capture_output=True)
     except subprocess.CalledProcessError:
         path.write_text(original)
+        if legacy_updated != legacy:
+            legacy_path.write_text(legacy)
         subprocess.run(['systemctl', 'reload', 'nginx'], capture_output=True)
         raise SystemExit('Proxy validation/reload failed; previous configuration restored.')
     print('API proxy configured, validated and reloaded.')

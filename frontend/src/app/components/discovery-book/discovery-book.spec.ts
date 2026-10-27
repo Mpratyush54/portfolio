@@ -129,10 +129,15 @@ describe('Discovery checkout', () => {
     fixture.changeDetectorRef.markForCheck();
     fixture.detectChanges();
     const trap = fixture.nativeElement.querySelector('input[name="website"]') as HTMLInputElement;
-    expect(trap.readOnly).toBe(true);
+    expect(trap.type).toBe('checkbox');
+    expect(trap.checked).toBe(false);
     expect(trap.tabIndex).toBe(-1);
     expect(trap.closest('[inert][aria-hidden="true"]')).not.toBeNull();
-    expect(form.website).toBe('');
+    // An autofill tool assigning a text value must not populate the submitted model.
+    trap.value = 'person@example.com';
+    trap.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    expect(form.website).toBe(false);
     expect(fixture.nativeElement.querySelector('input[name="name"]').readOnly).toBe(false);
     expect(fixture.nativeElement.querySelector('input[name="email"]').autocomplete).toBe('email');
   });

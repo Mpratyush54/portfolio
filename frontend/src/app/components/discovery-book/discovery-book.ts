@@ -108,7 +108,7 @@ export class DiscoveryBookComponent implements OnInit {
   email = '';
   phone = '';
   note = '';
-  website = '';
+  website = false;
   acceptTerms = false;
   paying = false;
   done = false;

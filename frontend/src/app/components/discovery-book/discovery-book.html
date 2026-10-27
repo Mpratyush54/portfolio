@@ -160,8 +160,8 @@
     <p class="lede summary">{{ selectedSummary }} · {{ priceLabel }}</p>
 
     <div class="hp" aria-hidden="true" inert>
-      <!-- Browsers can autofill off-screen text fields despite autocomplete="off". -->
-      <input type="text" name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off" readonly data-lpignore="true" data-1p-ignore />
+      <!-- A checkbox cannot receive an email value from browser text autofill. -->
+      <input type="checkbox" name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off" data-lpignore="true" data-1p-ignore />
     </div>
 
     <div class="fields">

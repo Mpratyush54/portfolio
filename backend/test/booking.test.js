@@ -62,10 +62,11 @@ describe('Booking and admin with a real MongoDB', () => {
   });
   it('rejects a populated spam field before reserving a slot and accepts the normal empty field', async () => {
     const input = await details();
+    await rejectsStatus(service.create({ ...input, website: true }), 400);
     await rejectsStatus(service.create({ ...input, website: 'https://spam.example' }), 400);
     assert.equal(sequence, 0);
     assert.equal(await Booking.countDocuments(), 0);
-    assert.ok((await service.create({ ...input, website: '' })).orderId);
+    assert.ok((await service.create({ ...input, website: false })).orderId);
     assert.equal(sequence, 1);
   });
   it('frees the reservation when order creation fails', async () => {

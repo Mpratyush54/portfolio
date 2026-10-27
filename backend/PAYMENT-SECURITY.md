@@ -27,6 +27,10 @@ is exhausted. Completed captured-payment deliveries are deduplicated in MongoDB
 for seven days, separately for booking and quotations. Concurrent delivery workers
 use a one-minute lease; failures are retriable and a crashed lease can expire.
 Payment and milestone updates remain idempotent independently of these receipts.
+Admin authentication reserves a quota slot before checking credentials and releases
+it only on success. Once ten failed attempts exhaust a source-IP window, all guesses
+from that source are blocked until reset, including a correct password; successful
+admin UI requests below that threshold do not spend the failure quota.
 
 ## Client addresses
 

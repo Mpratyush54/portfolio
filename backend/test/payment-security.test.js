@@ -66,13 +66,15 @@ describe('Distributed rate limits and webhook processing with MongoDB', () => {
     await consume({...input,scope:'another-policy'});
     await consume({...input,now:(Math.floor(now/ms)+1)*ms});
   });
-  it('shares invalid-login quotas across admin instances and still accepts correct credentials', async () => {
+  it('shares failed-login quotas across admin instances and rejects all guesses after exhaustion', async () => {
     const env={ADMIN_EMAIL:'admin@example.com',ADMIN_PASSWORD:'test-secret'};
     const make=()=>{const app=express();app.get('/admin',createAdminAuth(env),(_,res)=>res.json({ok:true}));return app;};
     const a=await listen(make()),b=await listen(make());
+    const headers={'x-admin-email':env.ADMIN_EMAIL,'x-admin-password':env.ADMIN_PASSWORD};
+    for(let i=0;i<20;i++) assert.equal((await fetch(a+'/admin',{headers})).status,200);
     for(let i=0;i<10;i++) assert.equal((await fetch((i%2?a:b)+'/admin')).status,401);
     const blocked=await fetch(b+'/admin');assert.equal(blocked.status,429);assert.ok(Number(blocked.headers.get('retry-after'))>0);
-    assert.equal((await fetch(a+'/admin',{headers:{'x-admin-email':env.ADMIN_EMAIL,'x-admin-password':env.ADMIN_PASSWORD}})).status,200);
+    assert.equal((await fetch(a+'/admin',{headers})).status,429);
   });
   it('does not let invalid-webhook throttling consume the valid delivery path', async () => {
     const now=Date.now();

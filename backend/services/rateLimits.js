@@ -20,7 +20,12 @@ async function consume({ scope, subject, limit, windowMs, now = Date.now() }) {
   if (!counter) throw httpError(503, 'Request protection is temporarily unavailable.');
   const retryAfter = Math.max(1, Math.ceil(((bucket + 1) * windowMs - now) / 1000));
   if (counter.count > limit) throw Object.assign(httpError(429, 'Too many requests. Please try again shortly.'), { retryAfter });
-  return { remaining: limit - counter.count, retryAfter };
+  return { key: id, remaining: limit - counter.count, retryAfter };
+}
+async function release(reservation) {
+  try {
+    await Counter.updateOne({ _id: reservation.key, count: { $gt: 0 } }, { $inc: { count: -1 } });
+  } catch { throw httpError(503, 'Request protection is temporarily unavailable.'); }
 }
 function respond(res, error) {
   if (error.status === 429) res.set('Retry-After', String(error.retryAfter || 60));
@@ -50,4 +55,4 @@ function apiRateLimits() {
     return guard(req, res, next);
   };
 }
-module.exports = { consume, respond, limitRequests, apiRateLimits };
+module.exports = { consume, release, respond, limitRequests, apiRateLimits };

@@ -12,12 +12,12 @@ it('admin fails closed without configured credentials', async () => {
   assert.equal((await attempt(createAdminAuth({}), 'admin123')).code, 503);
 });
 it('admin normalizes email but never trims or coerces passwords', async () => {
-  const auth = createAdminAuth({ ADMIN_EMAIL: 'admin@example.com', ADMIN_PASSWORD: ' secret ' }, { consumeLimit: async () => {} });
+  const auth = createAdminAuth({ ADMIN_EMAIL: 'admin@example.com', ADMIN_PASSWORD: ' secret ' }, { consumeLimit: async () => ({}), releaseLimit: async () => {} });
   assert.equal((await attempt(auth, ' secret ', ' ADMIN@example.com ')).next, true);
   assert.equal((await attempt(auth, 'secret')).code, 401);
 });
-it('admin reports the shared limiter rejection and keeps valid credentials usable', async () => {
+it('admin does not reveal even a correct credential when the shared budget is exhausted', async () => {
   const auth = createAdminAuth({ ADMIN_PASSWORD: 'secret' }, { consumeLimit: async () => { throw Object.assign(new Error('Too many attempts'), { status: 429, retryAfter: 123 }); } });
   assert.equal((await attempt(auth)).code, 429);
-  assert.equal((await attempt(auth, 'secret', 'mpratyush54@gmail.com')).next, true);
+  assert.equal((await attempt(auth, 'secret', 'mpratyush54@gmail.com')).code, 429);
 });

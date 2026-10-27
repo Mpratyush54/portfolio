@@ -22,6 +22,7 @@ import { AgreementTextComponent } from './agreement-text';
         <button [disabled]="busy() || !!editor" (click)="newDraft()">New quotation</button
         ><button [disabled]="busy()" (click)="load()">Refresh</button>
       </div>
+      @if (!editor && !selected()) {
       <form class="list-tools" (ngSubmit)="page = 1; load()">
         <label>Search quotations<input name="quoteSearch" [(ngModel)]="search" placeholder="Client, email, project or quotation ID" maxlength="120" /></label>
         <label>Status<select name="quoteStatus" [(ngModel)]="status"><option value="">All statuses</option><option value="draft">Draft</option><option value="invited">Invited</option><option value="accepted">Accepted</option><option value="cancelled">Superseded</option></select></label>
@@ -39,6 +40,7 @@ import { AgreementTextComponent } from './agreement-text';
       </div>
       <div class="actions"><button (click)="movePage(-1)" [disabled]="busy() || page <= 1">Previous</button><button (click)="movePage(1)" [disabled]="busy() || page >= pages">Next</button></div>
       @if (pages > 1) { <label>Go to page<input type="number" min="1" [max]="pages" [(ngModel)]="page" (change)="load()" /></label> }
+      }
       @if (error()) {
         <p role="alert" class="error">{{ error() }}</p>
       }
@@ -402,9 +404,9 @@ import { AgreementTextComponent } from './agreement-text';
           </div>
         </div>
       }
-      @if (selected(); as q) {
+      @if (!editor ? selected() : null; as q) {
         <article>
-          <button (click)="selected.set(null)" [disabled]="!!editor">Close quotation details</button>
+          <button (click)="closeSelection()">Back to quotations</button>
           <h3>{{ q.title }} · revision {{ q.revision }}</h3>
           <p>
             {{ q.clientName }} · {{ q.clientEmail }} · {{ q.status }} ·
@@ -786,6 +788,7 @@ export class QuotationAdminComponent {
   private cdr = inject(ChangeDetectorRef);
   rows = signal<Quotation[]>([]);
   selected = signal<Quotation | null>(null);
+  closeSelection() { this.selected.set(null); this.inviteUrl.set(''); this.invitationRows.set([]); this.paymentEmails.set([]); }
   invitationRows = signal<any[]>([]);
   paymentEmails = signal<any[]>([]);
   async receiptPdf(q: Quotation, paymentId: string) {
@@ -821,6 +824,7 @@ export class QuotationAdminComponent {
   movePage(delta: number) { this.page += delta; void this.load(); }
   async open(row: Quotation) {
     await this.run(async () => {
+      this.inviteUrl.set('');
       this.invitationRows.set([]); this.paymentEmails.set([]);
       this.selected.set(await this.request('get', `/${row._id}`));
       const [links, receipts] = await Promise.all([this.request('get', `/${row._id}/invitations`), this.request('get', `/${row._id}/receipts`)]);
@@ -980,6 +984,7 @@ export class QuotationAdminComponent {
   }
   async newDraft() {
     await this.run(async () => {
+      this.inviteUrl.set('');
       const d = await this.request('get', '/defaults');
       this.catalog = d.catalog;
       const previous = this.rows().find((q) => q.builder)?.builder;

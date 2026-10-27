@@ -37,6 +37,14 @@ describe('Admin asynchronous requests', () => {
     expect(component.contacts).toEqual([]);
     expect(component.isAuthenticated).toBe(false);
   });
+  it('clears in-flight assignment and notification state when signing out', () => {
+    component.busyBooking='old';component.savingNotifications=true;
+    component.loadNotifications();
+    const request=http.expectOne(r=>r.url.endsWith('/admin/notification-settings'));
+    component.logout();request.flush({sender:'private@example.com'});
+    expect(component.busyBooking).toBe('');expect(component.savingNotifications).toBe(false);
+    expect(component.notificationSettings).toBeNull();
+  });
   it('blocks saving until settings have loaded and rejects blank fees', () => {
     component.saveBookingSettings(); http.expectNone(req => req.method === 'PUT');
     component.loadBookingSettings();

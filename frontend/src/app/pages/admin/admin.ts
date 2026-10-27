@@ -441,6 +441,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   private bookingRequest = 0;
   private session = 0;
   private settingsRequest = 0;
+  private notificationRequest = 0;
 
   ngOnInit() {}
   ngOnDestroy() { this.logout(); }
@@ -486,10 +487,15 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.contactRequest++;
     this.bookingRequest++;
     this.settingsRequest++;
+    this.notificationRequest++;
     this.isAuthenticated = false;
     this.password = '';
     this.contacts = [];
     this.bookings = [];
+    this.busyBooking = '';
+    this.notificationSettings = null;
+    this.savingNotifications = false;
+    this.notificationMessage = '';
     this.settingsLoaded = false;
     this.busyId = null;
     this.syncStatus = null;
@@ -630,11 +636,13 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
   loadNotifications() {
     const session = this.session;
-    this.http.get(`${this.apiUrl}/admin/notification-settings`, {headers:this.headers()}).subscribe({next: row => { if (session === this.session && this.isAuthenticated) this.notificationSettings = row; }, error: () => { this.notificationMessage = 'Could not load email settings.'; }});
+    const request = ++this.notificationRequest;
+    this.http.get(`${this.apiUrl}/admin/notification-settings`, {headers:this.headers()}).subscribe({next: row => { if (request === this.notificationRequest && session === this.session && this.isAuthenticated) this.notificationSettings = row; }, error: () => { if (request === this.notificationRequest && session === this.session && this.isAuthenticated) this.notificationMessage = 'Could not load email settings.'; }});
   }
   saveNotifications() {
     if (this.savingNotifications || !this.notificationSettings) return;
     this.savingNotifications = true;
+    ++this.notificationRequest;
     const session = this.session;
     this.http.put(`${this.apiUrl}/admin/notification-settings`, this.notificationSettings, {headers:this.headers()}).subscribe({next: row => { if (session !== this.session) return; this.notificationSettings = row; this.savingNotifications = false; this.notificationMessage = 'Daily summary time saved.'; }, error: e => { if (session !== this.session) return; this.savingNotifications = false; this.notificationMessage = e.error?.error || 'Could not save email settings.'; }});
   }

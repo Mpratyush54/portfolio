@@ -223,6 +223,15 @@ app-agreement-text {
   margin-top: 24px;
 }
 .payment-summary small { display: block; margin-top: 5px; font-size: 11px; color: #576576; }
+.minimum-note {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid #b7791f;
+  background: #fffaf0;
+  color: #6b4e16;
+  font-size: 12px;
+  line-height: 1.5;
+}
 .payment-summary > div {
   display: grid;
   grid-template-columns: 1.6fr 0.7fr 1fr;

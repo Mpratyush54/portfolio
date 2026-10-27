@@ -13,8 +13,26 @@ it('attaches a receipt and identifies the configured sender after a verified boo
   const review=messages.pop();assert.match(review.html,/selected time could not be confirmed/);assert.doesNotMatch(review.html,/Your discovery call is confirmed/);assert.equal(review.attachments.length,1);
 });
 it('invitation email explains review, changes and acceptance without automatic payment', async () => {
-  await mailer.sendQuotationInvitation({title:'Client portal',clientName:'Client',clientEmail:'client@example.com'},'https://example.com/proposal#private-token');
-  const message=messages.pop();assert.match(message.text,/requested changes/);assert.match(message.text,/does not automatically charge/);assert.match(message.html,/proposal#private-token/);
+  await mailer.sendQuotationInvitation({title:'Client portal',clientName:'Client',clientEmail:'client@example.com',validUntil:'2026-12-01'},'https://example.com/proposal#private-token');
+  const message=messages.pop();
+  assert.match(message.from,/Pratyush Mishra/);
+  assert.equal(message.replyTo,'owner@example.com');
+  assert.match(message.subject,/Your quotation/);
+  assert.match(message.text,/requested changes/);
+  assert.match(message.text,/does not automatically charge/);
+  assert.match(message.text,/valid until 1 December 2026/);
+  assert.match(message.text,/Sent because a quotation was prepared/);
+  assert.match(message.html,/proposal#private-token/);
+  assert.match(message.html,/Review quotation and agreement/);
+  assert.match(message.html,/Pratyushes\.dev/);
+});
+it('invitation email escapes client values and omits an invalid validity date', async () => {
+  await mailer.sendQuotationInvitation({title:'<b>Client portal</b>',clientName:'<Client>',clientEmail:'client@example.com',validUntil:'not-a-date'},'https://example.com/proposal#private-token');
+  const message=messages.pop();
+  assert.match(message.html,/&lt;Client&gt;/);
+  assert.doesNotMatch(message.html,/<Client>/);
+  assert.match(message.html,/&lt;b&gt;Client portal&lt;\/b&gt;/);
+  assert.doesNotMatch(message.text,/valid until/);
 });
 it('a bookings-only summary sends mail and an empty period sends none', async () => {
   const before=messages.length; await mailer.sendDailyDigest([],[]);assert.equal(messages.length,before);

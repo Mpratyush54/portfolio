@@ -79,6 +79,20 @@ it('recovers each invitation independently and revokes one without invalidating 
   await assert.rejects(links.owned(other._id,b.invitation),e=>e.status===404);
   await service.revoke(q._id); await assert.rejects(service.portal(b.token),e=>e.status===404);
 });
+it('queues the invitation email immediately when requested', async () => {
+  const service = createQuotationService({ gateway: () => null });
+  const q = await service.create(body());
+  const original = links.notify;
+  let notified = null;
+  links.notify = async (invite) => { notified = invite; };
+  try {
+    const result = await service.invite(q._id, q.__v, { sendEmail: true });
+    assert.ok(notified);
+    assert.equal(String(notified._id), String(result.invitation));
+  } finally {
+    links.notify = original;
+  }
+});
 it('queues one receipt per captured payment and retries only the failed delivery', async () => {
   const q = await Quote.create({...body(), milestones:[{label:'Onboarding',amountPaise:100003,payments:[{paymentId:'pay_receipt',orderId:'order_receipt',amountPaise:50000,at:new Date()}]}]});
   const payment = q.milestones[0].payments[0];

@@ -1,13 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { AdminComponent } from './admin';
 
 describe('Admin asynchronous requests', () => {
   let component: AdminComponent;
   let http: HttpTestingController;
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     component = TestBed.runInInjectionContext(() => new AdminComponent());
     component.isAuthenticated = true; component.password = 'secret';
     http = TestBed.inject(HttpTestingController);
@@ -61,5 +62,13 @@ describe('Admin asynchronous requests', () => {
     expect(request.request.body.version).toBe(2);
     request.flush({ error: 'Reload settings' }, { status: 409, statusText: 'Conflict' });
     expect(component.settingsLoaded).toBe(false);
+  });
+  it('shows the restore screen instead of the login form while a session is restored', () => {
+    const fixture = TestBed.createComponent(AdminComponent);
+    fixture.componentInstance.restoring = true;
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.admin-boot')).not.toBeNull();
+    expect(el.querySelector('.login-card')).toBeNull();
   });
 });

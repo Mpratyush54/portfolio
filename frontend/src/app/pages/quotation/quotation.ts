@@ -9,6 +9,8 @@ import { AgreementTextComponent } from './agreement-text';
 
 export const quoteApi = () =>
   location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
+export const quotationRef = (quote: { _id?: string }) =>
+  `PM-${String(quote?._id || '').slice(-6).toUpperCase()}`;
 export type Milestone = {
   label: string;
   percent: number;
@@ -17,6 +19,7 @@ export type Milestone = {
   paidPaise?: number;
   remainingPaise?: number;
   payablePaise?: number;
+  collectionPaise?: number;
   orderId?: string;
   collections?: { amountPaise: number; reason: string; at: string }[];
   payments?: { orderId: string; paymentId: string; amountPaise: number; at: string }[];
@@ -44,6 +47,7 @@ export type Quotation = {
   timeline: string;
   terms: string;
   totalPaise: number;
+  minimumOnboardingPaise?: number;
   validUntil: string;
   revision: number;
   status: string;
@@ -118,6 +122,10 @@ export type Quotation = {
                 <dd class="project-total">{{ q.totalPaise / 100 | currency: 'INR' }}</dd>
               </div>
               <div>
+                <dt>Reference</dt>
+                <dd>{{ reference(q) }}</dd>
+              </div>
+              <div>
                 <dt>Document revision</dt>
                 <dd>{{ q.revision }}</dd>
               </div>
@@ -188,6 +196,13 @@ export type Quotation = {
                 </div>
               }
             </div>
+            @if (q.minimumOnboardingPaise) {
+              <p class="minimum-note">
+                Minimum payable at onboarding:
+                {{ q.minimumOnboardingPaise / 100 | currency: 'INR' }}. The onboarding phase cannot
+                be paid below this amount.
+              </p>
+            }
             <h3 class="subsection">Delivery and payment status</h3>
             <ol class="milestones">
               @for (m of q.milestones; track $index; let i = $index) {
@@ -372,6 +387,7 @@ export class QuotationComponent {
   private route = inject(ActivatedRoute, { optional: true });
   readonly isExample = this.route?.snapshot.data['example'] === true;
   private token = typeof location !== 'undefined' ? location.hash.slice(1) : '';
+  readonly reference = quotationRef;
   quote = signal<Quotation | null>(null);
   busy = signal(false);
   error = signal('');
@@ -587,7 +603,11 @@ export class QuotationComponent {
         currency: order.currency,
         name: 'Project payment',
         description: this.quote()!.milestones[index].label,
-        prefill: { name: this.quote()!.clientName, email: this.quote()!.clientEmail },
+        prefill: {
+          name: this.quote()!.acceptance?.name || this.quote()!.clientName,
+          email: this.quote()!.acceptance?.email || this.quote()!.clientEmail,
+        },
+        remember_customer: false,
         handler: async (result: any) => {
           this.pendingPayment = result;
           this.busy.set(false);

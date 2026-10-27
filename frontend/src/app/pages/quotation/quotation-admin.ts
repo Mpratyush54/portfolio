@@ -1,9 +1,10 @@
-import { Component, Input, inject, signal, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, inject, signal, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { quoteApi, Quotation } from './quotation';
+import { quoteApi, Quotation, quotationRef } from './quotation';
 import { cleanDraftText, downloadQuotationFile } from './quotation-files';
 import { AgreementTextComponent } from './agreement-text';
 
@@ -13,45 +14,59 @@ import { AgreementTextComponent } from './agreement-text';
   imports: [CommonModule, FormsModule, AgreementTextComponent],
   template: `
     <section class="quotes-admin">
-      <h2>Project quotations and invitations</h2>
-      <p>
-        Create a custom agreement, preview its full terms, then copy a private invite to share with
-        the client. Inviting freezes its terms.
-      </p>
-      <div class="actions">
-        <button [disabled]="busy() || !!editor" (click)="newDraft()">New quotation</button
-        ><button [disabled]="busy()" (click)="load()">Refresh</button>
-      </div>
-      @if (!editor && !selected()) {
-      <form class="list-tools" (ngSubmit)="page = 1; load()">
-        <label>Search quotations<input name="quoteSearch" [(ngModel)]="search" placeholder="Client, email, project or quotation ID" maxlength="120" /></label>
-        <label>Status<select name="quoteStatus" [(ngModel)]="status"><option value="">All statuses</option><option value="draft">Draft</option><option value="invited">Invited</option><option value="accepted">Accepted</option><option value="cancelled">Superseded</option></select></label>
-        <label>Created from<input type="date" name="quoteFrom" [(ngModel)]="from" /></label><label>Created to<input type="date" name="quoteTo" [(ngModel)]="to" /></label>
-        <button [disabled]="busy()">Search</button>
-      </form>
-      <p class="list-meta" aria-live="polite">{{ total }} quotations · page {{ page }} of {{ pages }}</p>
-      <div class="quote-list">
-        @for (row of rows(); track row._id) {
-          <button class="quote-row" [class.selected]="selected()?._id === row._id" (click)="open(row)" [disabled]="busy() || !!editor">
-            <span><strong>{{ row.title }}</strong><small>{{ row.clientName }} · {{ row.clientEmail }}</small></span>
-            <span>{{ row.status }} · {{ row.totalPaise / 100 | currency:'INR' }}<small>Revision {{ row.revision }}</small></span>
-          </button>
-        } @empty { <p>No quotations match these filters.</p> }
-      </div>
-      <div class="actions"><button (click)="movePage(-1)" [disabled]="busy() || page <= 1">Previous</button><button (click)="movePage(1)" [disabled]="busy() || page >= pages">Next</button></div>
-      @if (pages > 1) { <label>Go to page<input type="number" min="1" [max]="pages" [(ngModel)]="page" (change)="load()" /></label> }
+      @if (!editor && !selected() && mode === 'list') {
+        <div class="list-head">
+          <div>
+            <h2>Saved quotations</h2>
+            <p>Open a quotation to review it, or start a new draft. Drafts autosave while you work.</p>
+          </div>
+          <div class="actions">
+            <button [disabled]="busy()" (click)="newDraft()">New quotation</button>
+            <button [disabled]="busy()" (click)="load()">Refresh</button>
+          </div>
+        </div>
+        <form class="list-tools" (ngSubmit)="page = 1; load()">
+          <label>Search quotations<input name="quoteSearch" [(ngModel)]="search" placeholder="Client, email, project or quotation ID" maxlength="120" /></label>
+          <label>Status<select name="quoteStatus" [(ngModel)]="status"><option value="">All statuses</option><option value="draft">Draft</option><option value="invited">Invited</option><option value="accepted">Accepted</option><option value="cancelled">Superseded</option></select></label>
+          <label>Created from<input type="date" name="quoteFrom" [(ngModel)]="from" /></label><label>Created to<input type="date" name="quoteTo" [(ngModel)]="to" /></label>
+          <button [disabled]="busy()">Search</button>
+        </form>
+        <p class="list-meta" aria-live="polite">{{ total }} quotations · page {{ page }} of {{ pages }}</p>
+        <div class="quote-list">
+          @for (row of rows(); track row._id) {
+            <div class="quote-row" [class.selected]="selected()?._id === row._id">
+              <button type="button" class="quote-open" (click)="open(row)" [disabled]="busy()">
+                <span><strong>{{ row.title }}</strong><small>{{ reference(row) }} · {{ row.clientName }} · {{ row.clientEmail }}</small></span>
+                <span class="quote-summary">{{ row.status }} · {{ row.totalPaise / 100 | currency:'INR' }}<small>Revision {{ row.revision }}</small></span>
+              </button>
+              @if (row.status === 'draft') {
+                <button type="button" class="row-delete" (click)="deleteDraft(row)" [disabled]="busy()" [attr.aria-label]="'Delete draft ' + (row.title || 'Untitled quotation')">Delete</button>
+              }
+            </div>
+          } @empty { <p>No quotations match these filters.</p> }
+        </div>
+        <nav class="pager" aria-label="Quotation pagination">
+          <button type="button" (click)="movePage(-1)" [disabled]="busy() || page <= 1">Previous</button>
+          @for (p of pageItems(page, pages); track $index) {
+            @if (p === '…') { <span class="pager-gap">…</span> }
+            @else { <button type="button" [class.on]="p === page" (click)="goPage(p)" [disabled]="busy()">{{ p }}</button> }
+          }
+          <button type="button" (click)="movePage(1)" [disabled]="busy() || page >= pages">Next</button>
+        </nav>
+      }
+      @if (!editor && !selected() && mode !== 'list') {
+        <p class="list-meta" aria-live="polite">
+          {{ busy() ? 'Loading quotation...' : 'This quotation could not be loaded.' }}
+        </p>
+        <button type="button" class="back-link" (click)="closeSelection()" [disabled]="busy()">
+          ← All quotations
+        </button>
       }
       @if (error()) {
         <p role="alert" class="error">{{ error() }}</p>
       }
-      @if (inviteUrl()) {
-        <label
-          >Private invitation — anyone holding this link can access this client's project. Share
-          only with the client.<input
-            readonly
-            [value]="inviteUrl()"
-            (click)="select($event)" /></label
-        ><button (click)="copy()">{{ copied() ? 'Copied' : 'Copy invitation' }}</button>
+      @if (notice()) {
+        <p role="status" class="notice">{{ notice() }}</p>
       }
       @if (editor) {
         <div
@@ -60,19 +75,22 @@ import { AgreementTextComponent } from './agreement-text';
           (change)="changed($event)"
           (focusout)="cleanField($event)"
         >
-          <div class="save-bar">
-            <div>
-              <strong>{{
-                savingDraft() ? 'Saving...' : dirty() ? 'Unsaved changes' : 'All changes saved'
-              }}</strong
-              ><small>Drafts save automatically, including unfinished fields.</small>
+          <div class="editor-bar">
+            <button type="button" class="back-link" (click)="closeEditor('list')" [disabled]="busy() || savingDraft()">← All quotations</button>
+            <div class="editor-identity">
+              <p class="eyebrow">{{ editingId ? 'Editing draft' : 'New quotation' }}</p>
+              <h3>{{ editor.title || 'Untitled quotation' }}</h3>
+              <p class="editor-meta">{{ editorReference() }}</p>
             </div>
-            <button [disabled]="busy() || savingDraft() || conflict()" (click)="save()">
-              Save now</button
-            ><button [disabled]="busy() || savingDraft()" (click)="closeEditor()">
-              Close editor
-            </button>
+            <div class="editor-actions">
+              <span class="save-state" [class.warn]="dirty()" [class.error]="saveError()" aria-live="polite">{{ saveStateLabel() }}</span>
+              <button [disabled]="busy() || savingDraft() || conflict() || !dirty()" (click)="save()">Save now</button>
+              <button class="primary" [disabled]="busy() || savingDraft()" (click)="closeEditor()">{{ editingId ? 'Save & close' : 'Finish draft' }}</button>
+            </div>
           </div>
+          <p class="autosave-note">
+            Changes autosave about a second after you stop typing. <strong>Save &amp; close</strong> saves and returns to the quotation; <strong>All quotations</strong> saves and returns to the list.
+          </p>
           @if (saveError()) {
             <p class="error" role="alert">{{ saveError() }}</p>
             @if (!conflict()) {
@@ -88,7 +106,7 @@ import { AgreementTextComponent } from './agreement-text';
             </p>
           }
 
-          <h3>{{ editingId ? 'Edit draft' : 'New draft' }}</h3>
+          <h3 class="form-title">Project details</h3>
           <label>Project title<input [(ngModel)]="editor.title" maxlength="160" /></label>
           <div class="fields">
             <label>Client name<input [(ngModel)]="editor.clientName" maxlength="120" /></label
@@ -101,14 +119,15 @@ import { AgreementTextComponent } from './agreement-text';
                 min="100"
                 max="1000000"
                 step="0.01"
-                [(ngModel)]="editor.totalRupees" /></label
+                [(ngModel)]="editor.totalRupees"
+                (ngModelChange)="minimumChanged()" /></label
             ><label>Valid until<input type="date" [(ngModel)]="editor.validDate" /></label>
           </div>
           @if (editor.builder; as b) {
             @if (editor.paymentSchedule) {
             <fieldset>
               <legend>Payment schedule</legend>
-              <p>Set the four phase percentages and when each payment is due. Changes apply to this draft and freeze when invited.</p>
+              <p>Set the four phase percentages and when each payment is due. Saved changes apply immediately. Invited or accepted plans can be adjusted from the quotation page until a payment or collection arrangement starts.</p>
               <label>Initial payment: {{ editor.paymentSchedule[0].percent }}%
                 <input type="range" min="1" max="97" [ngModel]="editor.paymentSchedule[0].percent" (ngModelChange)="initialPercent($event)" />
               </label>
@@ -119,6 +138,14 @@ import { AgreementTextComponent } from './agreement-text';
                 </div>
               }
               <p [class.error]="scheduleTotal() !== 100">Total: {{ scheduleTotal() }}% · must equal 100%. A before-phase payment still requires the client's explicit approval of the phase plan.</p>
+              <label>Minimum payable at onboarding (INR, optional)
+                <input type="number" min="0" step="0.01" [max]="editor.totalRupees" [(ngModel)]="editor.minimumOnboardingRupees" (ngModelChange)="minimumChanged()" placeholder="e.g. 10000" />
+              </label>
+              @if (minimumError()) {
+                <p class="error">{{ minimumError() }}</p>
+              } @else if (editor.minimumOnboardingRupees) {
+                <p class="hint">First phase is {{ onboardingAmount() / 100 | currency: 'INR' }}. The client cannot pay less than this at onboarding.</p>
+              }
             </fieldset>
             }
             <fieldset>
@@ -401,27 +428,102 @@ import { AgreementTextComponent } from './agreement-text';
               </div>
             }
           </fieldset>
-          <div class="actions">
-            <button [disabled]="busy() || savingDraft() || conflict()" (click)="save()">
-              Save now</button
-            ><button [disabled]="busy() || savingDraft()" (click)="closeEditor()">
-              Close editor
-            </button>
-          </div>
         </div>
       }
       @if (!editor ? selected() : null; as q) {
         <article>
-          <button (click)="closeSelection()">Back to quotations</button>
-          <h3>{{ q.title }} · revision {{ q.revision }}</h3>
-          <p>
-            {{ q.clientName }} · {{ q.clientEmail }} · {{ q.status }} ·
-            {{ (q.totalPaise || 0) / 100 | currency: 'INR' }}
-          </p>
+          <button type="button" class="back-link" (click)="closeSelection()" [disabled]="busy()">← All quotations</button>
+          <div class="detail-head">
+            <p class="eyebrow">Quotation · revision {{ q.revision }}</p>
+            <h3>{{ q.title }}</h3>
+            <p class="detail-meta">Reference {{ reference(q) }} · {{ q.clientName }} · {{ q.clientEmail }}</p>
+            <p class="detail-meta"><span class="state">{{ q.status }}</span> · {{ (q.totalPaise || 0) / 100 | currency: 'INR' }}</p>
+          </div>
           @if (q.draftReady === false) {
             <p class="draft-note">
               Incomplete draft - finish the required fields before inviting or exporting.
             </p>
+          }
+          <div class="actions detail-actions">
+            @if (q.status === 'draft') {
+              <button class="primary" [disabled]="busy()" (click)="openEdit(q)">Edit draft</button>
+              <button class="danger" [disabled]="busy()" (click)="deleteDraft(q)">Delete draft</button>
+            }
+              @if (q.status === 'draft') {
+                <button [disabled]="busy() || q.draftReady === false" (click)="invite(q)">
+                  Create private invitation
+                </button>
+              }
+              @if (q.status === 'invited' || q.status === 'accepted') {
+                <button [disabled]="busy() || q.draftReady === false" (click)="invite(q)">
+                  Create another private invitation</button
+                >
+                @if (canChangePlan(q)) {
+                  <button [disabled]="busy()" (click)="startPlan(q)">Change payment plan</button>
+                }
+                <button [disabled]="busy() || q.draftReady === false" (click)="revise(q)">
+                  Create a new revision
+                </button>
+                <button [disabled]="busy()" (click)="revoke(q)">Revoke all invitation links</button>
+              }
+            </div>
+            @if (planDraft) {
+              <fieldset class="plan-editor">
+                <legend>Change payment composition</legend>
+                <p>
+                  Update the four phase percentages and timing without creating a revision. The
+                  scope, total and other terms stay unchanged.
+                </p>
+                @if (q.status === 'accepted') {
+                  <p class="draft-note">
+                    This quotation is already accepted. Change the plan only with the client's
+                    agreement and before a payment starts.
+                  </p>
+                }
+                @for (phase of planDraft; track $index; let i = $index) {
+                  <div class="fields">
+                    <label
+                      >{{ phaseLabels[i] }} (%)<input
+                        type="number"
+                        min="1"
+                        max="97"
+                        [(ngModel)]="phase.percent"
+                    /></label>
+                    <label
+                      >Payment timing<select
+                        [(ngModel)]="phase.timing"
+                        [disabled]="i === 0 || i === 3"
+                      >
+                        <option value="before">Before phase starts</option>
+                        <option value="after">After delivery approval</option>
+                      </select></label
+                    >
+                  </div>
+                }
+                <p [class.error]="planTotal() !== 100">
+                  Total: {{ planTotal() }}% - must equal 100%.
+                </p>
+                <p>
+                  Existing invitation links show the new plan. Ask the client to reload any open
+                  copy.
+                </p>
+                <div class="actions">
+                  <button [disabled]="busy() || planTotal() !== 100" (click)="savePlan(q)">
+                    Save payment plan</button
+                  ><button [disabled]="busy()" (click)="cancelPlan()">Cancel</button>
+                </div>
+              </fieldset>
+            }
+          @if (inviteUrl()) {
+            <fieldset class="invite-copy">
+              <legend>Private invitation</legend>
+              <p>Anyone holding this link can access this client's project. Share only with the client.</p>
+              <input readonly [value]="inviteUrl()" (click)="select($event)" />
+              <div class="actions">
+                <button (click)="copy()">{{ copied() ? 'Copied' : 'Copy invitation' }}</button>
+                <button (click)="shareWhatsApp(q, inviteUrl())">Share on WhatsApp</button>
+              </div>
+            </fieldset>
           }
           <details>
             <summary>Preview full quotation</summary>
@@ -437,33 +539,9 @@ import { AgreementTextComponent } from './agreement-text';
             <p class="preserve">{{ q.terms }}</p>
             <p>Valid until {{ q.validUntil | date: 'mediumDate' }}</p>
           </details>
-          <div class="actions">
-            @if (q.status === 'draft') {
-              <button [disabled]="busy() || !!editor" (click)="edit(q)">Edit draft</button>
-            }
-            @if (q.status !== 'cancelled') {
-              <button [disabled]="busy() || !!editor || q.draftReady === false" (click)="invite(q)">
-                {{
-                  q.status === 'draft'
-                    ? 'Freeze terms and create invite'
-                    : 'Create another private invitation'
-                }}</button
-              ><button
-                [disabled]="busy() || !!editor || q.draftReady === false"
-                (click)="revise(q)"
-              >
-                Create revision
-              </button>
-            }
-            @if (q.status === 'invited' || q.status === 'accepted') {
-              <button [disabled]="busy() || !!editor" (click)="revoke(q)">
-                Revoke all invitation links
-              </button>
-            }
-          </div>
           @if (q.status === 'invited' || q.status === 'accepted') {
             <fieldset><legend>Invitation links</legend>
-              <label>New link label<input [(ngModel)]="invitationLabel" placeholder="e.g. Client finance team" maxlength="100" /></label>
+              <label>New link label (defaults to project title)<input [(ngModel)]="invitationLabel" placeholder="Defaults to the project title" maxlength="100" /></label>
               <label class="check"><input type="checkbox" [(ngModel)]="emailInvitation" /> Email new invitations to {{ q.clientEmail }}</label>
               <button (click)="loadInvitations(q)" [disabled]="busy()">Load invitation history</button>
               @for (link of invitationRows(); track link._id) {
@@ -471,6 +549,7 @@ import { AgreementTextComponent } from './agreement-text';
                   <span>{{ link.revokedAt ? 'Revoked' : 'Expires ' + (link.expiresAt | date:'mediumDate') }} · Email: {{ link.emailStatus }}</span>
                   @if (!link.revokedAt) {
                     <button (click)="linkAction(q, link, 'copy')" [disabled]="busy() || link._id === 'legacy'">Copy this link</button>
+                    <button (click)="shareLink(q, link)" [disabled]="busy() || link._id === 'legacy'">Share on WhatsApp</button>
                     <button (click)="linkAction(q, link, 'email')" [disabled]="busy() || link._id === 'legacy' || link.emailStatus === 'sending'">Email this link</button>
                     <button (click)="linkAction(q, link, 'revoke')" [disabled]="busy()">Revoke this link</button>
                   }
@@ -497,6 +576,9 @@ import { AgreementTextComponent } from './agreement-text';
                 SRS: {{ file.name }}
               </button>
             </p>
+          }
+          @if (q.minimumOnboardingPaise) {
+            <p>Minimum at onboarding: {{ q.minimumOnboardingPaise / 100 | currency: 'INR' }}</p>
           }
           @if (q.acceptance) {
             <p>Accepted by {{ q.acceptance.name }} on {{ q.acceptance.at | date: 'medium' }}</p>
@@ -582,32 +664,147 @@ import { AgreementTextComponent } from './agreement-text';
         line-height: 1.6;
         color: #bdc9da;
       }
-      article,
-      .editor {
+      article {
         border-top: 1px solid #465064;
         margin-top: 24px;
         padding-top: 16px;
       }
-      .save-bar {
+      .editor {
+        margin-top: 12px;
+      }
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 4px 0;
+        background: transparent;
+        color: #cee9ff;
+        border: 0;
+        font-weight: 600;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
+      .list-head {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+      }
+      .list-head h2 {
+        margin: 0;
+      }
+      .list-head p {
+        margin: 6px 0 0;
+      }
+      .list-head .actions {
+        margin: 0;
+      }
+      .editor-bar {
         position: sticky;
         top: 0;
-        z-index: 2;
+        z-index: 3;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 12px;
-        padding: 14px;
+        gap: 10px 16px;
+        padding: 12px 14px;
         background: #172230;
         border: 1px solid #617188;
         border-radius: 12px;
+        box-shadow: 0 10px 28px rgba(7, 12, 20, 0.28);
       }
-      .save-bar div {
-        flex: 1 1 180px;
+      .editor-identity {
+        flex: 1 1 220px;
+        min-width: 0;
       }
-      .save-bar small {
-        display: block;
-        margin-top: 4px;
-        color: #bdc9da;
+      .editor-identity h3 {
+        margin: 2px 0;
+        font-size: 1.05rem;
+        overflow-wrap: anywhere;
+      }
+      .editor-meta {
+        margin: 2px 0 0;
+        color: #a5b7ca;
+        font-size: 0.78rem;
+      }
+      .eyebrow {
+        margin: 0;
+        color: #9fb6cc;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .editor-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+      }
+      .save-state {
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: #26364a;
+        color: #d8e8f8;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .save-state.warn {
+        background: #3a331c;
+        color: #ffe2a3;
+      }
+      .save-state.error {
+        background: #3d2028;
+        color: #ffbebe;
+      }
+      .autosave-note {
+        margin: 10px 0 0;
+        color: #a5b7ca;
+        font-size: 13px;
+      }
+      .form-title {
+        margin-top: 24px;
+      }
+      .detail-head {
+        margin: 8px 0 16px;
+      }
+      .detail-head h3 {
+        margin: 2px 0 6px;
+        font-size: clamp(1.45rem, 3vw, 1.9rem);
+      }
+      .detail-meta {
+        margin: 3px 0;
+        color: #a5b7ca;
+        font-size: 0.9rem;
+      }
+      .state {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #2b3849;
+        color: #dcefff;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .detail-actions {
+        margin-top: 12px;
+      }
+      .primary {
+        background: #d9efff;
+        font-weight: 650;
+      }
+      .danger {
+        background: transparent;
+        border: 1px solid #a25d68;
+        color: #ffbebe;
+      }
+      .danger:hover {
+        background: #3a2028;
       }
       .draft-note {
         padding: 12px;
@@ -699,11 +896,21 @@ import { AgreementTextComponent } from './agreement-text';
       .list-tools { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin:24px 0 12px; }
       .list-tools label { flex:1; min-width:180px; }
       .list-meta { color:#a5a7b5; font-size:14px; }
+      .quote-ref { color:#a5a7b5; font-size:13px; letter-spacing:0.04em; text-transform:uppercase; }
+      .hint { color:#a5a7b5; font-size:13px; margin:4px 0 0; }
+      .pager { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:16px 0; }
+      .pager button { min-width:40px; padding:8px 10px; min-height:38px; }
+      .pager button.on { background:#f0f4f8; }
+      .pager-gap { color:#a5a7b5; padding:0 4px; }
       .quote-list { border-top:1px solid #353641; }
-      button.quote-row { display:flex; justify-content:space-between; gap:20px; width:100%; text-align:left; border:0; border-bottom:1px solid #353641; border-radius:0; padding:16px 12px; background:transparent; color:inherit; }
+      .quote-row { display:flex; align-items:stretch; gap:4px; border-bottom:1px solid #353641; }
+      .quote-row.selected { background:#242530; }
+      .quote-open { display:flex; flex:1; justify-content:space-between; gap:20px; min-width:0; padding:16px 12px; background:transparent; color:inherit; border:0; border-radius:0; text-align:left; }
       .quote-row small { display:block; margin-top:5px; color:#a5a7b5; overflow-wrap:anywhere; }
       .quote-row span:first-child { flex:1; min-width:0; overflow-wrap:anywhere; }
-      button.quote-row.selected { background:#242530; }
+      .row-delete { align-self:center; flex:0 0 auto; min-height:38px; margin:0 8px; padding:6px 10px; background:transparent; border:1px solid #75505a; color:#ffbebe; font-size:13px; }
+      .row-delete:hover { background:#3a2028; }
+      .invite-copy input { margin:10px 0; }
       .invitation-row { padding:16px 0; border-top:1px solid #353641; }
       .invitation-row span { display:block; margin:8px 0; }
       .generated-preview {
@@ -760,22 +967,38 @@ import { AgreementTextComponent } from './agreement-text';
       .error {
         color: #ffbebe;
       }
+      .notice {
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #1e3328;
+        color: #b8f5d0;
+      }
       summary {
         cursor: pointer;
         min-height: 44px;
       }
       @media (max-width: 600px) {
-        .save-bar {
+        .editor-bar {
           padding: 10px;
           gap: 8px;
         }
-        .save-bar div {
+        .editor-identity {
           flex-basis: 100%;
+          order: 2;
         }
-        .save-bar small {
-          display: none;
+        .editor-bar .back-link {
+          order: 1;
         }
-        .save-bar button {
+        .editor-actions {
+          order: 3;
+          width: 100%;
+          margin-left: 0;
+        }
+        .save-state {
+          flex: 1;
+          text-align: center;
+        }
+        .editor-actions button {
           padding: 8px;
           flex: 1;
           font-size: 14px;
@@ -788,15 +1011,86 @@ import { AgreementTextComponent } from './agreement-text';
     `,
   ],
 })
-export class QuotationAdminComponent {
+export class QuotationAdminComponent implements OnChanges {
   @Input({ required: true }) headers!: HttpHeaders;
+  @Input() quotationId = '';
+  @Input() mode: 'list' | 'new' | 'detail' | 'edit' = 'list';
   private http = inject(HttpClient);
+  private router = inject(Router, { optional: true });
   private cdr = inject(ChangeDetectorRef);
+  private routeReady = false;
+  private appliedRoute = '';
   rows = signal<Quotation[]>([]);
   selected = signal<Quotation | null>(null);
-  closeSelection() { this.selected.set(null); this.inviteUrl.set(''); this.invitationRows.set([]); this.paymentEmails.set([]); }
+  closeSelection(navigate = true) {
+    this.selected.set(null);
+    this.inviteUrl.set('');
+    this.invitationRows.set([]);
+    this.paymentEmails.set([]);
+    this.planDraft = null;
+    this.notice.set('');
+    if (navigate && this.useRoutes() && this.mode !== 'list') {
+      void this.router!.navigate(['/admin/quotations']);
+      return;
+    }
+    this.scrollTop();
+  }
   invitationRows = signal<any[]>([]);
   paymentEmails = signal<any[]>([]);
+  notice = signal('');
+  planDraft: any[] | null = null;
+  canChangePlan(q: Quotation) {
+    return (
+      (q.status === 'invited' || q.status === 'accepted') &&
+      !q.milestones.some(
+        (m) =>
+          m.paidPaise ||
+          m.paidAt ||
+          m.orderId ||
+          m.payments?.length ||
+          m.collectionPaise ||
+          m.collections?.length,
+      )
+    );
+  }
+  startPlan(q: Quotation) {
+    if (!this.canChangePlan(q)) {
+      this.error.set('Payments or payment arrangements have started for this quotation.');
+      return;
+    }
+    this.notice.set('');
+    this.planDraft = q.milestones.map((m, i) => ({
+      percent: m.percent,
+      timing: m.timing || (i ? 'after' : 'before'),
+    }));
+  }
+  cancelPlan() {
+    this.planDraft = null;
+  }
+  planTotal() {
+    return (
+      this.planDraft?.reduce((sum, phase) => sum + Number(phase.percent || 0), 0) || 0
+    );
+  }
+  async savePlan(q: Quotation) {
+    if (!this.planDraft || this.planTotal() !== 100) {
+      this.error.set('Phase percentages must total 100%.');
+      return;
+    }
+    await this.run(async () => {
+      const updated = await this.request('patch', `/${q._id}/schedule`, {
+        version: q.__v,
+        paymentSchedule: this.planDraft,
+      });
+      this.planDraft = null;
+      this.selected.set(updated);
+      this.rows.set(await this.request('get'));
+      this.notice.set(
+        'Payment plan updated in place. Existing invitation links now show the new amounts; ask the client to reload an open copy.',
+      );
+      this.scrollTop();
+    });
+  }
   async receiptPdf(q: Quotation, paymentId: string) {
     await this.run(() => downloadQuotationFile(this.http, `${quoteApi()}/admin/quotations/${q._id}/receipts/${paymentId}/pdf`, this.headers, `receipt-${paymentId}.pdf`));
   }
@@ -815,8 +1109,98 @@ export class QuotationAdminComponent {
     });
   }
   page = 1; pages = 1; total = 0; search = ''; status = ''; from = ''; to = '';
+  readonly reference = quotationRef;
   phaseLabels = ['Onboarding', 'MVP', 'Development complete', 'Deployment'];
   scheduleTotal() { return this.editor?.paymentSchedule?.reduce((s: number, m: any) => s + Number(m.percent || 0), 0) || 0; }
+  onboardingAmount() {
+    const totalPaise = Math.round(Number(this.editor?.totalRupees || 0) * 100);
+    const percent = Number(this.editor?.paymentSchedule?.[0]?.percent || 0);
+    return Math.floor((totalPaise * percent) / 100);
+  }
+  minimumError(): string {
+    const value = this.editor?.minimumOnboardingRupees;
+    if (value === undefined || value === null || value === '') return '';
+    const minimum = Number(value);
+    const totalPaise = Math.round(Number(this.editor?.totalRupees || 0) * 100);
+    if (!Number.isFinite(minimum) || minimum < 0) return 'Enter a valid minimum onboarding amount.';
+    if (!minimum) return '';
+    if (!totalPaise) return 'Enter the final total before setting a minimum.';
+    if (Math.round(minimum * 100) > totalPaise)
+      return `The minimum cannot exceed the quotation total (${(totalPaise / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}).`;
+    if (this.onboardingAmount() < Math.round(minimum * 100) - 1)
+      return 'The initial phase is below the minimum. Lower the minimum or raise the initial share.';
+    return '';
+  }
+  minimumChanged() {
+    if (!this.editor) return;
+    const minimum = Number(this.editor.minimumOnboardingRupees);
+    const total = Number(this.editor.totalRupees);
+    if (!Number.isFinite(minimum) || minimum <= 0 || !Number.isFinite(total) || total <= 0 || minimum > total) {
+      this.changed();
+      return;
+    }
+    const needed = Math.ceil((minimum * 100) / total - 1e-9);
+    const current = Number(this.editor.paymentSchedule?.[0]?.percent || 1);
+    if (needed > current) this.initialPercent(Math.min(97, needed));
+    else this.changed();
+  }
+  pageItems(current: number, total: number): (number | string)[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const items: (number | string)[] = [1];
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    if (start > 2) items.push('…');
+    for (let page = start; page <= end; page++) items.push(page);
+    if (end < total - 1) items.push('…');
+    items.push(total);
+    return items;
+  }
+  goPage(page: number | string) {
+    const target = Number(page);
+    if (!Number.isInteger(target) || target < 1 || target > this.pages || target === this.page) return;
+    this.page = target;
+    void this.load();
+  }
+  whatsappUrl(q: Quotation, url: string) {
+    const total = (q.totalPaise / 100).toLocaleString('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    });
+    const valid = new Date(q.validUntil).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    const text = `Hi ${q.clientName}, sharing proposal ${quotationRef(q)} for ${q.title}. Total ${total}, valid until ${valid}. Review and accept here: ${url}`;
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  }
+  shareWhatsApp(q: Quotation, url = '') {
+    if (!url) {
+      this.error.set('Create or open an invitation link first, then share it on WhatsApp.');
+      return;
+    }
+    window.open(this.whatsappUrl(q, url), '_blank', 'noopener,noreferrer');
+  }
+  async shareLink(q: Quotation, link: any) {
+    const popup = window.open('', '_blank');
+    try {
+      this.busy.set(true);
+      this.error.set('');
+      const result = await this.request('post', `/${q._id}/invitations/${link._id}/copy`, {});
+      if (!result.token) throw new Error('Could not prepare this invitation link.');
+      const url = `${location.origin}/proposal#${result.token}`;
+      this.inviteUrl.set(url);
+      this.copied.set(false);
+      if (popup) popup.location.replace(this.whatsappUrl(q, url));
+      else this.error.set('Allow pop-ups to open WhatsApp, or copy the link shown above.');
+    } catch (e: any) {
+      popup?.close();
+      this.error.set(e.error?.error || e.message || 'Could not share this invitation.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
   initialPercent(value: number) {
     const left = 100 - Number(value), rest = this.editor.paymentSchedule.slice(1);
     const weight = rest.reduce((s: number, m: any) => s + Number(m.percent || 1), 0);
@@ -829,13 +1213,28 @@ export class QuotationAdminComponent {
   }
   movePage(delta: number) { this.page += delta; void this.load(); }
   async open(row: Quotation) {
+    if (this.useRoutes()) {
+      await this.router!.navigate(['/admin/quotations', row._id]);
+      return;
+    }
+    await this.openById(row._id);
+  }
+  private async openById(id: string) {
     await this.run(async () => {
       this.inviteUrl.set('');
       this.invitationRows.set([]); this.paymentEmails.set([]);
-      this.selected.set(await this.request('get', `/${row._id}`));
-      const [links, receipts] = await Promise.all([this.request('get', `/${row._id}/invitations`), this.request('get', `/${row._id}/receipts`)]);
+      this.planDraft = null;
+      this.notice.set('');
+      const q = await this.request('get', `/${id}`);
+      this.selected.set(q);
+      this.invitationLabel = this.defaultInvitationLabel(q);
+      const [links, receipts] = await Promise.all([this.request('get', `/${id}/invitations`), this.request('get', `/${id}/receipts`)]);
       this.invitationRows.set(links); this.paymentEmails.set(receipts);
+      this.scrollTop();
     });
+  }
+  private defaultInvitationLabel(q: Quotation | null) {
+    return String(q?.title || '').trim().slice(0, 100);
   }
   busy = signal(false);
   error = signal('');
@@ -854,6 +1253,12 @@ export class QuotationAdminComponent {
   private savePromise: Promise<void> | null = null;
   private saveTimer?: ReturnType<typeof setTimeout>;
   private destroyed = false;
+  private useRoutes() {
+    return !!this.router && this.router.url.startsWith('/admin');
+  }
+  private scrollTop() {
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }
   @HostListener('window:beforeunload', ['$event'])
   beforeUnload(event: BeforeUnloadEvent) {
     if (this.dirty() || this.savingDraft()) {
@@ -872,6 +1277,7 @@ export class QuotationAdminComponent {
       'clientEmail',
       'builder',
       'totalRupees',
+      'minimumOnboardingRupees',
       'validDate',
       'paymentSchedule',
       ...(!this.editor.builder ? ['seller', 'scope', 'exclusions', 'timeline', 'terms'] : []),
@@ -916,6 +1322,19 @@ export class QuotationAdminComponent {
     this.dirty.set(false);
     this.saveError.set('');
     this.conflict.set(false);
+    this.scrollTop();
+  }
+  saveStateLabel() {
+    if (this.conflict()) return 'Reload needed';
+    if (this.savingDraft()) return 'Saving…';
+    if (this.saveError()) return 'Save failed';
+    if (this.dirty()) return 'Unsaved changes';
+    if (!this.editingId) return 'Not saved yet';
+    return 'All changes saved';
+  }
+  editorReference() {
+    const q = this.currentQuote();
+    return q ? `${this.reference(q)} · revision ${q.revision}` : 'Not saved yet';
   }
   private updateQuote(q: Quotation) {
     this.editingId = q._id;
@@ -929,13 +1348,36 @@ export class QuotationAdminComponent {
     if (this.dirty() || this.savingDraft()) await this.save();
     return !this.dirty() && !this.savingDraft();
   }
-  async closeEditor() {
-    await this.save();
-    if (!this.dirty() && !this.saveError()) {
-      clearTimeout(this.saveTimer);
-      this.editor = null;
-      this.currentQuote.set(null);
+  async closeEditor(returnTo: 'detail' | 'list' = 'detail') {
+    clearTimeout(this.saveTimer);
+    if (this.dirty() || this.saveError()) await this.save();
+    if (this.dirty() || this.savingDraft() || this.saveError()) return;
+    const id = this.editingId;
+    this.editor = null;
+    this.currentQuote.set(null);
+    if (returnTo === 'list' || !id) {
+      this.closeSelection();
+      return;
     }
+    if (this.useRoutes()) {
+      await this.router!.navigate(['/admin/quotations', id]);
+      return;
+    }
+    this.invitationLabel = this.defaultInvitationLabel(this.selected());
+    this.scrollTop();
+  }
+  async deleteDraft(q: Quotation) {
+    if (this.busy()) return;
+    const name = q.title || 'Untitled quotation';
+    if (!window.confirm(`Delete the draft "${name}"? This permanently removes it and any uploaded SRS files.`)) return;
+    const goList = this.selected()?._id === q._id && this.useRoutes() && this.mode !== 'list';
+    await this.run(async () => {
+      await this.request('delete', `/${q._id}`);
+      if (this.selected()?._id === q._id) this.closeSelection(false);
+      this.rows.set(await this.request('get'));
+      this.scrollTop();
+    });
+    if (goList) await this.router!.navigate(['/admin/quotations']);
   }
   async reloadDraft() {
     await this.run(async () => {
@@ -951,10 +1393,69 @@ export class QuotationAdminComponent {
   catalog: any = { features: [], exclusions: [], responsibilities: [] };
   previewText = signal<{ title: string; text: string }[] | null>(null);
   evidence: Record<string, string> = {};
-  ngOnInit() {
-    void this.load();
+  ngOnChanges(changes: SimpleChanges) {
+    if (this.routeReady && (changes['mode'] || changes['quotationId']))
+      void this.applyRoute();
   }
-  private async request(method: 'get' | 'post' | 'put', path = '', body?: any): Promise<any> {
+  ngOnInit() {
+    this.routeReady = true;
+    void this.applyRoute();
+  }
+  private async applyRoute(force = false) {
+    const key = `${this.mode}:${this.quotationId}`;
+    if (!force && key === this.appliedRoute) return;
+    this.appliedRoute = key;
+    if (this.mode === 'list') {
+      this.editor = null;
+      this.currentQuote.set(null);
+      this.selected.set(null);
+      this.inviteUrl.set('');
+      this.invitationRows.set([]);
+      this.paymentEmails.set([]);
+      this.planDraft = null;
+      this.notice.set('');
+      await this.load();
+      this.scrollTop();
+      return;
+    }
+    if (this.mode === 'new') {
+      if (this.editor && !this.editingId) return;
+      await this.startNewDraft();
+      return;
+    }
+    if (!this.quotationId) {
+      await this.openList();
+      return;
+    }
+    if (this.mode === 'edit') {
+      if (this.editor && this.editingId === this.quotationId) return;
+      let redirect = '';
+      await this.run(async () => {
+        const q = await this.request('get', `/${this.quotationId}`);
+        if (q.status !== 'draft') {
+          this.editor = null;
+          this.selected.set(q);
+          redirect = q._id;
+          return;
+        }
+        this.edit(q);
+      });
+      if (redirect && this.useRoutes())
+        await this.router!.navigate(['/admin/quotations', redirect]);
+      return;
+    }
+    await this.openById(this.quotationId);
+  }
+  private async openList() {
+    if (this.useRoutes()) {
+      await this.router!.navigate(['/admin/quotations']);
+      return;
+    }
+    this.mode = 'list';
+    this.appliedRoute = 'list:';
+    await this.applyRoute(true);
+  }
+  private async request(method: 'get' | 'post' | 'put' | 'patch' | 'delete', path = '', body?: any): Promise<any> {
     const result: any = await firstValueFrom(
       this.http.request(method.toUpperCase(), `${quoteApi()}/admin/quotations${path}`, {
         body,
@@ -989,6 +1490,13 @@ export class QuotationAdminComponent {
     await this.run(async () => this.rows.set(await this.request('get')));
   }
   async newDraft() {
+    if (this.useRoutes()) {
+      await this.router!.navigate(['/admin/quotations', 'new']);
+      return;
+    }
+    await this.startNewDraft();
+  }
+  private async startNewDraft() {
     await this.run(async () => {
       this.inviteUrl.set('');
       const d = await this.request('get', '/defaults');
@@ -1009,6 +1517,7 @@ export class QuotationAdminComponent {
         builder: d.builder,
         paymentSchedule: [25, 25, 40, 10].map((percent, i) => ({ percent, timing: i ? 'after' : 'before' })),
         totalRupees: 0,
+        minimumOnboardingRupees: undefined,
         validDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
       };
       this.startEditor(null);
@@ -1029,7 +1538,16 @@ export class QuotationAdminComponent {
     if (this.editor.builder) this.editor.paymentSchedule ||= q.milestones?.length === 4
       ? q.milestones.map((m, i) => ({ percent: m.percent, timing: m.timing || (i ? 'after' : 'before') }))
       : [25, 25, 40, 10].map((percent, i) => ({ percent, timing: i ? 'after' : 'before' }));
+    if (this.editor.builder && this.editor.minimumOnboardingRupees === undefined && q.minimumOnboardingPaise)
+      this.editor.minimumOnboardingRupees = q.minimumOnboardingPaise / 100;
     this.startEditor(q);
+  }
+  async openEdit(q: Quotation) {
+    if (this.useRoutes()) {
+      await this.router!.navigate(['/admin/quotations', q._id, 'edit']);
+      return;
+    }
+    this.edit(q);
   }
   private async loadCatalog() {
     try {
@@ -1064,12 +1582,12 @@ export class QuotationAdminComponent {
       );
     });
   }
-  async save(): Promise<void> {
+  async save(force = false): Promise<void> {
     clearTimeout(this.saveTimer);
     if (!this.editor || this.conflict()) return;
     if (this.savePromise) {
       await this.savePromise;
-      if (this.dirty() && !this.saveError()) return this.save();
+      if (this.dirty() && !this.saveError()) return this.save(force);
       return;
     }
     this.saveError.set('');
@@ -1119,7 +1637,7 @@ export class QuotationAdminComponent {
     await this.run(async () => {
       if (!/\.(pdf|docx)$/i.test(file.name) || file.size > 5 * 1024 * 1024)
         throw { error: { error: 'Choose a PDF or DOCX file up to 5 MB.' } };
-      await this.save();
+      await this.save(true);
       if (this.saveError()) return;
       const q = await firstValueFrom(
         this.http.post<Quotation>(`${quoteApi()}/admin/quotations/${this.editingId}/srs`, file, {
@@ -1169,7 +1687,9 @@ export class QuotationAdminComponent {
   }
   async invite(q: Quotation) {
     await this.run(async () => {
-      const result = await this.request('post', `/${q._id}/invite`, { version: q.__v, label: this.invitationLabel, sendEmail: this.emailInvitation });
+      const label = this.invitationLabel.trim() || this.defaultInvitationLabel(q);
+      const result = await this.request('post', `/${q._id}/invite`, { version: q.__v, label, sendEmail: this.emailInvitation });
+      this.invitationLabel = label;
       this.inviteUrl.set(`${location.origin}/proposal#${result.token}`);
       this.copied.set(false);
       this.invitationRows.set(await this.request('get', `/${q._id}/invitations`));
@@ -1177,12 +1697,18 @@ export class QuotationAdminComponent {
     });
   }
   async revise(q: Quotation) {
+    let revisedId = '';
     await this.run(async () => {
-      const revised = await this.request('post', `/${q._id}/revise`, {});
+      const revised: Quotation = await this.request('post', `/${q._id}/revise`, {});
+      revisedId = revised._id;
       this.inviteUrl.set('');
-      this.edit(revised);
-      this.rows.set(await this.request('get'));
+      if (!this.useRoutes()) {
+        this.edit(revised);
+        this.rows.set(await this.request('get'));
+      }
     });
+    if (revisedId && this.useRoutes())
+      await this.router!.navigate(['/admin/quotations', revisedId, 'edit']);
   }
   async revoke(q: Quotation) {
     await this.run(async () => {

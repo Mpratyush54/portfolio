@@ -37,7 +37,7 @@ const { createQuotationService } = require('./services/quotationService');
 const { createQuotationRouter } = require('./services/quotationRoutes');
 const quotationService = createQuotationService({ gateway: getRazorpay });
 const { createBookingRouter, handleBookingError } = require('./services/bookingRoutes');
-const { createAdminAuth } = require('./services/adminAuth');
+const { createAdminAuth, createAdminLogin } = require('./services/adminAuth');
 const { bookingSmtpReady } = require('./services/mailer');
 const bookingService = createBookingService({ gateway: getRazorpay, sendEmails: sendBookingPaidEmails, emailReady: bookingSmtpReady });
 const { startDailyDigestScheduler, runDailyDigest } = require('./services/digest');
@@ -65,6 +65,7 @@ const Project = require('./models/Project');
 const { syncMetaOnly } = require('./services/gitFetcher');
 
 const requireAdmin = createAdminAuth();
+const adminLogin = createAdminLogin();
 const { createContactActions } = require('./services/contactActions');
 const contactActions = createContactActions({ connected: () => isMongoConnected, sendEmail: sendVisitorApprovalEmail });
 
@@ -131,14 +132,47 @@ app.get('/api/projects/:id', async (req, res) => {
 
 // ===== ADMIN ROUTES =====
 
+// Exchange credentials for a short-lived signed session. The browser stores the
+// token instead of keeping the admin password after sign-in.
+app.post('/api/admin/session', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    res.json(await adminLogin(req));
+  } catch (error) {
+    if (error.status === 429) res.set('Retry-After', String(error.retryAfter || 60));
+    res.status(error.status || 503).json({
+      error: error.status === 401 ? 'Invalid email or password.' : error.status ? error.message : 'Could not sign in.',
+    });
+  }
+});
+
 app.get('/api/admin/status', requireAdmin, async (req, res) => {
+  let counts = null;
+  if (isMongoConnected) {
+    try {
+      const Booking = require('./models/Booking');
+      const Quotation = require('./models/Quotation');
+      const [pendingContacts, paidBookings, reviewBookings, draftQuotes, invitedQuotes, acceptedQuotes] = await Promise.all([
+        ContactMessage.countDocuments({ status: 'pending' }),
+        Booking.countDocuments({ status: 'paid' }),
+        Booking.countDocuments({ status: 'payment_review' }),
+        Quotation.countDocuments({ status: 'draft' }),
+        Quotation.countDocuments({ status: 'invited' }),
+        Quotation.countDocuments({ status: 'accepted' }),
+      ]);
+      counts = { pendingContacts, paidBookings, reviewBookings, draftQuotes, invitedQuotes, acceptedQuotes };
+    } catch {
+      counts = null;
+    }
+  }
   res.json({
     total: curatedProjects.length,
     sources: {
       github: curatedProjects.filter(p => p.source === 'github').length,
       gitlab: curatedProjects.filter(p => p.source === 'gitlab').length
     },
-    mongoConnected: isMongoConnected
+    mongoConnected: isMongoConnected,
+    counts,
   });
 });
 
@@ -320,12 +354,16 @@ app.listen(PORT, () => {
   setInterval(async () => {
     if (retryingNotifications) return;
     retryingNotifications = true;
-    try {
-      await bookingService.retryNotifications();
-      await require('./paymentReceipts').retry();
-      await require('./quotationInvitations').retry();
+    for (const [name, job] of [
+      ['booking', () => bookingService.retryNotifications()],
+      ['receipts', () => require('./services/paymentReceipts').retry()],
+      ['invitations', () => require('./services/quotationInvitations').retry()],
+    ]) {
+      try { await job(); }
+      catch (error) {
+        console.error(`[Notifications] ${name} worker failed (${error?.name || 'Error'}).`);
+      }
     }
-    catch { console.error('[Notifications] Worker failed; details suppressed.'); }
-    finally { retryingNotifications = false; }
+    retryingNotifications = false;
   }, 60_000).unref();
 });

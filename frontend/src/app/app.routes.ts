@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './pages/home/home';
 
+const canLeaveAdmin = (component: { canLeave: () => Promise<boolean> }) => component.canLeave();
+
 export const routes: Routes = [
   { path: 'sample-quotation', data: { example: true }, loadComponent: () => import('./pages/quotation/quotation').then(m => m.QuotationComponent) },
   { path: 'terms', data: {policy:'terms'}, loadComponent: () => import('./pages/services/business-policy').then(m => m.BusinessPolicyComponent) },
@@ -23,7 +25,36 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    canDeactivate: [(component: { canLeave: () => Promise<boolean> }) => component.canLeave()],
+    pathMatch: 'full',
+    redirectTo: 'admin/overview',
+  },
+  {
+    path: 'admin/quotations',
+    pathMatch: 'full',
+    canDeactivate: [canLeaveAdmin],
+    loadComponent: () => import('./pages/admin/admin').then(m => m.AdminComponent),
+  },
+  {
+    path: 'admin/quotations/new',
+    pathMatch: 'full',
+    canDeactivate: [canLeaveAdmin],
+    loadComponent: () => import('./pages/admin/admin').then(m => m.AdminComponent),
+  },
+  {
+    path: 'admin/quotations/:quotationId/edit',
+    pathMatch: 'full',
+    canDeactivate: [canLeaveAdmin],
+    loadComponent: () => import('./pages/admin/admin').then(m => m.AdminComponent),
+  },
+  {
+    path: 'admin/quotations/:quotationId',
+    pathMatch: 'full',
+    canDeactivate: [canLeaveAdmin],
+    loadComponent: () => import('./pages/admin/admin').then(m => m.AdminComponent),
+  },
+  {
+    path: 'admin/:section',
+    canDeactivate: [canLeaveAdmin],
     loadComponent: () => import('./pages/admin/admin').then(m => m.AdminComponent),
   },
   {

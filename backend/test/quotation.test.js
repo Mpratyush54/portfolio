@@ -112,9 +112,78 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     const loaded = service.view(await service.get(created._id));
     assert.deepEqual(loaded.builder.features, builder.features);
     assert.equal(loaded.terms, created.terms);
+    await service.invite(created._id, (await service.get(created._id)).__v);
     const replacement = await service.revise(created._id);
     assert.equal(replacement.builder.clauses[0].text, builder.clauses[0].text);
     assert.equal(replacement.terms, created.terms);
+  });
+  it('changes payment composition in place without creating a revision', async () => {
+    const template = require('../services/quotationTemplate');
+    const builder = template.defaults();
+    Object.assign(builder.provider, {
+      name: 'Provider',
+      email: 'provider@example.com',
+      address: 'Example address',
+      taxStatus: 'not_registered',
+      venue: 'Bengaluru, Karnataka',
+    });
+    builder.scopeNotes =
+      'Two named pages with working forms on mobile and desktop.';
+    const created = await service.create({ ...body(), builder });
+    const link = await invite(created._id);
+    const before = await service.get(created._id);
+    const updated = await service.updateSchedule(created._id, {
+      version: before.__v,
+      paymentSchedule: [
+        { percent: 40, timing: 'before' },
+        { percent: 20, timing: 'after' },
+        { percent: 30, timing: 'after' },
+        { percent: 10, timing: 'after' },
+      ],
+    });
+    assert.equal(String(updated._id), String(created._id));
+    assert.equal(updated.status, 'invited');
+    assert.equal(updated.revision, created.revision);
+    assert.deepEqual(updated.milestones.map((m) => m.percent), [40, 20, 30, 10]);
+    assert.equal(
+      updated.milestones.reduce((sum, m) => sum + m.amountPaise, 0),
+      updated.totalPaise,
+    );
+    assert.match(updated.terms, /Onboarding: 40%/);
+    assert.equal(await Quote.countDocuments(), 1);
+    assert.equal(
+      service.view(await service.portal(link.token)).milestones[0].percent,
+      40,
+    );
+  });
+  it('adjusts an accepted plan until money moves, then requires a revision', async () => {
+    const link = await accepted();
+    let q = await service.get(link.quotation._id);
+    const updated = await service.updateSchedule(q._id, {
+      version: q.__v,
+      paymentSchedule: [
+        { percent: 35, timing: 'before' },
+        { percent: 25, timing: 'after' },
+        { percent: 30, timing: 'after' },
+        { percent: 10, timing: 'after' },
+      ],
+    });
+    assert.equal(updated.status, 'accepted');
+    assert.equal(updated.revision, q.revision);
+    await pay(link.token, 0);
+    q = await service.get(q._id);
+    await fail(
+      service.updateSchedule(q._id, {
+        version: q.__v,
+        paymentSchedule: [
+          { percent: 25, timing: 'before' },
+          { percent: 25, timing: 'after' },
+          { percent: 40, timing: 'after' },
+          { percent: 10, timing: 'after' },
+        ],
+      }),
+      409,
+    );
   });
   it('allocates fractional rupees without losing or adding paise', () => {
     const q = validate(body());
@@ -175,6 +244,24 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     assert.equal(q.revision, 2);
     assert.equal(q.status, 'draft');
     await fail(service.portal(i.token), 404);
+  });
+  it('uses the project title as the default invitation label', async () => {
+    const i = await invited();
+    const links = await require('../services/quotationInvitations').list(
+      i.quotation._id,
+    );
+    assert.equal(links[0].label, 'Client website');
+  });
+  it('deletes drafts but never live quotations', async () => {
+    const draft = await service.create(body());
+    const live = await invited();
+    await fail(service.revise(draft._id), 409);
+    await fail(service.deleteDraft(live.quotation._id), 409);
+    assert.equal((await service.get(live.quotation._id)).id, String(live.quotation._id));
+    assert.equal((await service.portal(live.token)).id, String(live.quotation._id));
+    await service.deleteDraft(draft._id);
+    await fail(service.get(draft._id), 404);
+    await fail(service.deleteDraft(draft._id), 404);
   });
   it('runs all four phases with client approval, captured payments and support date', async () => {
     const i = await accepted();
@@ -253,6 +340,16 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     await fail(service.order(i.token, 0), 409);
     await service.accept(i.token, { name: 'Client', email: 'client@example.com', digest: updated.digest, acknowledgements: ['scope', 'payments', 'terms', 'authority'] });
     assert.equal((await service.order(i.token, 0)).amountPaise, 5000);
+  });
+  it('enforces the quotation onboarding minimum on collection arrangements', async () => {
+    const i = await accepted();
+    const stored = await service.get(i.quotation._id);
+    stored.minimumOnboardingPaise = 20000;
+    await stored.save();
+    const q = await service.portal(i.token);
+    await fail(service.collection(q.id, 0, { version: q.__v, amountPaise: 5000, reason: 'Below the agreed onboarding minimum' }), 400);
+    await service.collection(q.id, 0, { version: q.__v, amountPaise: 20000, reason: 'Matches the agreed onboarding minimum' });
+    assert.equal((await service.order(i.token, 0)).amountPaise, 20000);
   });
   it('rejects invalid, stale and premature collection arrangements', async () => {
     const i = await accepted();

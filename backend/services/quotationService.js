@@ -24,6 +24,7 @@ function snapshot(q) {
     timeline: q.timeline,
     terms: q.terms,
     totalPaise: q.totalPaise,
+    ...(q.minimumOnboardingPaise ? { minimumOnboardingPaise: q.minimumOnboardingPaise } : {}),
     currency: q.currency,
     revision: q.revision,
     validUntil: q.validUntil.toISOString(),
@@ -111,6 +112,28 @@ function validate(body) {
     if (amountPaise < 100) throw httpError(400, 'Each phase must be at least ₹1.');
     return { label: LABELS[i], percent, amountPaise, ...(body.paymentSchedule ? { timing } : {}) };
   });
+  const minimumInput = body.minimumOnboardingRupees ?? body.minimumOnboardingPaise;
+  if (minimumInput !== undefined && minimumInput !== null && minimumInput !== '' && !Number.isFinite(Number(minimumInput)))
+    throw httpError(400, 'Enter a valid minimum onboarding payment.');
+  const minimumOnboardingPaise = minimumInput === undefined || minimumInput === null || minimumInput === ''
+    ? 0
+    : body.minimumOnboardingRupees !== undefined
+      ? Math.round(Number(minimumInput) * 100)
+      : Math.round(Number(minimumInput));
+  if (minimumOnboardingPaise) {
+    const validPaise = body.minimumOnboardingRupees === undefined
+      ? Number.isSafeInteger(minimumOnboardingPaise)
+      : Number.isFinite(Number(minimumInput)) && Math.abs(Number(minimumInput) * 100 - minimumOnboardingPaise) < 0.000001;
+    if (!validPaise || minimumOnboardingPaise < 100 || minimumOnboardingPaise > data.totalPaise)
+      throw httpError(400, 'Minimum onboarding payment must be between ₹1 and the quotation total, using whole paise.');
+    if (data.milestones[0].amountPaise < minimumOnboardingPaise)
+      throw httpError(400, 'The onboarding phase is below the minimum payment. Increase its share.');
+    data.minimumOnboardingPaise = minimumOnboardingPaise;
+    data.terms += `\n\nMinimum onboarding payment: ₹${(minimumOnboardingPaise / 100).toLocaleString('en-IN')}. The onboarding phase cannot be collected below this amount.`;
+    if (data.terms.length > 14000) throw httpError(400, 'Terms exceed 14000 characters after adding the minimum onboarding payment.');
+  } else {
+    data.minimumOnboardingPaise = undefined;
+  }
   return data;
 }
 function createQuotationService({ gateway }) {
@@ -185,18 +208,89 @@ function createQuotationService({ gateway }) {
       true,
     );
   }
-  async function edit(id, body) {
-    const q = await get(id);
-    if (q.status !== 'draft')
-      throw httpError(409, 'Invited terms are frozen. Create a revision.');
-    if (body.version !== q.__v)
-      throw httpError(409, 'Reload the latest draft.');
-    Object.assign(q, validate(body));
-    q.draftReady = true;
-    q.draftValidation = undefined;
-    q.draftEditor = undefined;
-    return view(await save(q), true);
-  }
+    async function edit(id, body) {
+      const q = await get(id);
+      if (q.status !== 'draft')
+        throw httpError(409, 'Only drafts can be edited here. Use the payment plan adjustment for active quotations.');
+      if (body.version !== q.__v)
+        throw httpError(409, 'Reload the latest draft.');
+      Object.assign(q, validate(body));
+      q.draftReady = true;
+      q.draftValidation = undefined;
+      q.draftEditor = undefined;
+      return view(await save(q), true);
+    }
+    async function updateSchedule(id, body = {}) {
+      const q = await get(id);
+      if (q.status === 'cancelled')
+        throw httpError(409, 'This quotation has been superseded.');
+      if (!['draft', 'invited', 'accepted'].includes(q.status))
+        throw httpError(409, 'This quotation cannot be changed.');
+      if (body.version !== q.__v)
+        throw httpError(409, 'Reload the quotation before changing the payment plan.');
+      if (q.milestones.some((m) =>
+        m.paidAt || m.orderId || m.orderBusy || (m.payments || []).length ||
+        m.collectionPaise || (m.collections || []).length
+      ))
+        throw httpError(
+          409,
+          'Payments or payment arrangements have started. Create a revision instead.',
+        );
+      const schedule = require('./paymentPlan').plan(body.paymentSchedule);
+      let allocated = 0;
+      const milestones = schedule.map(({ percent, timing }, i) => {
+        const amountPaise =
+          i === 3
+            ? q.totalPaise - allocated
+            : Math.floor((q.totalPaise * percent) / 100);
+        allocated += amountPaise;
+        if (amountPaise < 100)
+          throw httpError(400, 'Each phase must be at least ₹1.');
+        const previous = q.milestones[i];
+        return {
+          label: LABELS[i],
+          percent,
+          amountPaise,
+          timing,
+          ...(previous?.releasedAt ? { releasedAt: previous.releasedAt } : {}),
+          ...(previous?.approvedAt ? { approvedAt: previous.approvedAt } : {}),
+          ...(previous?.evidence ? { evidence: previous.evidence } : {}),
+          ...(previous?.feedback ? { feedback: previous.feedback } : {}),
+        };
+      });
+      if (
+        q.minimumOnboardingPaise &&
+        milestones[0].amountPaise < q.minimumOnboardingPaise
+      )
+        throw httpError(
+          400,
+          'The onboarding phase is below the agreed minimum payment. Increase its share.',
+        );
+      let terms;
+      if (q.builder) {
+        terms = quotationTemplate.compile(q.builder, schedule).terms;
+      } else {
+        const marker =
+          '\n\nPayment schedule for this quotation (takes precedence over any generic phase percentages above)\n';
+        const minimumMarker = '\n\nMinimum onboarding payment:';
+        const start = q.terms.indexOf(marker);
+        const base = (start >= 0 ? q.terms.slice(0, start) : q.terms).split(minimumMarker)[0];
+        terms =
+          base +
+          marker +
+          require('./paymentPlan').wording(schedule);
+      }
+      if (q.minimumOnboardingPaise)
+        terms += `\n\nMinimum onboarding payment: ₹${(q.minimumOnboardingPaise / 100).toLocaleString('en-IN')}. The onboarding phase cannot be collected below this amount.`;
+      if (terms.length > 14000)
+        throw httpError(400, 'Terms and payment schedule exceed 14000 characters.');
+      q.milestones = milestones;
+      q.terms = terms;
+      q.draftReady = true;
+      q.draftValidation = undefined;
+      if (q.draftEditor) q.draftEditor.paymentSchedule = schedule;
+      return view(await save(q), true);
+    }
   async function saveDraft(body) {
     ready();
     const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
@@ -221,6 +315,7 @@ function createQuotationService({ gateway }) {
       'terms',
       'builder',
       'totalRupees',
+      'minimumOnboardingRupees',
       'validDate',
       'paymentSchedule',
     ];
@@ -297,10 +392,16 @@ function createQuotationService({ gateway }) {
       throw error;
     }
   }
-  async function revise(id) {
-    const q = await get(id);
-    if (q.status === 'cancelled')
-      throw httpError(409, 'This quotation already has a replacement.');
+    async function revise(id) {
+      const q = await get(id);
+      if (q.status === 'draft')
+        throw httpError(
+          409,
+          'This quotation is already a draft. Edit it instead of creating a revision.',
+        );
+      if (q.status === 'cancelled')
+        throw httpError(409, 'This quotation already has a replacement.');
+
     // Paid contracts require an explicit change order; never silently replace them.
     if (q.milestones.some((m) => m.paidAt || m.orderId || m.orderBusy || m.payments.length))
       throw httpError(
@@ -351,10 +452,15 @@ function createQuotationService({ gateway }) {
       throw httpError(409, 'Quotation is cancelled.');
     if (q.status !== 'accepted' && q.validUntil <= new Date())
       throw httpError(409, 'Update the expired quotation first.');
-    const created = await invitations.create(q, options.label, options.sendEmail ?? false);
+    const requestedLabel =
+      typeof options.label === 'string' ? options.label.trim() : '';
+    const label =
+      requestedLabel || String(q.title || '').trim().slice(0, 100);
+    const created = await invitations.create(q, label, options.sendEmail ?? false);
     const token = created.token;
     if (q.status === 'draft') q.status = 'invited';
     try { await save(q); } catch (e) { await Invitation.deleteOne({ _id: created.invite._id }); throw e; }
+    if (options.sendEmail) invitations.notify(created.invite).catch(() => {});
     return { token, invitation: created.invite._id, quotation: view(q) };
   }
   async function revoke(id) {
@@ -364,6 +470,35 @@ function createQuotationService({ gateway }) {
     await save(q);
     await Invitation.updateMany({ quotationId: q._id, revokedAt: null }, { $set: { revokedAt: new Date() } });
     return view(q);
+  }
+  async function deleteDraft(id) {
+    ready();
+    if (!/^[a-f\d]{24}$/i.test(id || ''))
+      throw httpError(404, 'Quotation not found.');
+    const q = await Quote.findOne({ _id: id, status: 'draft' }).select('_id srs');
+    if (!q) {
+      if (await Quote.exists({ _id: id }))
+        throw httpError(
+          409,
+          'Only drafts can be deleted. Invited and accepted quotations must be kept.',
+        );
+      throw httpError(404, 'Quotation not found.');
+    }
+    const deleted = await Quote.deleteOne({ _id: q._id, status: 'draft' });
+    if (!deleted.deletedCount)
+      throw httpError(409, 'The draft changed. Refresh and try again.');
+    await Promise.all([
+      Invitation.deleteMany({ quotationId: q._id }),
+      require('../models/PaymentReceipt').deleteMany({ quotationId: q._id }),
+    ]);
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: 'quotationSrs',
+    });
+    for (const file of q.srs || []) {
+      if (!(await Quote.exists({ 'srs.fileId': file.fileId })))
+        await bucket.delete(file.fileId).catch(() => {});
+    }
+    return { success: true, _id: String(q._id) };
   }
   async function accept(token, body) {
     const q = await portal(token);
@@ -581,6 +716,9 @@ function createQuotationService({ gateway }) {
     if (!Number.isSafeInteger(body.amountPaise) || body.amountPaise < 100 || body.amountPaise > remaining ||
         (remaining - body.amountPaise > 0 && remaining - body.amountPaise < 100))
       throw httpError(400, 'Enter at least ₹1, no more than the balance, leaving either zero or at least ₹1 due.');
+    const minimumOnboardingPaise = index === 0 ? Number(q.minimumOnboardingPaise || 0) : 0;
+    if (minimumOnboardingPaise && body.amountPaise < Math.min(minimumOnboardingPaise, remaining))
+      throw httpError(400, `The onboarding payment for this quotation must be at least ₹${(minimumOnboardingPaise / 100).toLocaleString('en-IN')}.`);
     if (typeof body.reason !== 'string' || body.reason.trim().length < 5 || body.reason.length > 500)
       throw httpError(400, 'Provide a reason (5–500 characters) for the collection arrangement.');
     m.collectionPaise = body.amountPaise;
@@ -675,6 +813,8 @@ function createQuotationService({ gateway }) {
     create,
     saveDraft,
     edit,
+    updateSchedule,
+    deleteDraft,
     revise,
     invite,
     revoke,

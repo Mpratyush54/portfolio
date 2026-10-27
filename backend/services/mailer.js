@@ -22,7 +22,7 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function sender(name = 'Client services') {
+function sender(name = 'Pratyush Mishra') {
   return `"${name}" <${process.env.MAIL_FROM || process.env.SMTP_USER}>`;
 }
 const INTENT_LABEL = {
@@ -197,11 +197,76 @@ async function sendBookingPaidEmails(booking, audience = 'both') {
 
 async function sendQuotationInvitation(q, url, invitationId) {
   if (!bookingSmtpReady()) throw new Error('SMTP is not configured');
-  await transporter.sendMail({ from: sender(), to: q.clientEmail, replyTo: process.env.BOOKING_EMAIL || process.env.CONTACT_EMAIL,
+  const inbox = process.env.BOOKING_EMAIL || process.env.CONTACT_EMAIL || process.env.MAIL_FROM || process.env.SMTP_USER;
+  const subjectTitle = String(q.title || 'your project').replace(/[\r\n]+/g, ' ').trim();
+  const shortTitle = subjectTitle.length > 80 ? `${subjectTitle.slice(0, 77)}...` : subjectTitle;
+  const validDate = q.validUntil && !Number.isNaN(new Date(q.validUntil).getTime())
+    ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(q.validUntil))
+    : '';
+  const safeName = escapeHtml(q.clientName || 'there');
+  const safeTitle = escapeHtml(q.title || 'your project');
+  const safeEmail = escapeHtml(q.clientEmail);
+  const safeInbox = escapeHtml(inbox);
+  const safeUrl = escapeHtml(url);
+  const displayUrl = escapeHtml(String(url).replace(/^https?:\/\//, '').split('#')[0]);
+  const text = [
+    `Hi ${q.clientName || 'there'},`,
+    '',
+    `I've prepared a quotation for ${q.title || 'your project'}. It covers the scope, timeline, payment schedule and agreement.`,
+    ...(validDate ? ['', `This quotation is valid until ${validDate}.`] : []),
+    '',
+    'Review the quotation and agreement:',
+    url,
+    '',
+    'On the page you can review the scope, timeline and payment schedule, accept and pay the first instalment, or reply with questions or requested changes.',
+    '',
+    'Acceptance does not automatically charge you. Payment only begins when you choose to pay the first instalment.',
+    '',
+    `This private link was created for ${q.clientEmail}. If you weren't expecting this email, reply and I'll revoke it.`,
+    '',
+    `Questions? Reply to this email or write to ${inbox}.`,
+    '',
+    'Pratyush',
+    'pratyushes.dev',
+    '',
+    `Sent because a quotation was prepared for ${q.clientEmail}.`,
+  ].join('\n');
+  const html = `
+    <div style="margin:0;padding:24px;background:#f4f1ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#211f1c;">
+      <div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #e4ded2;border-radius:14px;overflow:hidden;">
+        <div style="padding:22px 30px;border-bottom:1px solid #eee8dd;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#5d564b;">Pratyushes.dev</div>
+        <div style="padding:30px;font-size:16px;line-height:1.65;">
+          <p style="margin:0 0 18px;">Hi ${safeName},</p>
+          <p style="margin:0 0 18px;">I've prepared a quotation for <strong>${safeTitle}</strong>. It covers the scope, timeline, payment schedule and agreement.</p>
+          ${validDate ? `<p style="margin:0 0 18px;">This quotation is valid until <strong>${escapeHtml(validDate)}</strong>.</p>` : ''}
+          <p style="margin:26px 0;"><a href="${safeUrl}" style="background:#211f1c;border-radius:8px;color:#fff;display:inline-block;font-weight:600;padding:13px 22px;text-decoration:none;">Review quotation and agreement</a></p>
+          <p style="margin:0 0 18px;color:#5d564b;font-size:14px;">Button not working? Open <a href="${safeUrl}" style="color:#211f1c;">${displayUrl}</a> in your browser.</p>
+          <p style="margin:0 0 10px;font-weight:600;">What you can do on the page</p>
+          <ul style="margin:0 0 18px;padding-left:22px;">
+            <li style="margin-bottom:6px;">Review the scope, timeline and payment schedule</li>
+            <li style="margin-bottom:6px;">Accept and pay the first instalment</li>
+            <li>Reply with questions or requested changes</li>
+          </ul>
+          <p style="margin:0 0 18px;">Acceptance does not automatically charge you. Payment only begins when you choose to pay the first instalment.</p>
+          <p style="margin:0 0 18px;">This private link was created for ${safeEmail}. If you weren't expecting this email, reply and I'll revoke it.</p>
+          <p style="margin:0 0 20px;">Questions? Reply to this email or write to <a href="mailto:${safeInbox}" style="color:#211f1c;">${safeInbox}</a>.</p>
+          <p style="margin:0;">— Pratyush<br><a href="https://pratyushes.dev" style="color:#5d564b;">pratyushes.dev</a></p>
+        </div>
+        <div style="padding:18px 30px;background:#faf8f4;border-top:1px solid #eee8dd;color:#6b645a;font-size:12px;line-height:1.55;">
+          Sent because a quotation was prepared for ${safeEmail}. This is a one-to-one project email.
+        </div>
+      </div>
+    </div>
+  `;
+  await transporter.sendMail({
+    from: sender(process.env.MAIL_FROM_NAME || 'Pratyush Mishra'),
+    to: q.clientEmail,
+    replyTo: inbox,
     ...(invitationId ? { messageId: `<quotation-invite-${invitationId}@pratyushes.dev>` } : {}),
-    subject: `Please review your quotation — ${q.title}`,
-    text: `Hi ${q.clientName},\nYour quotation for ${q.title} is ready. Please review the scope, payment schedule and agreement: ${url}\nYou can accept and pay the initial instalment, or reply with questions or requested changes. Acceptance does not automatically charge you.\nThis private link is intended only for you.`,
-    html: `<p>Hi ${escapeHtml(q.clientName)},</p><p>Your quotation for <strong>${escapeHtml(q.title)}</strong> is ready.</p><p><a href="${escapeHtml(url)}">Review your quotation and agreement</a></p><p>Please review the scope, payment schedule and terms. You can accept and pay the initial instalment, or reply with questions or requested changes. Acceptance does not automatically charge you.</p><p>This link is private. Project messages come from ${escapeHtml(process.env.MAIL_FROM || process.env.SMTP_USER)}.</p>` });
+    subject: `Your quotation — ${shortTitle}`,
+    text,
+    html,
+  });
 }
 async function sendPaymentReceipt(receipt, buffer) {
   if (!bookingSmtpReady()) throw new Error('SMTP is not configured');

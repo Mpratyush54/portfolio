@@ -379,6 +379,7 @@ export class DiscoveryBookComponent implements OnInit {
           description: 'Technical consultation · ' + this.selectedSummary,
           order_id: order.orderId,
           prefill: { name: this.name.trim(), email: this.email.trim(), contact: this.phone.trim() },
+          remember_customer: false,
           theme: { color: '#1a1a24' },
           handler: (response: Omit<PaymentVerification, 'bookingId'>) => {
             if (verifying) return;

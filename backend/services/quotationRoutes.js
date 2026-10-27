@@ -127,6 +127,16 @@ function createQuotationRouter(service, admin) {
     admin,
     run((r) => service.edit(r.params.id, r.body)),
   );
+  router.patch(
+    '/admin/quotations/:id/schedule',
+    admin,
+    run((r) => service.updateSchedule(r.params.id, r.body)),
+  );
+  router.delete(
+    '/admin/quotations/:id',
+    admin,
+    run((r) => service.deleteDraft(r.params.id)),
+  );
   router.post(
     '/admin/quotations/:id/revise',
     admin,

@@ -50,6 +50,7 @@ const schema = new mongoose.Schema(
     timeline: String,
     terms: String,
     totalPaise: Number,
+    minimumOnboardingPaise: Number,
     currency: { type: String, default: 'INR' },
     revision: { type: Number, default: 1 },
     previousId: mongoose.Schema.Types.ObjectId,

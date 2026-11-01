@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const template = require('../services/quotationTemplate');
-const { validate } = require('../services/quotationService');
+const template = require('../modules/quotations/template');
+const { validate } = require('../modules/quotations/service');
 function validBuilder() {
   const b = template.defaults();
   Object.assign(b.provider, {

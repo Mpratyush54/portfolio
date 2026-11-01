@@ -4,17 +4,17 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const { PDFParse } = require('pdf-parse');
-const Quote = require('../models/Quotation');
-const Booking = require('../models/Booking');
-const Contact = require('../models/ContactMessage');
-const Invitation = require('../models/QuotationInvitation');
-const Receipt = require('../models/PaymentReceipt');
-const Digest = require('../models/DigestDelivery');
-const { createQuotationService, validate, DEFAULT_TERMS } = require('../services/quotationService');
-const links = require('../services/quotationInvitations');
-const receipts = require('../services/paymentReceipts');
-const lists = require('../services/adminLists');
-const { createDigestRunner, digestDue } = require('../services/digest');
+const Quote = require('../modules/quotations/Quotation');
+const Booking = require('../modules/booking/Booking');
+const Contact = require('../modules/contact/ContactMessage');
+const Invitation = require('../modules/quotations/QuotationInvitation');
+const Receipt = require('../modules/payments/PaymentReceipt');
+const Digest = require('../modules/digest/DigestDelivery');
+const { createQuotationService, validate, DEFAULT_TERMS } = require('../modules/quotations/service');
+const links = require('../modules/quotations/invitations');
+const receipts = require('../modules/payments/receipts');
+const lists = require('../modules/admin/lists');
+const { createDigestRunner, digestDue } = require('../modules/digest/service');
 let mongo;
 process.env.QUOTATION_INVITE_SECRET = 'b'.repeat(64);
 before(async () => { mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri()); await Promise.all([Quote.init(), Invitation.init(), Receipt.init()]); });
@@ -45,7 +45,7 @@ it('validates search, filters, dates and pagination; contact and booking pages r
 it('protects booking assignments, rejects stale edits and cannot complete an unpaid booking', async (t) => {
   const express=require('express'), app=express();app.use(express.json());
   const admin=(req,res,next)=>req.get('x-preview-admin')==='yes'?next():res.sendStatus(401);
-  app.use(require('../services/bookingRoutes').createBookingRouter({ready:()=>true},admin,()=>null));
+  app.use(require('../modules/booking/routes').createBookingRouter({ready:()=>true},admin,()=>null));
   const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));t.after(()=>new Promise(r=>server.close(r)));
   const booking=await Booking.create({name:'Client',email:'a@example.com',date:'2026-11-01',slot:'18:00',amountPaise:119900,status:'pending_payment'});
   const url=`http://127.0.0.1:${server.address().port}/admin/bookings/${booking._id}`;
@@ -100,8 +100,10 @@ it('queues one receipt per captured payment and retries only the failed delivery
   assert.equal(await Receipt.countDocuments(),1);
   const row = await Receipt.findOne(); assert.equal(row.balancePaise,50003);
   let sends=0;
-  await receipts.deliver(row,{ready:()=>true,send:async()=>{throw Error('offline');}});
+  const deliveryEvents=[];
+  await receipts.deliver(row,{ready:()=>true,send:async()=>{throw Error('offline');},analytics:{capture:(event,properties,distinctId)=>deliveryEvents.push({event,properties,distinctId})}});
   assert.equal((await Receipt.findById(row._id)).status,'failed');
+  assert.deepEqual(deliveryEvents.at(-1),{event:'receipt_delivery_retry',properties:{event_source:'delivery',outcome:'retry'},distinctId:'backend:delivery'});
   assert.ok((await Receipt.findById(row._id)).nextAttemptAt > new Date());
   await Receipt.updateOne({ _id: row._id }, { $unset: { nextAttemptAt: 1 } }); // Explicit admin retry.
   await Promise.all(Array.from({length:5},()=>receipts.deliver(row,{ready:()=>true,send:async(_,buffer)=>{sends++;assert.equal(buffer.subarray(0,4).toString(),'%PDF');}})));
@@ -112,11 +114,11 @@ it('queues one receipt per captured payment and retries only the failed delivery
 it('sends a bookings-only digest, skips empty days and uses an activity checkpoint', async () => {
   let payload;
   const run=createDigestRunner({ready:()=>true,send:async(...args)=>{payload=args;}});
-  assert.equal((await run({isMongoConnected:true})).reason,'empty');
+  assert.equal((await run()).reason,'empty');
   await Booking.create({name:'Client',email:'a@example.com',date:'2026-11-01',slot:'18:00',amountPaise:119900,status:'paid',paidAt:new Date()});
-  const result=await run({isMongoConnected:true});assert.equal(result.sent,true);assert.equal(payload[0].length,0);assert.equal(payload[1].length,1);
+  const result=await run();assert.equal(result.sent,true);assert.equal(payload[0].length,0);assert.equal(payload[1].length,1);
   await Contact.create({name:'New client',email:'a@example.com',intent:'hi',message:'Question'});
-  const second=await run({isMongoConnected:true,force:true});assert.equal(second.contactCount,1);assert.equal(second.bookingCount,0);
+  const second=await run({force:true});assert.equal(second.contactCount,1);assert.equal(second.bookingCount,0);
   assert.equal(digestDue(new Date('2026-10-27T15:29:00Z'),21,0),false);
   assert.equal(digestDue(new Date('2026-10-27T15:30:00Z'),21,0),true);
 });

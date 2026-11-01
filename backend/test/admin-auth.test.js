@@ -1,6 +1,6 @@
 const { it } = require('node:test');
 const assert = require('node:assert/strict');
-const { createAdminAuth, createAdminLogin } = require('../services/adminAuth');
+const { createAdminAuth, createAdminLogin } = require('../modules/admin/auth');
 
 async function attempt(auth, password = 'wrong', email = 'admin@example.com') {
   let code = 200, next = false;

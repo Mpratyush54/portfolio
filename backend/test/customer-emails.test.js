@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const messages = [];
 require('nodemailer').createTransport = () => ({ sendMail: async m => { messages.push(m); } });
 process.env.SMTP_HOST = 'smtp.example.invalid'; process.env.SMTP_USER = 'developer@example.com'; process.env.CONTACT_EMAIL = 'owner@example.com';
-const mailer = require('../services/mailer');
+const mailer = require('../modules/shared/mailer');
 it('attaches a receipt and identifies the configured sender after a verified booking payment', async () => {
   const booking = {name:'Client',email:'client@example.com',date:'2026-11-02',slot:'18:00',amountPaise:119900,razorpayPaymentId:'pay_example',razorpayOrderId:'order_example',status:'paid',paidAt:new Date()};
   await mailer.sendBookingPaidEmails(booking,'visitor');

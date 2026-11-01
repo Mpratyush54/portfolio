@@ -4,12 +4,12 @@ const crypto = require('crypto');
 const express = require('express');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const Counter = require('../models/RequestLimit');
-const Receipt = require('../models/WebhookReceipt');
-const { consume, limitRequests, apiRateLimits } = require('../services/rateLimits');
-const { clientAddress, rateAddress } = require('../services/clientAddress');
-const { parseWebhook, onceCaptured, webhookGuard } = require('../services/paymentSecurity');
-const { createAdminAuth } = require('../services/adminAuth');
+const Counter = require('../modules/shared/RequestLimit');
+const Receipt = require('../modules/payments/WebhookReceipt');
+const { consume, limitRequests, apiRateLimits } = require('../modules/shared/rateLimits');
+const { clientAddress, rateAddress } = require('../modules/shared/clientAddress');
+const { parseWebhook, onceCaptured, webhookGuard } = require('../modules/payments/security');
+const { createAdminAuth } = require('../modules/admin/auth');
 const fail = (promise, status) => assert.rejects(promise, error => error.status === status);
 
 it('trusts Cloudflare visitor headers only behind a verified Cloudflare source', () => {
@@ -134,7 +134,7 @@ describe('Distributed rate limits and webhook processing with MongoDB', () => {
     } finally {await mongoose.connect(mongo.getUri());}
   });
   it('bounds gateway waits and normalizes transport errors without exposing credentials', async () => {
-    const { createGateway } = require('../services/razorpayGateway');
+    const { createGateway } = require('../modules/payments/gateway');
     const app=express(); app.get('/v1/payments/:id',()=>{});
     const origin=await listen(app);
     const gateway=createGateway({RAZORPAY_KEY_ID:'rzp_test_unit',RAZORPAY_KEY_SECRET:'private-unit-secret'},{timeoutMs:50});

@@ -5,13 +5,13 @@ const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const Quote = require('../models/Quotation');
-const Receipt = require('../models/WebhookReceipt');
+const Quote = require('../modules/quotations/Quotation');
+const Receipt = require('../modules/payments/WebhookReceipt');
 const {
   createQuotationService,
   validate,
   DEFAULT_TERMS,
-} = require('../services/quotationService');
+} = require('../modules/quotations/service');
 const body = () => ({
   title: 'Client website',
   clientName: 'Client',
@@ -27,7 +27,7 @@ const body = () => ({
 });
 const fail = (p, status) => assert.rejects(p, (e) => e.status === status);
 describe('Versioned quotations with MongoDB and fake Razorpay', () => {
-  let mongo, service, payment, orders;
+  let mongo, service, payment, orders, events, orderPayload;
   before(async () => {
     mongo = await MongoMemoryServer.create();
     await mongoose.connect(mongo.getUri());
@@ -41,16 +41,17 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
   });
   beforeEach(async () => {
     await Promise.all([Quote.deleteMany({}), Receipt.deleteMany({})]);
-    orders = 0;
+    orders = 0; events = []; orderPayload = null;
     payment = null;
     service = createQuotationService({
       gateway: () => ({
         orders: {
-          create: async () => ({ id: 'order_' + ++orders }),
+          create: async (payload) => { orderPayload = payload; return { id: 'order_' + ++orders }; },
           fetchPayments: async (id) => ({ items: payment?.order_id === id ? [payment] : [] }),
         },
         payments: { fetch: async () => payment && ({ captured: payment.status === 'captured', ...payment }) },
       }),
+      analytics: { capture: (event, properties, distinctId) => events.push({ event, properties, distinctId }) },
     });
   });
   async function invite(id) {
@@ -95,7 +96,7 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     });
   }
   it('persists guided choices and exact edited clauses through draft reload and revision', async () => {
-    const template = require('../services/quotationTemplate');
+    const template = require('../modules/quotations/template');
     const builder = template.defaults();
     Object.assign(builder.provider, {
       name: 'Provider',
@@ -118,7 +119,7 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     assert.equal(replacement.terms, created.terms);
   });
   it('changes payment composition in place without creating a revision', async () => {
-    const template = require('../services/quotationTemplate');
+    const template = require('../modules/quotations/template');
     const builder = template.defaults();
     Object.assign(builder.provider, {
       name: 'Provider',
@@ -247,7 +248,7 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
   });
   it('uses the project title as the default invitation label', async () => {
     const i = await invited();
-    const links = await require('../services/quotationInvitations').list(
+    const links = await require('../modules/quotations/invitations').list(
       i.quotation._id,
     );
     assert.equal(links[0].label, 'Client website');
@@ -297,6 +298,22 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
     assert.equal(orders, 1);
     await pay(i.token, 0);
     assert.equal(await service.confirm('order_1', 'pay_0'), true);
+    assert.ok(events.some(({ event }) => event === 'quotation_reconciliation_recovered'));
+    const properties = events.map(({ properties }) => JSON.stringify(properties)).join('');
+    assert.equal(/@|pay_|order_[A-Za-z0-9]{4,}/.test(properties), false);
+  });
+  it('persists and returns validated correlation IDs for quotation checkout', async () => {
+    const i = await accepted();
+    const correlationId = crypto.randomUUID();
+    const order = await service.order(i.token, 0, correlationId);
+    assert.equal(order.correlationId, correlationId);
+    assert.equal(orderPayload.notes.correlationId, correlationId);
+    assert.equal((await service.portal(i.token)).milestones[0].correlationId, correlationId);
+    assert.equal(events[0].distinctId, 'backend:quotation');
+    assert.equal(events[0].properties.correlation_id, correlationId);
+    assert.equal(events[0].properties.payment_kind, 'quotation');
+    assert.equal(events[0].properties.milestone_index, 0);
+    await fail(service.order(i.token, 0, 'bad-correlation'), 400);
   });
   it('collects an admin-approved part payment once, preserves debt and locks the next milestone', async () => {
     const i = await accepted();
@@ -480,6 +497,8 @@ describe('Versioned quotations with MongoDB and fake Razorpay', () => {
       .digest('hex');
     await service.webhook(raw, signature);
     await service.webhook(raw, signature);
+    assert.equal(events.filter(({ event }) => event === 'quotation_webhook_accepted').length, 1);
+    assert.equal(events.filter(({ event }) => event === 'quotation_webhook_ignored').length, 1);
     assert.equal(
       (await service.portal(i.token)).milestones[0].paymentId,
       'pay_hook',

@@ -7,13 +7,13 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const { unzipSync, zipSync, strToU8, strFromU8 } = require('fflate');
 const { PDFParse } = require('pdf-parse');
-const Quote = require('../models/Quotation');
-const { createQuotationService } = require('../services/quotationService');
-const { createQuotationRouter } = require('../services/quotationRoutes');
-const { exportQuotation, sections } = require('../services/quotationExport');
-const { inspectFile } = require('../services/quotationFiles');
-const { defaults } = require('../services/quotationTemplate');
-const { cleanText } = require('../services/quotationText');
+const Quote = require('../modules/quotations/Quotation');
+const { createQuotationService } = require('../modules/quotations/service');
+const { createQuotationRouter } = require('../modules/quotations/routes');
+const { exportQuotation, sections } = require('../modules/quotations/export');
+const { inspectFile } = require('../modules/quotations/files');
+const { defaults } = require('../modules/quotations/template');
+const { cleanText } = require('../modules/quotations/text');
 
 function editor() {
   const builder = defaults();

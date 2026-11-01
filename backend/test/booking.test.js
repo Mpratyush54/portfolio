@@ -3,23 +3,23 @@ const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const Booking = require('../models/Booking');
-const Settings = require('../models/BookingSettings');
-const Contact = require('../models/ContactMessage');
-const RequestLimit = require('../models/RequestLimit');
-const Receipt = require('../models/WebhookReceipt');
-const DigestDelivery = require('../models/DigestDelivery');
-const { createDigestRunner } = require('../services/digest');
-const { createBookingService, validSignature } = require('../services/bookingService');
-const { createContactActions } = require('../services/contactActions');
-const { validDate, validateSettings } = require('../services/bookingValidation');
-const slots = require('../services/bookingSlots');
+const Booking = require('../modules/booking/Booking');
+const Settings = require('../modules/booking/BookingSettings');
+const Contact = require('../modules/contact/ContactMessage');
+const RequestLimit = require('../modules/shared/RequestLimit');
+const Receipt = require('../modules/payments/WebhookReceipt');
+const DigestDelivery = require('../modules/digest/DigestDelivery');
+const { createDigestRunner } = require('../modules/digest/service');
+const { createBookingService, validSignature } = require('../modules/booking/service');
+const { createContactActions } = require('../modules/contact/actions');
+const { validDate, validateSettings } = require('../modules/booking/validation');
+const slots = require('../modules/booking/slots');
 const express = require('express');
-const { createBookingRouter, handleBookingError } = require('../services/bookingRoutes');
-const { createAdminAuth } = require('../services/adminAuth');
+const { createBookingRouter, handleBookingError } = require('../modules/booking/routes');
+const { createAdminAuth } = require('../modules/admin/auth');
 
 describe('Booking and admin with a real MongoDB', () => {
-  let mongo, service, gateway, emails, sequence, payment, fetches;
+  let mongo, service, gateway, emails, sequence, payment, fetches, events, orderPayload;
   before(async () => {
     mongo = await MongoMemoryServer.create();
     await mongoose.connect(mongo.getUri());
@@ -29,12 +29,16 @@ describe('Booking and admin with a real MongoDB', () => {
   after(async () => { await mongoose.disconnect(); if (mongo) await mongo.stop(); });
   beforeEach(async () => {
     await Promise.all([Booking.deleteMany({}), Settings.deleteMany({}), Contact.deleteMany({}), RequestLimit.deleteMany({}), DigestDelivery.deleteMany({}), Receipt.deleteMany({})]);
-    emails = 0; sequence = 0; payment = null; fetches = 0;
+    emails = 0; sequence = 0; payment = null; fetches = 0; events = []; orderPayload = null;
     gateway = {
-      orders: { create: async () => ({ id: `order_${++sequence}` }) },
+      orders: { create: async (payload) => { orderPayload = payload; return { id: `order_${++sequence}` }; } },
       payments: { fetch: async () => { fetches++; return payment; } },
     };
-    service = createBookingService({ gateway: () => gateway, sendEmails: async () => { emails++; } });
+    service = createBookingService({
+      gateway: () => gateway,
+      sendEmails: async () => { emails++; },
+      analytics: { capture: (event, properties, distinctId) => events.push({ event, properties, distinctId }) },
+    });
     await service.init();
   });
   const rejectsStatus = (promise, status) => assert.rejects(promise, error => error.status === status);
@@ -77,6 +81,19 @@ describe('Booking and admin with a real MongoDB', () => {
     assert.equal(await Booking.countDocuments({ slotKey: { $exists: true } }), 0);
     gateway.orders.create = async () => ({ id: 'order_retry' });
     assert.ok((await service.create(input)).orderId);
+  });
+  it('validates and propagates a safe correlation ID without using it as distinct_id', async () => {
+    const correlationId = crypto.randomUUID();
+    const order = await service.create({ ...(await details()), correlationId });
+    assert.equal(order.correlationId, correlationId);
+    assert.equal(orderPayload.notes.correlationId, correlationId);
+    assert.equal((await Booking.findById(order.bookingId)).correlationId, correlationId);
+    assert.deepEqual(events[0], {
+      event: 'booking_order_created',
+      properties: { correlation_id: correlationId, event_source: 'api', outcome: 'created', payment_kind: 'booking' },
+      distinctId: 'backend:booking',
+    });
+    await rejectsStatus(service.create({ ...(await details()), correlationId: 'not-a-uuid' }), 400);
   });
   it('shares checkout attempt limits across booking service instances', async () => {
     const input = await details();
@@ -147,10 +164,18 @@ describe('Booking and admin with a real MongoDB', () => {
     await service.webhook(raw, signature);
     await service.webhook(raw, signature);
     assert.equal(fetches, 1);
+    assert.equal(events.filter(({ event }) => event === 'booking_webhook_accepted').length, 1);
+    assert.equal(events.filter(({ event }) => event === 'booking_webhook_ignored').length, 1);
     assert.equal((await Booking.findById(order.bookingId)).status, 'paid');
     assert.equal(emails, 2);
     await rejectsStatus(service.webhook(Buffer.from('{}'), signature), 400);
     await rejectsStatus(service.webhook(raw, undefined), 400);
+    assert.ok(events.some(({ event }) => event === 'booking_webhook_rejected'));
+    const paid = await service.verify(paymentFor(order));
+    assert.equal(paid.status, 'paid');
+    assert.ok(events.some(({ event }) => event === 'booking_reconciliation_recovered'));
+    const properties = events.map(({ properties }) => JSON.stringify(properties)).join('');
+    assert.equal(/@|pay_|person@|Test Customer/.test(properties), false);
   });
   it('rejects stale totals and missing consent before creating payment orders', async () => {
     const input = await details();
@@ -229,7 +254,7 @@ describe('Booking and admin with a real MongoDB', () => {
   it('admin simultaneous approvals send only one visitor email', async () => {
     const contact = await newContact();
     let sent = 0;
-    const actions = createContactActions({ connected: () => true, sendEmail: async () => { sent++; await new Promise(resolve => setTimeout(resolve, 20)); } });
+    const actions = createContactActions({ sendEmail: async () => { sent++; await new Promise(resolve => setTimeout(resolve, 20)); } });
     await Promise.allSettled(Array.from({ length: 8 }, () => actions.approve(String(contact._id))));
     await actions.approve(String(contact._id));
     assert.equal(sent, 1);
@@ -241,7 +266,7 @@ describe('Booking and admin with a real MongoDB', () => {
     let mailStarted;
     const started = new Promise(resolve => { mailStarted = resolve; });
     let finish;
-    const actions = createContactActions({ connected: () => true, sendEmail: async () => {
+    const actions = createContactActions({ sendEmail: async () => {
       mailStarted(); await new Promise(resolve => { finish = resolve; }); throw new Error('smtp failed');
     } });
     const approval = actions.approve(String(contact._id));
@@ -249,12 +274,12 @@ describe('Booking and admin with a real MongoDB', () => {
     await started;
     await rejectsStatus(actions.reject(String(contact._id)), 409);
     finish(); await assertion;
-    const retry = createContactActions({ connected: () => true, sendEmail: async () => {} });
+    const retry = createContactActions({ sendEmail: async () => {} });
     await retry.approve(String(contact._id));
     assert.equal((await Contact.findById(contact._id)).status, 'approved');
   });
   it('returns client errors for invalid IDs and prevents approving rejected contacts', async () => {
-    const actions = createContactActions({ connected: () => true, sendEmail: async () => {} });
+    const actions = createContactActions({ sendEmail: async () => {} });
     await rejectsStatus(actions.approve('bad'), 400);
     const contact = await newContact();
     await actions.reject(String(contact._id));
@@ -264,9 +289,9 @@ describe('Booking and admin with a real MongoDB', () => {
     await newContact();
     let sends = 0;
     const makeRunner = () => createDigestRunner({ ready: () => true, send: async () => { sends++; } });
-    const results = await Promise.all(Array.from({ length: 6 }, () => makeRunner()({ isMongoConnected: true })));
+    const results = await Promise.all(Array.from({ length: 6 }, () => makeRunner()()));
     assert.equal(results.filter(result => result.sent).length, 1);
-    assert.equal((await makeRunner()({ isMongoConnected: true })).sent, false);
+    assert.equal((await makeRunner()()).sent, false);
     assert.equal(sends, 1);
   });
   it('HTTP routes preserve raw webhook bytes and protect admin settings', async (t) => {

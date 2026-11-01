@@ -18,9 +18,11 @@ Personal portfolio for **Pratyush Mishra** — backend engineer, tech lead, full
 ```
 portfolio/
 ├── frontend/          # Site UI
-├── backend/           # API, seed, screenshot helpers
-│   └── data/projects.js   # Curated project catalog (source of truth for Work)
-├── kubernetes/       # Deploy manifests
+├── backend/           # API and seed
+│   └── data/projects.js
+├── docs/              # Booking, quotations, deploy, observability
+├── kubernetes/        # Deploy manifests
+├── scripts/           # Maintained repo tooling
 └── .github/workflows/ # Docker build
 ```
 

@@ -4,7 +4,7 @@ The public project token supplied by the site owner is configured for US Cloud. 
 
 ## Runtime configuration
 
-- Development/static builds read `frontend/public/runtime/analytics.json` through `/runtime/analytics.json`.
+- Development/static builds read `frontend/public/runtime/analytics.json` through `/runtime/analytics.json`. Browser capture goes through the first-party ingest host `https://v.pratyushes.dev`; `uiHost` stays `https://us.posthog.com`.
 - Kubernetes reads the same JSON shape from `kubernetes/analytics-config.yaml` (`portfolio-analytics` ConfigMap). The frontend mounts the whole ConfigMap directory at `/usr/share/nginx/html/browser/runtime`; it deliberately does not use a `subPath` mount.
 - Nginx serves runtime configuration with `Cache-Control: no-store`. Change `enabled`, `projectToken` or `apiHost` in the tracked ConfigMap and let Argo sync it. Kubernetes propagates the mounted ConfigMap update; new page loads pick it up without rebuilding images or restarting/deleting a server. An already open tab keeps its initial configuration until refreshed.
 - Setting `enabled` to `false` disables SDK loading on the next page load. A missing, malformed, insecure-host or timed-out configuration also leaves optional analytics disabled; booking/navigation still work.
@@ -25,7 +25,7 @@ Integration uses the [PostHog Angular SDK guide](https://posthog.com/docs/librar
 
 Public routes are Home, Work/Projects, About, Contact, Book and the not-found page. Public project-detail IDs are replaced with `/projects/:id`. Query strings and URL fragments are removed. Admin, proposal and unknown/private routes are not tracked. Landing directly on admin or a private proposal does not request runtime analytics configuration or load the SDK.
 
-Automatic page/leave capture, form/click autocapture, session replay, heatmaps, error/performance capture, surveys, feature-flag requests and external extension loading are disabled. A `before_send` allowlist drops unrecognised events and strips all properties except anonymous SDK identity/device metadata, the public project token, normalised route and the enumerated booking step. Top-level person `$set`/`$set_once` properties are also removed. No names, emails, phone numbers, message text, quotation content, invite tokens, order/payment IDs, dates, slot values or prices are included.
+Public-route pageleave, masked autocapture, heatmaps, session replay, error tracking, web vitals, network timing, replay console logs, and first-party tracing headers are enabled. Surveys stay off. `/admin` still never loads the SDK. A `before_send` allowlist drops unrecognised events and strips custom properties except anonymous SDK identity/device metadata, the public project token, normalised route, typed payment dimensions, and replay snapshot payloads. Top-level person `$set`/`$set_once` properties are also removed. No names, emails, phone numbers, message text, quotation content, invite tokens, order/payment IDs, dates, slot values or prices are included as analytics properties. Replay masks inputs and does not record Razorpay iframes.
 
 The SDK respects Do Not Track, disables IP enrichment, never creates person profiles and uses memory-only identity with persistence disabled. Consequently a reload starts a new anonymous identity; this configuration does not provide reliable cross-visit unique-person or retention counts. Client-side funnel events can be blocked or lost and are not a payment ledger. Real booking/payment status remains in MongoDB and Razorpay. The SDK's normal bot filtering stays enabled.
 
@@ -53,4 +53,4 @@ The default pinned dashboard is [Portfolio traffic and enquiries](https://us.pos
 
 Contact and payment event definitions are registered but remain unverified until real events arrive. Contact data is awaiting the first genuine submission; checkout, confirmation and review are inactive while Razorpay is unconfigured. Dashboard notes explain those limits and memory-only anonymous identity. Existing dashboards remain intact.
 
-Project settings also disable session replay, heatmaps, autocapture, console/performance capture and automatic web vitals, matching the SDK privacy choices. IP anonymization is enabled. No email/Slack subscriptions, paid upgrades, public sharing or additional credentials were created.
+Project settings should keep IP anonymization enabled. Browser capture now uses `v.pratyushes.dev`. Enable session replay, heatmaps, autocapture, console/performance capture, and web vitals in the PostHog project if any of those products are still remotely disabled. No email/Slack subscriptions, paid upgrades, public sharing or additional credentials were created.

@@ -193,6 +193,45 @@ export const dashboards = [
       ],
     ],
   },
+  {
+    name: 'Portfolio / Traffic & Engagement',
+    description: 'Anonymous public-site traffic, friction and engagement. Watch recordings under Replay.',
+    insights: [
+      ['Pageviews by route', trend(['$pageview'], { breakdown: '$pathname' })],
+      ['Pageviews by device', trend(['$pageview'], { breakdown: '$device_type' })],
+      ['Pageviews by browser', trend(['$pageview'], { breakdown: '$browser' })],
+      ['Unique sessions', trend([{ ...event('$pageview'), math: 'unique_session' }])],
+      ['Average visit duration', trend([{ ...event('$pageleave'), math: 'avg', math_property: '$prev_pageview_duration' }])],
+      ['Rage clicks by route', trend(['$rageclick'], { breakdown: '$pathname' })],
+      ['Dead clicks by route', trend(['$dead_click'], { breakdown: '$pathname' })],
+      ['Replay snapshots recorded', trend(['$snapshot'])],
+      [
+        'Visit to contact funnel',
+        funnel(['$pageview', 'contact_submitted'], 60),
+      ],
+    ],
+  },
+  {
+    name: 'Portfolio / Proposal Engagement',
+    description: 'How clients interact with proposals, from opening the link to accepting it. No client identifiers.',
+    insights: [
+      ['Proposals opened', trend(['quotation_opened'])],
+      ['Proposals loaded', trend(['quotation_viewed'])],
+      ['Opened but never loaded', trend(['quotation_opened', 'quotation_viewed'], { display: 'ActionsLineGraph' })],
+      ['Proposal downloads', trend(['quotation_downloaded'])],
+      ['Proposal acceptances', trend(['quotation_accepted'])],
+      ['Opened by device', trend(['quotation_opened'], { breakdown: '$device_type' })],
+      ['Opened by route', trend(['quotation_opened'], { breakdown: '$pathname' })],
+      [
+        'Proposal engagement funnel',
+        funnel(['quotation_opened', 'quotation_viewed', 'quotation_accepted'], 1440),
+      ],
+      [
+        'Proposal to payment funnel',
+        funnel(['quotation_opened', 'quotation_accepted', 'quotation_payment_checkout_opened', 'quotation_payment_confirmed'], 10080),
+      ],
+    ],
+  },
 ];
 
 export const alerts = [

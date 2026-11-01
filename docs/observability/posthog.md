@@ -18,7 +18,9 @@ PostHog is an optional, privacy-limited signal for the public portfolio. It is n
 | `booking_checkout_opened` | Browser | Checkout handoff | `correlation_id`, `payment_kind=booking`, `result=opened` |
 | `booking_confirmed` | Browser | Browser-reported booking success | `correlation_id`, `payment_kind`, `result=confirmed` |
 | `booking_payment_review` | Browser | Payment requiring review | `correlation_id`, `payment_kind`, `result=review` |
-| `quotation_viewed` | Browser | Proposal opened | None |
+| `quotation_opened` | Browser | Proposal link opened (fires even if the link is invalid or expired) | None |
+| `quotation_viewed` | Browser | Proposal loaded successfully | None |
+| `quotation_downloaded` | Browser | File downloaded from a proposal | None |
 | `quotation_accepted` | Browser | Proposal accepted | None |
 | `quotation_milestone_reviewed` | Browser | Delivery milestone decision | `milestone_index`, `approved` |
 | `quotation_payment_checkout_opened` | Browser | Proposal payment handoff | `milestone_index`, `correlation_id`, `payment_kind`, `result` |
@@ -79,7 +81,7 @@ node scripts/posthog/bootstrap.mjs --dry-run --json
 node scripts/posthog/bootstrap.mjs
 ```
 
-The idempotent bootstrap creates or updates six managed dashboards: Executive, Booking Funnel, Quotation Payment Funnel, Reliability, Performance, and Delivery Operations. Insights use a stable managed name and are updated in place.
+The idempotent bootstrap creates or updates eight managed dashboards: Executive, Booking Funnel, Quotation Payment Funnel, Reliability, Performance, Delivery Operations, Traffic & Engagement, and Proposal Engagement. Insights use a stable managed name and are updated in place.
 
 | Dashboard | What to inspect |
 | --- | --- |
@@ -89,6 +91,8 @@ The idempotent bootstrap creates or updates six managed dashboards: Executive, B
 | Reliability | Browser exceptions, backend `api_error`, webhook failures/rejections, reconciliation recoveries |
 | Performance | p75 LCP/INP/CLS/FCP by route and device, plus slow LCP counts |
 | Delivery Operations | Receipt and invitation success, retries, and exhausted attempts |
+| Traffic & Engagement | Pageviews by route/device/browser, sessions, visit duration, rage/dead clicks, replay volume, visit-to-contact funnel |
+| Proposal Engagement | Proposals opened vs loaded, downloads, acceptances, device split, open-to-accept and open-to-payment funnels |
 
 Alerts exist for new browser/backend exceptions, payment verification failures, rejected or failed webhooks, reconciliation recoveries, receipt/invitation exhaustion, and Core Web Vitals LCP regressions (more than five slow LCP events). Isolated checkout dismissals and user cancellations do not alert.
 

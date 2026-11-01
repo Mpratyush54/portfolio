@@ -7,7 +7,7 @@ import { EXPECTED_EVENTS, verify } from './verify.mjs';
 
 test('dashboard bootstrap dry-run includes every managed resource', async () => {
   const result = await bootstrap({ dryRun: true });
-  assert.equal(result.dashboards.length, 6);
+  assert.equal(result.dashboards.length, 8);
   assert.equal(
     result.insights.length,
     dashboards.reduce((total, dashboard) => total + dashboard.insights.length, 0),

@@ -23,7 +23,7 @@ spec:
         tier: frontend
       annotations:
         # Rewritten by CI on every main build so the pod template always changes
-        portfolio.pratyushes.dev/deploy-sha: "bc9d18f47afb3a851e5225662e4c9aa74e3a60cf"
+        portfolio.pratyushes.dev/deploy-sha: "e4cc2402a154ab157e37724524d7ce29e75dd9a0"
     spec:
       volumes:
         - name: analytics-config
@@ -39,7 +39,7 @@ spec:
               mountPath: /usr/share/nginx/html/browser/runtime
               readOnly: true
           # Tag is rewritten by CI to the short git SHA after each build
-          image: ghcr.io/mpratyush54/portfolio-frontend:bc9d18f47afb3a851e5225662e4c9aa74e3a60cf
+          image: ghcr.io/mpratyush54/portfolio-frontend:e4cc2402a154ab157e37724524d7ce29e75dd9a0
           imagePullPolicy: Always
           ports:
             - containerPort: 80

@@ -13,12 +13,28 @@ const { validSignature, parseWebhook, onceCaptured } = require('../payments/secu
 const { correlationId } = require('../analytics/PostHogService');
 
 class BookingService {
-  constructor({ gateway, sendEmails, emailReady = () => true, analytics = { capture: () => false } }) {
+  constructor({
+    gateway,
+    sendEmails,
+    emailReady = () => true,
+    analytics = { capture: () => false },
+    calendar = { enabled: () => false, upsert: async () => ({ skipped: true }) },
+  }) {
     this.gateway = gateway;
     this.sendEmails = sendEmails;
     this.emailReady = emailReady;
     this.analytics = analytics;
+    this.calendar = calendar;
     this.initialized = false;
+  }
+
+  async syncCalendar(booking) {
+    if (!booking || !this.calendar?.upsert) return;
+    try {
+      await this.calendar.upsert(booking);
+    } catch {
+      console.error('[Booking calendar] Sync failed; payment and assignment still stand.');
+    }
   }
 
   ready() {
@@ -278,6 +294,7 @@ class BookingService {
     if (confirmed) {
       this.track('booking_verification_confirmed', { event_source: eventSource, outcome: 'confirmed' }, booking);
       await this.notify(confirmed);
+      await this.syncCalendar(confirmed);
       return this.paidResult(confirmed);
     }
     return this.sendToReview(booking, paymentId, eventSource);

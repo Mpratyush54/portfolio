@@ -154,6 +154,60 @@ spec:
                   name: portfolio-secrets
                   key: DISCOVERY_FEE_PAISE
                   optional: true
+            - name: GROKBOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: GROKBOT_TOKEN
+                  optional: true
+            - name: XAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: XAI_API_KEY
+                  optional: true
+            - name: GROK_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: GROK_MODEL
+                  optional: true
+            - name: GOOGLE_CALENDAR_ID
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: GOOGLE_CALENDAR_ID
+                  optional: true
+            - name: GOOGLE_SERVICE_ACCOUNT_JSON
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: GOOGLE_SERVICE_ACCOUNT_JSON
+                  optional: true
+            - name: GOOGLE_IMPERSONATE_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: GOOGLE_IMPERSONATE_EMAIL
+                  optional: true
+            - name: GOOGLE_OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: GOOGLE_OAUTH_CLIENT_ID
+                  optional: true
+            - name: GOOGLE_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: GOOGLE_OAUTH_CLIENT_SECRET
+                  optional: true
+            - name: GOOGLE_OAUTH_REFRESH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: GOOGLE_OAUTH_REFRESH_TOKEN
+                  optional: true
           resources:
             requests:
               cpu: 100m

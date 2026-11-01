@@ -148,6 +148,7 @@ class BookingRouter {
       .select('-ip -razorpaySignature')
       .lean();
     if (!row) throw httpError(409, 'Booking changed or is not paid. Refresh before saving.');
+    if (this.service.syncCalendar) await this.service.syncCalendar(row);
     return row;
   }
 }

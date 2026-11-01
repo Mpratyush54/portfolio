@@ -7,11 +7,14 @@ const { createQuotationRouter } = require('./modules/quotations/routes');
 const { createContactRouter } = require('./modules/contact/routes');
 const { createAdminRouter } = require('./modules/admin/routes');
 const { createProjectsRouter } = require('./modules/projects/routes');
+const { AdminOperator } = require('./modules/operator/AdminOperator');
+const { Grokbot } = require('./modules/operator/Grokbot');
+const { createOperatorRouter } = require('./modules/operator/routes');
 const { hideIdsInRoute } = require('./modules/shared/text');
 const { mongoReady } = require('./modules/shared/mongo');
 
 function captureApiError(analytics, req, status) {
-  if (req.path.startsWith('/api/admin')) return;
+  if (req.path.startsWith('/api/admin') || req.path.startsWith('/api/operator')) return;
   const route = hideIdsInRoute(`${req.baseUrl || ''}${req.route?.path || req.path}`);
   analytics.capture('api_error', {
     event_source: 'express_error_boundary',
@@ -29,6 +32,7 @@ function createApp({
   contactActions,
   getRazorpay,
   analytics = { capture: () => false },
+  calendar,
 }) {
   const app = express();
   const guardWebhook = webhookGuard();
@@ -54,11 +58,16 @@ function createApp({
     res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ ready });
   });
 
+  const grokbot = new Grokbot({
+    operator: new AdminOperator({ bookingService, quotationService, contactActions, calendar }),
+  });
+
   app.use('/api', createProjectsRouter());
   app.use('/api', createAdminRouter({ requireAdmin, adminLogin }));
   app.use('/api', createContactRouter({ contactActions, requireAdmin }));
   app.use('/api', createBookingRouter(bookingService, requireAdmin, getRazorpay));
   app.use('/api', createQuotationRouter(quotationService, requireAdmin));
+  app.use('/api', createOperatorRouter({ grokbot, requireAdmin }));
 
   app.use((error, req, res, next) => {
     const status = error.type === 'entity.parse.failed' ? 400

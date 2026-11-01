@@ -11,18 +11,21 @@ const { createContactActions } = require('./modules/contact/actions');
 const { startDailyDigestScheduler } = require('./modules/digest/service');
 const { PostHogService } = require('./modules/analytics/PostHogService');
 const { createApp } = require('./app');
+const { GoogleCalendar } = require('./modules/calendar/GoogleCalendar');
 
 function getRazorpay() {
   return createGateway(process.env);
 }
 
 const analytics = new PostHogService();
+const calendar = new GoogleCalendar();
 const quotationService = createQuotationService({ gateway: getRazorpay, analytics });
 const bookingService = createBookingService({
   gateway: getRazorpay,
   sendEmails: sendBookingPaidEmails,
   emailReady: bookingSmtpReady,
   analytics,
+  calendar,
 });
 const requireAdmin = createAdminAuth();
 const adminLogin = createAdminLogin();
@@ -37,6 +40,7 @@ const app = createApp({
   contactActions,
   getRazorpay,
   analytics,
+  calendar,
 });
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/portfolio')

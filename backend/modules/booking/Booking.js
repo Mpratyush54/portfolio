@@ -34,6 +34,7 @@ const BookingSchema = new mongoose.Schema(
     assignedTo: String,
     meetingUrl: String,
     adminNotes: String,
+    calendarEventId: String,
   },
   { timestamps: true },
 );

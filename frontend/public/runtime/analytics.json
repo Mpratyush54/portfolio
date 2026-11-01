@@ -1,5 +1,7 @@
 {
   "enabled": true,
   "projectToken": "phc_kD3JjncDDaQkhoz25mGWETjSNj43HQnVYNhmiS64pgu3",
-  "apiHost": "https://us.i.posthog.com"
+  "apiHost": "https://v.pratyushes.dev",
+  "uiHost": "https://us.posthog.com",
+  "environment": "production"
 }

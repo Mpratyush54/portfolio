@@ -1,0 +1,107 @@
+@if (!auth.isAuthenticated) {
+  @if (restoring) {
+    <div class="admin-boot" role="status" aria-live="polite">
+      <span class="brand-mark">PM</span>
+      <p>Restoring your session…</p>
+    </div>
+  } @else {
+  <div class="login-page">
+    <section class="login-brand" aria-label="Admin workspace">
+      <a class="login-logo" routerLink="/">
+        <span class="login-mark">PM</span>
+        <span><strong>Pratyush Mishra</strong><small>Studio operations</small></span>
+      </a>
+      <div class="login-story">
+        <p class="login-kicker">Admin workspace</p>
+        <h1>Run the studio<br /><em>without the noise.</em></h1>
+        <p class="login-lede">
+          Quotations, payments, discovery calls and client messages. Each part has its own
+          page, so the work stays calm instead of turning into tab hunting.
+        </p>
+      </div>
+      <ul class="login-points">
+        <li><strong>Quotations</strong><span>Draft, invite and collect</span></li>
+        <li><strong>Bookings</strong><span>Schedule consultations</span></li>
+        <li><strong>Inbox</strong><span>Approve client enquiries</span></li>
+      </ul>
+    </section>
+    <form class="login-card" (ngSubmit)="login()">
+      <p class="login-kicker">Private area</p>
+      <h2>Sign in to your workspace</h2>
+      <p class="login-desc">Your session survives a page refresh. Sign out from the sidebar when you are done.</p>
+      @if (restoring) {
+        <p class="login-restore" aria-live="polite">Restoring your session…</p>
+      } @else {
+        <div class="login-stack">
+          <label class="login-field">
+            <span>Email address</span>
+            <input type="email" name="email" [(ngModel)]="email" placeholder="you@example.com"
+              autocomplete="off" required />
+          </label>
+          <label class="login-field">
+            <span>Password</span>
+            <input type="password" name="password" [(ngModel)]="password" placeholder="Enter your password"
+              autocomplete="current-password" required />
+          </label>
+          <label class="remember-row">
+            <input type="checkbox" name="remember" [(ngModel)]="remember" />
+            <span>Keep me signed in for 30 days on this device</span>
+          </label>
+          <button class="login-btn" type="submit" [disabled]="loggingIn || !email.trim() || !password">
+            {{ loggingIn ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </div>
+      }
+      @if (loginError) {
+        <p class="login-error" role="alert">{{ loginError }}</p>
+      }
+      <p class="login-help">Use the admin email and password configured on the server.</p>
+    </form>
+  </div>
+  }
+} @else {
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="admin-brand" routerLink="/admin/overview">
+        <span class="brand-mark">PM</span>
+        <span><strong>Studio admin</strong><small>pratyushes.dev</small></span>
+      </a>
+      <nav class="admin-nav" aria-label="Admin sections">
+        @for (item of adminTabs; track item.id) {
+          <a [routerLink]="['/admin', item.id]" [class.on]="tab === item.id">
+            <span class="nav-copy"><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></span>
+            @if (item.id === 'contacts' && workspace.count('pendingContacts')) {
+              <span class="nav-badge">{{ workspace.count('pendingContacts') }}</span>
+            }
+            @if (item.id === 'bookings' && workspace.count('reviewBookings')) {
+              <span class="nav-badge warn">{{ workspace.count('reviewBookings') }}</span>
+            }
+          </a>
+        }
+      </nav>
+      <div class="sidebar-footer">
+        <p>Signed in as</p>
+        <span class="session-pill" [title]="auth.sessionEmail || email">{{ auth.sessionEmail || email }}</span>
+        <button type="button" class="btn ghost small" (click)="signOut()">Sign out</button>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-header">
+        <div class="header-copy">
+          <p class="admin-kicker">Portfolio admin</p>
+          <h1>{{ sectionTitle() }}</h1>
+          <p class="subtitle">{{ sectionHint() }}</p>
+        </div>
+        <div class="header-actions">
+          <a class="btn ghost" routerLink="/">View site</a>
+          <button type="button" class="btn ghost" (click)="workspace.refreshStatus()" [disabled]="workspace.refreshingStatus">
+            {{ workspace.refreshingStatus ? 'Refreshing…' : 'Refresh' }}
+          </button>
+        </div>
+      </header>
+      <router-outlet />
+    </div>
+  </div>
+}
+

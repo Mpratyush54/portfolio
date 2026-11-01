@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Azure AI Fundamentals">
+  <defs>
+    <linearGradient id="ring" x1="16" y1="8" x2="112" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7ec8ff"/>
+      <stop offset="1" stop-color="#0078d4"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="58" fill="#0b1b2b"/>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="url(#ring)" stroke-width="6"/>
+  <path d="M64 28l28 48H36z" fill="#50e6ff"/>
+  <path d="M64 40l16 28H48z" fill="#0b1b2b"/>
+  <text x="64" y="104" text-anchor="middle" fill="#d9efff" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">AI-900</text>
+</svg>

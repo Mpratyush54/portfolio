@@ -1,0 +1,72 @@
+
+<div class="admin-card glass-panel span-2">
+  <div class="card-head">
+    <h2>Contact inbox</h2>
+    <div class="filters">
+      <button type="button" [class.on]="filter === 'pending'" (click)="setFilter('pending')">Pending</button>
+      <button type="button" [class.on]="filter === 'all'" (click)="setFilter('all')">All</button>
+      <button type="button" class="ghost" (click)="loadContacts()" [disabled]="loadingContacts">Refresh</button>
+    </div>
+  </div>
+  <form class="list-tools" (ngSubmit)="contactPage = 1; loadContacts()">
+    <label class="grow">Search<input name="contactSearch" [(ngModel)]="contactSearch" placeholder="Name, email or reference" maxlength="120" /></label>
+    <label>Status<select name="contactStatus" [(ngModel)]="filter"><option value="all">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label>
+    <label>From<input type="date" name="contactFrom" [(ngModel)]="contactFrom" /></label>
+    <label>To<input type="date" name="contactTo" [(ngModel)]="contactTo" /></label>
+    <div class="toolbar-actions">
+      <button class="btn" type="submit" [disabled]="loadingContacts">Apply</button>
+      <button class="btn ghost" type="button" (click)="clearContactFilters()">Clear</button>
+    </div>
+  </form>
+  <div class="list-summary">
+    <span>{{ contactTotal }} record{{ contactTotal === 1 ? '' : 's' }}</span>
+    <span aria-live="polite">Page {{ contactPage }} of {{ contactPages }}</span>
+  </div>
+  @if (contactPages > 1) {
+    <nav class="pager" aria-label="Contact inbox pagination">
+      <button type="button" (click)="goContactPage(1)" [disabled]="contactPage <= 1">First</button>
+      <button type="button" (click)="goContactPage(contactPage - 1)" [disabled]="contactPage <= 1">Prev</button>
+      @for (p of workspace.pageItems(contactPage, contactPages); track $index) {
+        @if (p === '…') { <span class="pager-gap">…</span> }
+        @else { <button type="button" [class.on]="p === contactPage" (click)="goContactPage(p)">{{ p }}</button> }
+      }
+      <button type="button" (click)="goContactPage(contactPage + 1)" [disabled]="contactPage >= contactPages">Next</button>
+      <button type="button" (click)="goContactPage(contactPages)" [disabled]="contactPage >= contactPages">Last</button>
+    </nav>
+  }
+  @if (loadingContacts) {
+    <div class="loading">Loading inbox…</div>
+  } @else if (!contacts.length) {
+    <div class="empty">No {{ filter === 'pending' ? 'pending ' : '' }}messages.</div>
+  } @else {
+    <div class="inbox">
+      @for (c of contacts; track c._id) {
+        <article class="msg" [class.pending]="c.status === 'pending'">
+          <header>
+            <div>
+              <p class="msg-intent">{{ intentLabel(c.intent) }}</p>
+              <h3>{{ c.name }} · {{ c.email }}</h3>
+              <p class="msg-meta">
+                {{ c.createdAt | date: 'medium' }}
+                @if (c.company) { · {{ c.company }} }
+                @if (c.phone) { · {{ c.phone }} }
+              </p>
+            </div>
+            <span class="status" [attr.data-s]="c.status">{{ workspace.statusLabel(c.status) }}</span>
+          </header>
+          <p class="msg-body">{{ c.message }}</p>
+          @if (c.status === 'pending') {
+            <div class="msg-actions">
+              <button type="button" class="approve" (click)="approve(c)" [disabled]="busyId !== null">
+                {{ busyId === c._id ? 'Sending…' : 'Approve & email' }}
+              </button>
+              <button type="button" class="reject" (click)="reject(c)" [disabled]="busyId !== null">Reject</button>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  }
+  @if (inboxError) { <p class="login-error">{{ inboxError }}</p> }
+</div>
+

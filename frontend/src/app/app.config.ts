@@ -1,5 +1,6 @@
 import {
   ApplicationConfig,
+  ErrorHandler,
   provideZoneChangeDetection,
   provideAppInitializer,
   inject,
@@ -9,11 +10,12 @@ import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideClientHydration } from '@angular/platform-browser';
 
 import { routes } from './app.routes';
-import { AnalyticsService } from './services/analytics.service';
+import { AnalyticsService } from './core/analytics/analytics.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideAppInitializer(() => inject(AnalyticsService).start()),
+    { provide: ErrorHandler, useExisting: AnalyticsService },
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(
       routes,

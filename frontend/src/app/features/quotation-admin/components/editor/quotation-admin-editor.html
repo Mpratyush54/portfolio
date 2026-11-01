@@ -1,0 +1,338 @@
+
+
+<div
+  class="editor"
+  (input)="qa.changed($event)"
+  (change)="qa.changed($event)"
+  (focusout)="qa.cleanField($event)"
+>
+  <div class="editor-bar">
+    <button type="button" class="back-link" (click)="qa.closeEditor('list')" [disabled]="qa.busy() || qa.savingDraft()">← All quotations</button>
+    <div class="editor-identity">
+      <p class="eyebrow">{{ qa.editingId ? 'Editing draft' : 'New quotation' }}</p>
+      <h3>{{ qa.editor.title || 'Untitled quotation' }}</h3>
+      <p class="editor-meta">{{ qa.editorReference() }}</p>
+    </div>
+    <div class="editor-actions">
+      <span class="save-state" [class.warn]="qa.dirty()" [class.error]="qa.saveError()" aria-live="polite">{{ qa.saveStateLabel() }}</span>
+      <button [disabled]="qa.busy() || qa.savingDraft() || qa.conflict() || !qa.dirty()" (click)="qa.save()">Save now</button>
+      <button class="primary" [disabled]="qa.busy() || qa.savingDraft()" (click)="qa.closeEditor()">{{ qa.editingId ? 'Save & close' : 'Finish draft' }}</button>
+    </div>
+  </div>
+  <p class="autosave-note">
+    Changes autosave about a second after you stop typing. <strong>Save &amp; close</strong> saves and returns to the quotation; <strong>All quotations</strong> saves and returns to the list.
+  </p>
+  @if (qa.saveError()) {
+    <p class="error" role="alert">{{ qa.saveError() }}</p>
+    @if (!qa.conflict()) {
+      <button (click)="qa.save()">Retry save</button>
+    } @else {
+      <button (click)="qa.reloadDraft()">Discard local changes and reload saved draft</button>
+    }
+  }
+  @if (qa.currentQuote()?.draftReady === false) {
+    <p class="draft-note">
+      Saved as an incomplete draft. Before inviting or exporting:
+      {{ qa.currentQuote()?.draftValidation }}
+    </p>
+  }
+
+  <h3 class="form-title">Project details</h3>
+  <label>Project title<input [(ngModel)]="qa.editor.title" maxlength="160" /></label>
+  <div class="fields">
+    <label>Client name<input [(ngModel)]="qa.editor.clientName" maxlength="120" /></label
+    ><label
+      >Client email<input type="email" [(ngModel)]="qa.editor.clientEmail" maxlength="254"
+    /></label>
+    <label
+      >Final total payable (INR, include applicable taxes)<input
+        type="number"
+        min="100"
+        max="1000000"
+        step="0.01"
+        [(ngModel)]="qa.editor.totalRupees"
+        (ngModelChange)="qa.minimumChanged()" /></label
+    ><label>Valid until<input type="date" [(ngModel)]="qa.editor.validDate" /></label>
+  </div>
+  @if (qa.editor.builder; as b) {
+    @if (qa.editor.paymentSchedule) {
+    <fieldset>
+      <legend>Payment schedule</legend>
+      <p>Set the four phase percentages and when each payment is due. Saved changes apply immediately. Invited or accepted plans can be adjusted from the quotation page until a payment or collection arrangement starts.</p>
+      <label>Initial payment: {{ qa.editor.paymentSchedule[0].percent }}%
+        <input type="range" min="1" max="97" [ngModel]="qa.editor.paymentSchedule[0].percent" (ngModelChange)="qa.initialPercent($event)" />
+      </label>
+      @for (phase of qa.editor.paymentSchedule; track $index; let i = $index) {
+        <div class="fields">
+          <label>{{ qa.phaseLabels[i] }} (%)<input type="number" min="1" max="97" [(ngModel)]="phase.percent" /></label>
+          <label>Payment timing<select [(ngModel)]="phase.timing" [disabled]="i === 0 || i === 3"><option value="before">Before phase starts</option><option value="after">After delivery approval</option></select></label>
+        </div>
+      }
+      <p [class.error]="qa.scheduleTotal() !== 100">Total: {{ qa.scheduleTotal() }}% · must equal 100%. A before-phase payment still requires the client's explicit approval of the phase plan.</p>
+      <label>Minimum payable at onboarding (INR, optional)
+        <input type="number" min="0" step="0.01" [max]="qa.editor.totalRupees" [(ngModel)]="qa.editor.minimumOnboardingRupees" (ngModelChange)="qa.minimumChanged()" placeholder="e.g. 10000" />
+      </label>
+      @if (qa.minimumError()) {
+        <p class="error">{{ qa.minimumError() }}</p>
+      } @else if (qa.editor.minimumOnboardingRupees) {
+        <p class="hint">First phase is {{ qa.onboardingAmount() / 100 | currency: 'INR' }}. The client cannot pay less than this at onboarding.</p>
+      }
+    </fieldset>
+    }
+    <fieldset>
+      <legend>Provider details</legend>
+      <p>
+        These are prefilled from your latest guided quotation when available. Check they are
+        current.
+      </p>
+      <div class="fields">
+        <label
+          >Provider legal name<input
+            [(ngModel)]="b.provider.name"
+            maxlength="120"
+            autocomplete="organization"
+        /></label>
+        <label
+          >Provider contact email<input
+            type="email"
+            [(ngModel)]="b.provider.email"
+            maxlength="254"
+            autocomplete="email"
+        /></label>
+      </div>
+      <label
+        >Provider address<textarea
+          [(ngModel)]="b.provider.address"
+          maxlength="500"
+          autocomplete="street-address"
+        ></textarea>
+      </label>
+      <div class="fields">
+        <label
+          >GST / tax status<select
+            aria-label="GST / tax status"
+            [(ngModel)]="b.provider.taxStatus"
+          >
+            <option value="" disabled>Choose your status</option>
+            <option value="not_registered">Not GST registered - no GST charged</option>
+            <option value="registered">GST registered - tax included in final price</option>
+            <option value="other">Other tax treatment - describe below</option>
+          </select></label
+        >
+        <label
+          >Dispute venue (city and state)<input
+            [(ngModel)]="b.provider.venue"
+            maxlength="160"
+            placeholder="Enter the agreed city and state"
+        /></label>
+      </div>
+      @if (b.provider.taxStatus === 'registered') {
+        <label
+          >GSTIN<input
+            [(ngModel)]="b.provider.gstin"
+            maxlength="15"
+            (ngModelChange)="b.provider.gstin = $event.toUpperCase()"
+        /></label>
+      }
+      <label
+        >Tax details
+        {{ b.provider.taxStatus === 'not_registered' ? '(optional)' : '(required)'
+        }}<input
+          [(ngModel)]="b.provider.taxNote"
+          maxlength="500"
+          placeholder="Describe applicable tax and its inclusion in the quoted total"
+      /></label>
+    </fieldset>
+    <fieldset>
+      <legend>What is included?</legend>
+      <p>
+        Tick the deliverables. Each includes a starting acceptance criterion; add the exact
+        pages, flows and limits below.
+      </p>
+      <div class="checks">
+        @for (f of qa.catalog.features; track f.id) {
+          <label class="check"
+            ><input
+              type="checkbox"
+              [ngModel]="b.features.includes(f.id)"
+              (ngModelChange)="qa.toggle('features', f.id, $event)"
+            /><span
+              >{{ f.label }}<small>{{ f.acceptance }}</small></span
+            ></label
+          >
+        }
+      </div>
+      <label
+        >Project-specific deliverables and acceptance criteria<textarea
+          [(ngModel)]="b.scopeNotes"
+          maxlength="3000"
+          placeholder="Example: Home, Services and Contact pages; two booking types; confirmation email. MVP includes the working booking flow. Completion includes all agreed pages and successful mobile tests."
+        ></textarea>
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>Exclusions and revisions</legend>
+      <div class="checks">
+        @for (f of qa.catalog.exclusions; track f.id) {
+          <label class="check"
+            ><input
+              type="checkbox"
+              [ngModel]="b.exclusions.includes(f.id)"
+              (ngModelChange)="qa.toggle('exclusions', f.id, $event)"
+            /><span>{{ f.label }}</span></label
+          >
+        }
+      </div>
+      <label
+        >Included revision rounds per milestone<input
+          type="number"
+          min="0"
+          max="10"
+          step="1"
+          [(ngModel)]="b.revisionRounds"
+      /></label>
+      <p>
+        Agreed-scope defect corrections do not consume a revision round. New features
+        require a separate accepted change quotation.
+      </p>
+      <label
+        >Other exclusions or cost arrangements (optional)<textarea
+          [(ngModel)]="b.exclusionNotes"
+          maxlength="1000"
+        ></textarea>
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>Timeline and client responsibilities</legend>
+      <div class="fields">
+        <label
+          >Estimated project duration (weeks)<input
+            type="number"
+            min="1"
+            max="52"
+            step="1"
+            [(ngModel)]="b.weeks" /></label
+        ><label
+          >Client review target (business days)<input
+            type="number"
+            min="1"
+            max="30"
+            step="1"
+            [(ngModel)]="b.reviewDays"
+        /></label>
+      </div>
+      <div class="checks">
+        @for (f of qa.catalog.responsibilities; track f.id) {
+          <label class="check"
+            ><input
+              type="checkbox"
+              [ngModel]="b.responsibilities.includes(f.id)"
+              (ngModelChange)="qa.toggle('responsibilities', f.id, $event)"
+            /><span>{{ f.label }}</span></label
+          >
+        }
+      </div>
+      <label
+        >Phase dates and special dependencies (optional)<textarea
+          [(ngModel)]="b.timelineNotes"
+          maxlength="1000"
+        ></textarea>
+      </label>
+      <label class="check"
+        ><input type="checkbox" [(ngModel)]="b.portfolio" /><span
+          >Request client permission to show publicly released work in my portfolio.
+          Confidential data stays private.</span
+        ></label
+      >
+    </fieldset>
+    <section class="agreement-editor">
+      <h3>Full agreement - {{ b.clauses.length }} sections</h3>
+      <p>
+        Complete standard clauses are already filled in. Payment triggers come from the schedule above; expand other sections to customise them.
+        The preview fills in the review period, revisions, schedule, contact, venue and
+        portfolio choice.
+      </p>
+      @for (clause of b.clauses; track clause.id; let i = $index) {
+        <details>
+          <summary>{{ i + 1 }}. {{ clause.title }}</summary>
+          @if (clause.id === 'milestones' && qa.editor.paymentSchedule) {
+            <p>Generated from your payment schedule. Use the phase controls above to change these terms.</p>
+            @for (phase of qa.editor.paymentSchedule; track $index; let phaseIndex = $index) {
+              <p>{{ qa.phaseLabels[phaseIndex] }}: {{ phase.percent }}% · {{ phase.timing === 'before' ? 'Before phase starts' : 'After delivery approval' }}</p>
+            }
+          } @else {
+          <label
+            >{{ clause.title
+            }}<textarea [(ngModel)]="clause.text" maxlength="2500" rows="8"></textarea>
+          </label>
+          }
+        </details>
+      }
+      <label
+        >Additional project-specific agreement terms (optional)<textarea
+          [(ngModel)]="b.additionalTerms"
+          maxlength="1800"
+        ></textarea>
+      </label>
+    </section>
+    <button type="button" [disabled]="qa.busy()" (click)="qa.preview()">
+      Preview generated quotation
+    </button>
+    @if (qa.previewText(); as preview) {
+      <section class="generated-preview" aria-live="polite">
+        <h3>Project proposal and service agreement</h3>
+        <p>
+          Generated from the choices at the time you clicked Preview. Saving regenerates
+          from your current choices.
+        </p>
+        @for (section of preview; track section.title) {
+          <div class="preview-section">
+            <h4>{{ section.title }}</h4>
+            <app-agreement-text [text]="section.text" />
+          </div>
+        }
+      </section>
+    }
+  } @else {
+    <p>
+      This draft uses the original text editor. Existing wording is preserved; new
+      quotations use the guided builder.
+    </p>
+    <label
+      >Provider legal name, contact email, address, GST/tax treatment and dispute
+      venue<textarea [(ngModel)]="qa.editor.seller" maxlength="2500"></textarea>
+    </label>
+    <label
+      >Scope, deliverables and measurable acceptance criteria<textarea
+        [(ngModel)]="qa.editor.scope"
+        maxlength="7000"
+      ></textarea>
+    </label>
+    <label
+      >Exclusions, revision limits and third-party costs<textarea
+        [(ngModel)]="qa.editor.exclusions"
+        maxlength="3000"
+      ></textarea>
+    </label>
+    <label
+      >Timeline, dependencies and client responsibilities<textarea
+        [(ngModel)]="qa.editor.timeline"
+        maxlength="3000"
+      ></textarea>
+    </label>
+    <label
+      >Full agreement (editable per client)<textarea
+        class="terms-edit"
+        [(ngModel)]="qa.editor.terms"
+        maxlength="14000"
+      ></textarea>
+    </label>
+  }
+  <p>
+    Default support: 30 calendar days of agreed-scope bug fixes from deployment. Review
+    every clause and your business/tax details before sharing. The final price follows the payment schedule above.
+  </p>
+  <app-quotation-admin-srs />
+</div>
+
+

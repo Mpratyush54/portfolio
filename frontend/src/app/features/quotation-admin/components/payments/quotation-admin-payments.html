@@ -1,0 +1,231 @@
+
+<article>
+          <button type="button" class="back-link" (click)="qa.closeSelection()" [disabled]="qa.busy()">← All quotations</button>
+          <div class="detail-head">
+            <p class="eyebrow">Quotation · revision {{ q.revision }}</p>
+            <h3>{{ q.title }}</h3>
+            <p class="detail-meta">Reference {{ qa.reference(q) }} · {{ q.clientName }} · {{ q.clientEmail }}</p>
+            <p class="detail-meta"><span class="state">{{ q.status }}</span> · {{ (q.totalPaise || 0) / 100 | currency: 'INR' }}</p>
+          </div>
+          @if (q.draftReady === false) {
+            <p class="draft-note">
+              Incomplete draft - finish the required fields before inviting or exporting.
+            </p>
+          }
+          <div class="actions detail-actions">
+            @if (q.status === 'draft') {
+              <button class="primary" [disabled]="qa.busy()" (click)="qa.openEdit(q)">Edit draft</button>
+              <button class="danger" [disabled]="qa.busy()" (click)="qa.deleteDraft(q)">Delete draft</button>
+            }
+              @if (q.status === 'draft') {
+                <button [disabled]="qa.busy() || q.draftReady === false" (click)="qa.invite(q)">
+                  Create private invitation
+                </button>
+              }
+              @if (q.status === 'invited' || q.status === 'accepted') {
+                <button [disabled]="qa.busy() || q.draftReady === false" (click)="qa.invite(q)">
+                  Create another private invitation</button
+                >
+                @if (qa.canChangePlan(q)) {
+                  <button [disabled]="qa.busy()" (click)="qa.startPlan(q)">Change payment plan</button>
+                }
+                <button [disabled]="qa.busy() || q.draftReady === false" (click)="qa.revise(q)">
+                  Create a new revision
+                </button>
+                <button [disabled]="qa.busy()" (click)="qa.revoke(q)">Revoke all invitation links</button>
+              }
+            </div>
+            @if (qa.planDraft) {
+              <fieldset class="plan-editor">
+                <legend>Change payment composition</legend>
+                <p>
+                  Update the four phase percentages and timing without creating a revision. The
+                  scope, total and other terms stay unchanged.
+                </p>
+                @if (q.status === 'accepted') {
+                  <p class="draft-note">
+                    This quotation is already accepted. Change the plan only with the client's
+                    agreement and before a payment starts.
+                  </p>
+                }
+                @for (phase of qa.planDraft; track $index; let i = $index) {
+                  <div class="fields">
+                    <label
+                      >{{ qa.phaseLabels[i] }} (%)<input
+                        type="number"
+                        min="1"
+                        max="97"
+                        [(ngModel)]="phase.percent"
+                    /></label>
+                    <label
+                      >Payment timing<select
+                        [(ngModel)]="phase.timing"
+                        [disabled]="i === 0 || i === 3"
+                      >
+                        <option value="before">Before phase starts</option>
+                        <option value="after">After delivery approval</option>
+                      </select></label
+                    >
+                  </div>
+                }
+                <p [class.error]="qa.planTotal() !== 100">
+                  Total: {{ qa.planTotal() }}% - must equal 100%.
+                </p>
+                <p>
+                  Existing invitation links show the new plan. Ask the client to reload any open
+                  copy.
+                </p>
+                <div class="actions">
+                  <button [disabled]="qa.busy() || qa.planTotal() !== 100" (click)="qa.savePlan(q)">
+                    Save payment plan</button
+                  ><button [disabled]="qa.busy()" (click)="qa.cancelPlan()">Cancel</button>
+                </div>
+              </fieldset>
+            }
+          @if (qa.inviteUrl()) {
+            <fieldset class="invite-copy">
+              <legend>Private invitation</legend>
+              <p>Anyone holding this link can access this client's project. Share only with the client.</p>
+              <input readonly [value]="qa.inviteUrl()" (click)="qa.select($event)" />
+              <div class="actions">
+                <button (click)="qa.copy()">{{ qa.copied() ? 'Copied' : 'Copy invitation' }}</button>
+                <button (click)="qa.shareWhatsApp(q, qa.inviteUrl())">Share on WhatsApp</button>
+              </div>
+            </fieldset>
+          }
+          <details>
+            <summary>Preview full quotation</summary>
+            <h4>Provider</h4>
+            <p class="preserve">{{ q.seller }}</p>
+            <h4>Scope</h4>
+            <p class="preserve">{{ q.scope }}</p>
+            <h4>Exclusions</h4>
+            <p class="preserve">{{ q.exclusions }}</p>
+            <h4>Timeline</h4>
+            <p class="preserve">{{ q.timeline }}</p>
+            <h4>Terms</h4>
+            <p class="preserve">{{ q.terms }}</p>
+            <p>Valid until {{ q.validUntil | date: 'mediumDate' }}</p>
+          </details>
+          @if (q.status === 'invited' || q.status === 'accepted') {
+            <fieldset><legend>Invitation links</legend>
+              <label>New link label (defaults to project title)<input [(ngModel)]="qa.invitationLabel" placeholder="Defaults to the project title" maxlength="100" /></label>
+              <label class="check"><input type="checkbox" [(ngModel)]="qa.emailInvitation" /> Email new invitations to {{ q.clientEmail }}</label>
+              <button (click)="qa.loadInvitations(q)" [disabled]="qa.busy()">Load invitation history</button>
+              @for (link of qa.invitationRows(); track link._id) {
+                <div class="invitation-row"><strong>{{ link.label }}</strong> · {{ link.createdAt | date:'medium' }}
+                  <span>{{ link.revokedAt ? 'Revoked' : 'Expires ' + (link.expiresAt | date:'mediumDate') }} · Email: {{ link.emailStatus }}</span>
+                  @if (!link.revokedAt) {
+                    <button (click)="qa.linkAction(q, link, 'copy')" [disabled]="qa.busy() || link._id === 'legacy'">Copy this link</button>
+                    <button (click)="qa.shareLink(q, link)" [disabled]="qa.busy() || link._id === 'legacy'">Share on WhatsApp</button>
+                    <button (click)="qa.linkAction(q, link, 'email')" [disabled]="qa.busy() || link._id === 'legacy' || link.emailStatus === 'sending'">Email this link</button>
+                    <button (click)="qa.linkAction(q, link, 'revoke')" [disabled]="qa.busy()">Revoke this link</button>
+                  }
+                </div>
+              }
+            </fieldset>
+          }
+          <div class="actions">
+            <button
+              [disabled]="qa.busy() || q.draftReady === false || (!!qa.editor && qa.editingId === q._id)"
+              (click)="qa.download(q, 'pdf')"
+            >
+              Download PDF</button
+            ><button
+              [disabled]="qa.busy() || q.draftReady === false || (!!qa.editor && qa.editingId === q._id)"
+              (click)="qa.download(q, 'docx')"
+            >
+              Download Word
+            </button>
+          </div>
+          @for (file of q.srs || []; track file.fileId) {
+            <p>
+              <button [disabled]="qa.busy()" (click)="qa.downloadSrs(q, file)">
+                SRS: {{ file.name }}
+              </button>
+            </p>
+          }
+
+          @if (q.minimumOnboardingPaise) {
+            <p>Minimum at onboarding: {{ q.minimumOnboardingPaise / 100 | currency: 'INR' }}</p>
+          }
+          @if (q.acceptance) {
+            <p>Accepted by {{ q.acceptance.name }} on {{ q.acceptance.at | date: 'medium' }}</p>
+          }
+          @if (qa.paymentEmails().length) {
+            <fieldset>
+              <legend>Payment receipts</legend>
+              @for (receipt of qa.paymentEmails(); track receipt.paymentId) {
+                <p>
+                  {{ receipt.paidAt | date: 'medium' }} · {{ receipt.amountPaise / 100 | currency: 'INR' }} ·
+                  Email: {{ receipt.status }}
+                </p>
+                <button (click)="qa.receiptPdf(q, receipt.paymentId)" [disabled]="qa.busy()">
+                  Download receipt
+                </button>
+                @if (receipt.status === 'failed') {
+                  <button (click)="qa.retryReceipt(q, receipt.paymentId)" [disabled]="qa.busy()">
+                    Retry email
+                  </button>
+                }
+              }
+            </fieldset>
+          }
+
+@for (m of q.milestones; track $index; let i = $index) {
+            <p>
+              <strong>{{ m.label }}: {{ m.amountPaise / 100 | currency: 'INR' }}</strong> ·
+              {{
+                m.paidAt
+                  ? 'Paid'
+                  : m.approvedAt
+                    ? 'Awaiting payment'
+                    : m.releasedAt
+                      ? 'Awaiting client approval'
+                      : 'Upcoming'
+              }}
+            </p>
+            @if (m.feedback) {
+              <p class="preserve">Client feedback: {{ m.feedback }}</p>
+            }
+            @if (!m.paidAt && ((q.status === 'invited' && i === 0) || (q.status === 'accepted' && m.approvedAt && (i === 0 || q.milestones[i - 1].paidAt)))) {
+              <fieldset>
+                <legend>{{ m.label }} collection</legend>
+                <p>Paid: {{ (m.paidPaise || 0) / 100 | currency: 'INR' }} · Balance: {{ (m.remainingPaise ?? m.amountPaise) / 100 | currency: 'INR' }} · Pay now: {{ (m.payablePaise ?? m.amountPaise) / 100 | currency: 'INR' }}</p>
+                @if (m.orderId) {
+                  <p>A checkout is already prepared. Reconcile that payment before changing the amount.</p>
+                } @else {
+                  <label>Collect now (₹)<input type="number" min="1" step="0.01" [max]="(m.remainingPaise ?? m.amountPaise) / 100" [(ngModel)]="qa.collectionAmounts[q._id + i]" /></label>
+                  <label>Reason for this arrangement<textarea maxlength="500" [(ngModel)]="qa.collectionReasons[q._id + i]"></textarea></label>
+                  <p>This changes the next payment only. The full quotation price and unpaid balance stay due. After this payment, checkout requests the remaining milestone balance.</p>
+                  <button [disabled]="qa.busy() || !!qa.editor || !qa.collectionAmounts[q._id + i] || !qa.collectionReasons[q._id + i]" (click)="qa.setCollection(q, i)">Save collection amount</button>
+                }
+                @for (entry of m.collections || []; track $index) {
+                  <p>{{ entry.at | date: 'medium' }} · {{ entry.amountPaise / 100 | currency: 'INR' }} · {{ entry.reason }}</p>
+                }
+              </fieldset>
+            }
+            @if (q.status === 'accepted' && i > 0 && q.milestones[i - 1].paidAt && !m.approvedAt) {
+              <label
+                >{{ m.timing === 'before' ? 'Phase plan and proposed work for client approval' : 'Delivery notes, review link and acceptance qa.evidence' }}<textarea
+                  [(ngModel)]="qa.evidence[q._id + i]"
+                  maxlength="3000"
+                ></textarea>
+              </label>
+              <button
+                [disabled]="qa.busy() || !!qa.editor || !qa.evidence[q._id + i]"
+                (click)="qa.release(q, i)"
+              >
+                {{
+                  m.timing === 'before' ? 'Request phase approval and advance payment' : i === 3
+                    ? 'Record production deployment and request review'
+                    : 'Request client milestone review'
+                }}
+              </button>
+            }
+          }
+          @if (q.supportEndsAt) {
+            <p>Free support ends {{ q.supportEndsAt | date: 'medium' }}</p>
+          }
+        </article>
+  

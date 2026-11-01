@@ -1,0 +1,9 @@
+@for (block of blocks(); track $index) {
+  <div class="agreement-block">
+    @if (block.title) {
+      <h3>{{ block.title }}</h3>
+    }
+    <p>{{ block.text }}</p>
+  </div>
+}
+

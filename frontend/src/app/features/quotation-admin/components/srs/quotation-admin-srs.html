@@ -1,0 +1,29 @@
+
+<fieldset>
+  <legend>SRS requirements documents</legend>
+  <p>
+    Attach up to 3 PDF or Word (.docx) files, 5 MB each. Upload the agreed SRS before creating
+    the invitation; invited files are frozen with the terms.
+  </p>
+  <label
+    >Upload SRS<input
+      type="file"
+      accept=".pdf,.docx"
+      [disabled]="qa.busy() || qa.savingDraft() || qa.conflict()"
+      (change)="qa.uploadSrs($event)"
+  /></label>
+  @for (file of qa.currentQuote()?.srs || []; track file.fileId) {
+    <div class="file-row">
+      <span>{{ file.name }} ({{ file.size / 1024 | number: '1.0-0' }} KB)</span
+      ><button [disabled]="qa.busy()" (click)="qa.downloadSrs(qa.currentQuote()!, file)">
+        Download</button
+      ><button
+        [disabled]="qa.busy() || qa.savingDraft() || qa.conflict()"
+        (click)="qa.removeSrs(file.fileId)"
+      >
+        Remove
+      </button>
+    </div>
+  }
+</fieldset>
+

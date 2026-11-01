@@ -1,0 +1,93 @@
+
+<div class="list-head">
+  <div>
+    <h2>Saved quotations</h2>
+    <p>Open a quotation to review it, or start a new draft. Drafts autosave while you work.</p>
+  </div>
+  <div class="actions">
+    <button [disabled]="qa.busy()" (click)="qa.newDraft()">New quotation</button>
+    <button [disabled]="qa.busy()" (click)="qa.load()">Refresh</button>
+  </div>
+</div>
+<form class="list-tools" (ngSubmit)="qa.page = 1; qa.load()">
+  <label
+    >Search quotations<input
+      name="quoteSearch"
+      [(ngModel)]="qa.search"
+      placeholder="Client, email, project or quotation ID"
+      maxlength="120"
+  /></label>
+  <label
+    >Status<select name="quoteStatus" [(ngModel)]="qa.status">
+      <option value="">All statuses</option>
+      <option value="draft">Draft</option>
+      <option value="invited">Invited</option>
+      <option value="accepted">Accepted</option>
+      <option value="cancelled">Superseded</option>
+    </select></label
+  >
+  <label>Created from<input type="date" name="quoteFrom" [(ngModel)]="qa.from" /></label
+  ><label>Created to<input type="date" name="quoteTo" [(ngModel)]="qa.to" /></label>
+  <button [disabled]="qa.busy()">Search</button>
+</form>
+<p class="list-meta" aria-live="polite">
+  {{ qa.total }} quotations · page {{ qa.page }} of {{ qa.pages }}
+</p>
+<div class="quote-list">
+  @for (row of qa.rows(); track row._id) {
+    <div class="quote-row" [class.selected]="qa.selected()?._id === row._id">
+      <button type="button" class="quote-open" (click)="qa.open(row)" [disabled]="qa.busy()">
+        <span
+          ><strong>{{ row.title }}</strong
+          ><small
+            >{{ qa.reference(row) }} · {{ row.clientName }} · {{ row.clientEmail }}</small
+          ></span
+        >
+        <span class="quote-summary"
+          >{{ row.status }} · {{ row.totalPaise / 100 | currency: 'INR'
+          }}<small>Revision {{ row.revision }}</small></span
+        >
+      </button>
+      @if (row.status === 'draft') {
+        <button
+          type="button"
+          class="row-delete"
+          (click)="qa.deleteDraft(row)"
+          [disabled]="qa.busy()"
+          [attr.aria-label]="'Delete draft ' + (row.title || 'Untitled quotation')"
+        >
+          Delete
+        </button>
+      }
+    </div>
+  } @empty {
+    <p>No quotations match these filters.</p>
+  }
+</div>
+<nav class="pager" aria-label="Quotation pagination">
+  <button type="button" (click)="qa.movePage(-1)" [disabled]="qa.busy() || qa.page <= 1">
+    Previous
+  </button>
+  @for (p of qa.pageItems(qa.page, qa.pages); track $index) {
+    @if (p === '…') {
+      <span class="pager-gap">…</span>
+    } @else {
+      <button
+        type="button"
+        [class.on]="p === qa.page"
+        (click)="qa.goPage(p)"
+        [disabled]="qa.busy()"
+      >
+        {{ p }}
+      </button>
+    }
+  }
+  <button
+    type="button"
+    (click)="qa.movePage(1)"
+    [disabled]="qa.busy() || qa.page >= qa.pages"
+  >
+    Next
+  </button>
+</nav>
+

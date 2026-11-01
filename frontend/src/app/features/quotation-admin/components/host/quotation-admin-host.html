@@ -1,0 +1,27 @@
+
+<section class="quotes-admin">
+  @if (!qa.editor && !qa.selected() && mode === 'list') {
+    <app-quotation-admin-list />
+  }
+  @if (!qa.editor && !qa.selected() && mode !== 'list') {
+    <p class="list-meta" aria-live="polite">
+      {{ qa.busy() ? 'Loading quotation...' : 'This quotation could not be loaded.' }}
+    </p>
+    <button type="button" class="back-link" (click)="qa.closeSelection()" [disabled]="qa.busy()">
+      ← All quotations
+    </button>
+  }
+  @if (qa.error()) {
+    <p role="alert" class="error">{{ qa.error() }}</p>
+  }
+  @if (qa.notice()) {
+    <p role="status" class="notice">{{ qa.notice() }}</p>
+  }
+  @if (qa.editor) {
+    <app-quotation-admin-editor />
+  }
+  @if (!qa.editor ? qa.selected() : null; as q) {
+    <app-quotation-admin-payments [q]="q" />
+  }
+</section>
+

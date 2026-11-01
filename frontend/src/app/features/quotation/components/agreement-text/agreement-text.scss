@@ -1,0 +1,30 @@
+:host {
+  display: block;
+}
+.agreement-block + .agreement-block {
+  margin-top: 1.4rem;
+}
+h3 {
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0 0 0.6rem;
+  font-weight: 650;
+}
+p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.85;
+  margin: 0;
+  color: inherit;
+}
+@media print {
+  h3 {
+    break-after: avoid;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+}
+

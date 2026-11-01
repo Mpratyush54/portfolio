@@ -2,9 +2,9 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { App } from './app';
-import { CustomCursorComponent } from './components/custom-cursor/custom-cursor';
-import { SfxService } from './services/sfx.service';
-import { ViewportService } from './services/viewport.service';
+import { CustomCursorComponent } from './shared/ui/custom-cursor/custom-cursor';
+import { SfxService } from './core/sfx/sfx.service';
+import { ViewportService } from './core/viewport/viewport.service';
 
 @Component({ selector: 'app-custom-cursor', template: '' })
 class CursorStub {}

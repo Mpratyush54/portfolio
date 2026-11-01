@@ -1,0 +1,78 @@
+
+<div class="admin-grid">
+  <div class="admin-card glass-panel span-2">
+    <h2>Email notifications</h2>
+    <p>Daily summaries include new contacts and paid bookings since the last summary. No email is sent for an empty period.</p>
+    @if (notificationSettings) {
+      <p>Sender: {{ notificationSettings.sender }} · Summary recipient: {{ notificationSettings.recipient }}</p>
+      <p>{{ notificationSettings.smtpConfigured ? 'Email configured' : 'Email configuration required' }}</p>
+      <div class="settings-row"><label>Hour (India time)<input type="number" min="0" max="23" [(ngModel)]="notificationSettings.digestHour" /></label><label>Minute<input type="number" min="0" max="59" [(ngModel)]="notificationSettings.digestMinute" /></label></div>
+      <button class="btn" (click)="saveNotifications()" [disabled]="savingNotifications">{{ savingNotifications ? 'Saving…' : 'Save summary time' }}</button>
+    }
+    <button class="btn ghost small" (click)="loadNotifications()">Reload email settings</button>
+    <p aria-live="polite">{{ notificationMessage }}</p>
+  </div>
+
+  <div class="admin-card glass-panel span-2">
+    <div class="card-head">
+      <h2>Booking settings</h2>
+      <button type="button" class="ghost save-btn" (click)="saveBookingSettings()" [disabled]="savingSettings || !settingsLoaded">
+        {{ savingSettings ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+    <p class="card-desc">Dynamic price stays between min and max. Blocked dates are closed on the calendar.</p>
+    <button type="button" class="ghost" (click)="loadBookingSettings()" [disabled]="savingSettings">Reload settings</button>
+    <div class="settings-row">
+      <label><span>Min fee (₹)</span><input type="number" [(ngModel)]="settingsMinRupees" min="1" max="100000" step="0.01" /></label>
+      <label><span>Max fee (₹)</span><input type="number" [(ngModel)]="settingsMaxRupees" min="1" max="100000" step="0.01" /></label>
+    </div>
+    <div class="blocked-block">
+      <p class="blocked-label">Unavailable dates</p>
+      <div class="blocked-add">
+        <input type="date" [(ngModel)]="newBlockedDate" />
+        <button type="button" class="add-date" (click)="addBlockedDate()">Add</button>
+      </div>
+      @if (!blockedDates.length) { <p class="empty-inline">No blocked dates.</p> }
+      @else {
+        <ul class="blocked-list">
+          @for (d of blockedDates; track d) {
+            <li><span>{{ d }}</span><button type="button" (click)="removeBlockedDate(d)">Remove</button></li>
+          }
+        </ul>
+      }
+    </div>
+    @if (settingsMsg) { <p class="settings-ok">{{ settingsMsg }}</p> }
+    @if (settingsError) { <p class="login-error">{{ settingsError }}</p> }
+  </div>
+
+  <div class="admin-card glass-panel">
+    <h2>Project Statistics</h2>
+    @if (workspace.syncStatus) {
+      <div class="stats-grid">
+        <div class="stat-item"><span class="stat-value">{{ workspace.syncStatus.total }}</span><span class="stat-label">Total Projects</span></div>
+        <div class="stat-item"><span class="stat-value github">{{ workspace.syncStatus.sources?.github ?? 0 }}</span><span class="stat-label">GitHub</span></div>
+        <div class="stat-item"><span class="stat-value gitlab">{{ workspace.syncStatus.sources?.gitlab ?? 0 }}</span><span class="stat-label">GitLab</span></div>
+        <div class="stat-item"><span class="stat-value">{{ workspace.syncStatus.mongoConnected ? 'Yes' : 'No' }}</span><span class="stat-label">MongoDB</span></div>
+      </div>
+    } @else { <div class="loading">Loading stats...</div> }
+  </div>
+
+  <div class="admin-card glass-panel">
+    <h2>Sync Repositories</h2>
+    <p class="card-desc">Fetches live metadata for curated projects.</p>
+    <button class="sync-btn" (click)="triggerSync()" [disabled]="isSyncing">
+      <span class="sync-icon" [class.spinning]="isSyncing">&#x21BB;</span>
+      {{ isSyncing ? 'Syncing...' : 'Sync All Projects' }}
+    </button>
+    @if (syncResult) { <div class="sync-result" [class.error]="syncResultError">{{ syncResult }}</div> }
+  </div>
+
+  <div class="admin-card glass-panel">
+    <h2>Quick Links</h2>
+    <div class="links-list">
+      <a routerLink="/contact" class="admin-link">Contact page →</a>
+      <a href="https://github.com/Mpratyush54" target="_blank" class="admin-link">GitHub Profile →</a>
+    </div>
+  </div>
+</div>
+

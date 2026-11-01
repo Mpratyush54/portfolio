@@ -1,0 +1,29 @@
+<div class="policy-page">
+  <header>
+    <a class="brand" routerLink="/">Pratyush Mishra</a>
+    <nav aria-label="Primary">
+      <a routerLink="/work">Services &amp; pricing</a><a routerLink="/contact">Contact</a>
+    </nav>
+  </header>
+  <main>
+    <p class="eyebrow">Business information · Updated 26 October 2026</p>
+    <h1>{{ policy.title }}</h1>
+    <p class="intro">{{ policy.intro }}</p>
+    @for (s of policy.sections; track s.title) {
+      <section>
+        <h2>{{ s.title }}</h2>
+        <p>{{ s.text }}</p>
+      </section>
+    }
+    <p class="contact">
+      Service provider: Pratyush Mishra ·
+      <a href="mailto:developer@pratyushes.dev">developer&#64;pratyushes.dev</a>
+    </p>
+  </main>
+  <footer>
+    <a routerLink="/terms">Terms</a><a routerLink="/privacy">Privacy</a
+    ><a routerLink="/refunds">Cancellation &amp; refunds</a
+    ><a routerLink="/delivery">Service delivery</a><a routerLink="/work">Pricing</a
+    ><a routerLink="/about">About</a>
+  </footer>
+</div>

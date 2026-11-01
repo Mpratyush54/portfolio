@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 40" role="img" aria-label="odoo">
+  <!-- Four brand dots -->
+  <circle cx="12" cy="20" r="6.5" fill="#714B67"/>
+  <circle cx="29" cy="20" r="6.5" fill="#017E84"/>
+  <circle cx="46" cy="20" r="6.5" fill="#C3BEAF"/>
+  <circle cx="63" cy="20" r="6.5" fill="#A7DB4E"/>
+  <!-- Wordmark as real text (reliable) -->
+  <text
+    x="78"
+    y="27"
+    fill="#F4F4FA"
+    font-family="Arial, Helvetica, 'Segoe UI', sans-serif"
+    font-size="22"
+    font-weight="700"
+    letter-spacing="-0.6"
+  >odoo</text>
+</svg>

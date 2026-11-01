@@ -1,9 +1,10 @@
 import { Component, inject, Renderer2, OnInit, effect } from '@angular/core';
 import { RouterOutlet, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
-import { CustomCursorComponent } from './components/custom-cursor/custom-cursor';
-import { SfxService } from './services/sfx.service';
-import { ViewportService } from './services/viewport.service';
+import { CustomCursorComponent } from './shared/ui/custom-cursor/custom-cursor';
+import { SfxService } from './core/sfx/sfx.service';
+import { ViewportService } from './core/viewport/viewport.service';
+import { pathOnly } from './core/text';
 
 @Component({
   selector: 'app-root',
@@ -50,7 +51,7 @@ export class App implements OnInit {
   }
 
   private isShell(url: string): boolean {
-    const path = url.split(/[?#]/)[0].replace(/\/$/, '') || '/';
+    const path = pathOnly(url);
     return (
       ['/', '/about', '/projects'].includes(path) ||
       path.startsWith('/projects/')

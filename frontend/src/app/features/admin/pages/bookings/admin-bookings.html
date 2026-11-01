@@ -1,0 +1,78 @@
+
+<div class="admin-card glass-panel span-2">
+  <div class="card-head">
+    <h2>Discovery bookings</h2>
+    <div class="filters">
+      <button type="button" [class.on]="bookFilter === 'paid'" (click)="setBookFilter('paid')">Paid</button>
+      <button type="button" [class.on]="bookFilter === 'all'" (click)="setBookFilter('all')">All</button>
+      <button type="button" [class.on]="bookFilter === 'payment_review'" (click)="setBookFilter('payment_review')">Payment review</button>
+      <button type="button" class="ghost" (click)="loadBookings()" [disabled]="loadingBookings">Refresh</button>
+    </div>
+  </div>
+  <form class="list-tools" (ngSubmit)="bookPage = 1; loadBookings()">
+    <label class="grow">Search<input name="bookSearch" [(ngModel)]="bookSearch" placeholder="Name, email or reference" maxlength="120" /></label>
+    <label>Status<select name="bookStatus" [(ngModel)]="bookFilter"><option value="all">All</option><option value="paid">Paid</option><option value="payment_review">Payment review</option><option value="pending_payment">Awaiting payment</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+    <label>From<input type="date" name="bookFrom" [(ngModel)]="bookFrom" /></label>
+    <label>To<input type="date" name="bookTo" [(ngModel)]="bookTo" /></label>
+    <div class="toolbar-actions">
+      <button class="btn" type="submit" [disabled]="loadingBookings">Apply</button>
+      <button class="btn ghost" type="button" (click)="clearBookFilters()">Clear</button>
+    </div>
+  </form>
+  <div class="list-summary">
+    <span>{{ bookTotal }} record{{ bookTotal === 1 ? '' : 's' }}</span>
+    <span aria-live="polite">Page {{ bookPage }} of {{ bookPages }}</span>
+  </div>
+  @if (bookPages > 1) {
+    <nav class="pager" aria-label="Bookings pagination">
+      <button type="button" (click)="goBookPage(1)" [disabled]="bookPage <= 1">First</button>
+      <button type="button" (click)="goBookPage(bookPage - 1)" [disabled]="bookPage <= 1">Prev</button>
+      @for (p of workspace.pageItems(bookPage, bookPages); track $index) {
+        @if (p === '…') { <span class="pager-gap">…</span> }
+        @else { <button type="button" [class.on]="p === bookPage" (click)="goBookPage(p)">{{ p }}</button> }
+      }
+      <button type="button" (click)="goBookPage(bookPage + 1)" [disabled]="bookPage >= bookPages">Next</button>
+      <button type="button" (click)="goBookPage(bookPages)" [disabled]="bookPage >= bookPages">Last</button>
+    </nav>
+  }
+  @if (loadingBookings) {
+    <div class="loading">Loading bookings…</div>
+  } @else if (!bookings.length) {
+    <div class="empty">No {{ bookFilter === 'paid' ? 'paid ' : '' }}bookings yet.</div>
+  } @else {
+    <div class="inbox">
+      @for (b of bookings; track b._id) {
+        <article class="msg" [class.pending]="b.status === 'paid'">
+          <header>
+            <div>
+              <p class="msg-intent">{{ b.date }} · {{ b.slot }} IST</p>
+              <h3>{{ b.name }} · {{ b.email }}</h3>
+              <p class="msg-meta">
+                ₹{{ (b.amountPaise / 100) | number:'1.0-2' }}
+                · {{ b.createdAt | date: 'medium' }}
+                @if (b.phone) { · {{ b.phone }} }
+                @if (b.razorpayPaymentId) { · {{ b.razorpayPaymentId }} }
+              </p>
+            </div>
+            <span class="status" [attr.data-s]="b.status">{{ workspace.statusLabel(b.status) }}</span>
+          </header>
+          <details><summary>Assignment and follow-up</summary>
+            <label>Assigned to<input [(ngModel)]="b.assignedTo" maxlength="120" /></label>
+            <label>Meeting link<input [(ngModel)]="b.meetingUrl" type="url" placeholder="https://…" maxlength="500" /></label>
+            <label>Internal notes<textarea [(ngModel)]="b.adminNotes" maxlength="2000"></textarea></label>
+            <div class="row-actions">
+              <button class="btn small" (click)="saveAssignment(b)" [disabled]="!!busyBooking">Save assignment</button>
+              @if (b.status === 'paid') { <button class="btn ghost small" (click)="saveAssignment(b, true)" [disabled]="!!busyBooking">Mark completed</button> }
+            </div>
+          </details>
+          @if (b.note) { <p class="msg-body">{{ b.note }}</p> }
+          @if (b.status === 'payment_review') {
+            <p class="login-error">Payment received; this time could not be confirmed. Contact the customer to arrange a refund or another slot.</p>
+          }
+        </article>
+      }
+    </div>
+  }
+  @if (bookingsError) { <p class="login-error">{{ bookingsError }}</p> }
+</div>
+

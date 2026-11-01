@@ -1,0 +1,47 @@
+
+<section class="overview-grid" aria-label="Admin overview">
+  <button type="button" class="overview-card" (click)="go('contacts', { filter: 'pending' })">
+    <span class="overview-label">Pending messages</span>
+    <strong>{{ workspace.count('pendingContacts') }}</strong>
+    <small>Contact enquiries waiting for a reply</small>
+  </button>
+  <button type="button" class="overview-card" (click)="go('bookings', { filter: 'paid' })">
+    <span class="overview-label">Paid bookings</span>
+    <strong>{{ workspace.count('paidBookings') }}</strong>
+    <small>Consultations that need scheduling or follow-up</small>
+  </button>
+  <button
+    type="button"
+    class="overview-card"
+    [class.warn]="workspace.count('reviewBookings') > 0"
+    (click)="go('bookings', { filter: 'payment_review' })"
+  >
+    <span class="overview-label">Payment review</span>
+    <strong>{{ workspace.count('reviewBookings') }}</strong>
+    <small>Captured payments needing manual confirmation</small>
+  </button>
+  <button type="button" class="overview-card" (click)="go('quotations')">
+    <span class="overview-label">Open quotations</span>
+    <strong>{{ workspace.count('draftQuotes') }} / {{ workspace.count('invitedQuotes') }}</strong>
+    <small>Drafts / invitations currently with clients</small>
+  </button>
+  <button type="button" class="overview-card" (click)="go('quotations')">
+    <span class="overview-label">Active projects</span>
+    <strong>{{ workspace.count('acceptedQuotes') }}</strong>
+    <small>Accepted quotations being delivered</small>
+  </button>
+</section>
+
+<section class="overview-shortcuts" aria-label="Workspace shortcuts">
+  <div class="section-heading">
+    <div><p class="admin-kicker">Workspace</p><h2>Jump back in</h2></div>
+    <p>Focused pages keep the day readable. The sidebar always shows where you are.</p>
+  </div>
+  <div class="shortcut-grid">
+    <a routerLink="/admin/quotations"><span>01</span><strong>Quotations</strong><small>Build proposals, invite clients and collect payments.</small></a>
+    <a routerLink="/admin/bookings"><span>02</span><strong>Bookings</strong><small>Schedule consultations and keep follow-up notes.</small></a>
+    <a routerLink="/admin/contacts"><span>03</span><strong>Inbox</strong><small>Read enquiries and send approvals.</small></a>
+    <a routerLink="/admin/settings"><span>04</span><strong>Settings</strong><small>Availability, email digests and repository sync.</small></a>
+  </div>
+</section>
+

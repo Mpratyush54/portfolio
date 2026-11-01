@@ -1,59 +1,48 @@
-# Grokbot and Google Calendar
+# Control the portfolio from the Grok Bot app
 
-Grokbot is the authenticated admin operator. It can do the same work as the
-`/admin` UI: contacts, bookings, quotation drafts, invitations, payment
-arrangements, digest settings, project metadata sync, and calendar updates.
+The Grok Bot app talks to this site over a public MCP server. You stay in that
+app; it lists contacts, assigns bookings, and edits quotations by calling
+`https://pratyushes.dev/api/mcp`.
 
-## Authentication
+## Connect it
 
-Use either:
+1. Deploy with `ADMIN_EMAIL` and `ADMIN_PASSWORD` set (same as the admin UI).
+2. Optional: set `PUBLIC_URL` to `https://pratyushes.dev` if it is not already.
+3. In the Grok Bot app, send:
 
-- the existing admin session or `x-admin-email` / `x-admin-password` headers, or
-- `GROKBOT_TOKEN` via `Authorization: Bearer …` or `x-grokbot-token`
+> Add a custom MCP server named portfolio at https://pratyushes.dev/api/mcp using streamable HTTP.
 
-Store `GROKBOT_TOKEN` in `portfolio-secrets`. If it is unset, only admin
-credentials work.
+4. Confirm the URL. Sign in with your admin email and password when Grok Bot
+   shows the allow page.
+5. Ask it to list pending contacts or paid bookings. It should use MCP tools,
+   not invent IDs.
 
-## HTTP API
+Do not paste `GROKBOT_TOKEN` into the Grok Bot chat. That app authenticates with
+OAuth. The bot token is only for scripts and Cursor.
 
-- `GET /api/operator/tools` — tool catalog for Grok function calling
-- `POST /api/operator/invoke` — `{ "name": "list_contacts", "arguments": { "status": "pending" } }`
-- `POST /api/operator/chat` — `{ "message": "Approve the latest hire enquiry" }`
+## What it can do
 
-Chat needs `XAI_API_KEY`. Optional `GROK_MODEL` defaults to `grok-4-fast`.
-SRS file upload and PDF export stay in the admin UI because they are binary.
+The same admin work as `/admin`:
+
+- Contacts: list, approve, reject
+- Bookings: list, assign a meeting, fee and blocked dates
+- Quotations: list, open, create, edit, invite, revoke, release, collection
+- Digest, project sync, workspace counts
+- Google Calendar upcoming events and booking sync, when calendar secrets exist
+
+SRS uploads and PDF exports stay in the admin UI.
 
 ## Google Calendar
 
-When a booking is paid or assigned, the backend upserts a 30-minute IST event.
+Paid or assigned bookings upsert a 30-minute IST event when these are set:
 
-Required:
+- `GOOGLE_CALENDAR_ID`
+- either `GOOGLE_SERVICE_ACCOUNT_JSON`, or the OAuth refresh-token trio
 
-- `GOOGLE_CALENDAR_ID` — calendar to write, often `primary` after impersonation
+If they are missing, Grok Bot still manages the site. Calendar tools report
+disabled.
 
-Then one of:
+## Local scripts
 
-1. Service account JSON in `GOOGLE_SERVICE_ACCOUNT_JSON` (raw or base64). Share
-   the calendar with that service account, or set `GOOGLE_IMPERSONATE_EMAIL` if
-   domain-wide delegation is enabled.
-2. OAuth refresh token: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
-   `GOOGLE_OAUTH_REFRESH_TOKEN`.
-
-If these are missing, bookings still save and Grokbot still works. Calendar
-tools report `enabled: false`.
-
-## Example
-
-```http
-POST /api/operator/invoke
-x-grokbot-token: …redacted…
-
-{"name":"assign_booking","arguments":{
-  "id":"672f…",
-  "assignedTo":"Pratyush",
-  "meetingUrl":"https://meet.google.com/xxx",
-  "adminNotes":"API review",
-  "updatedAt":"2026-11-01T06:00:00.000Z",
-  "completed":false
-}}
-```
+`POST /api/operator/invoke` still accepts admin session headers or
+`GROKBOT_TOKEN`. That path is not what the Grok Bot app uses.

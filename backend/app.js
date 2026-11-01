@@ -9,12 +9,15 @@ const { createAdminRouter } = require('./modules/admin/routes');
 const { createProjectsRouter } = require('./modules/projects/routes');
 const { AdminOperator } = require('./modules/operator/AdminOperator');
 const { Grokbot } = require('./modules/operator/Grokbot');
-const { createOperatorRouter } = require('./modules/operator/routes');
+const { OperatorRouter, createOperatorRouter } = require('./modules/operator/routes');
+const { McpOAuth } = require('./modules/operator/McpOAuth');
+const { McpServer } = require('./modules/operator/McpServer');
+const { AdminAuth } = require('./modules/admin/auth');
 const { hideIdsInRoute } = require('./modules/shared/text');
 const { mongoReady } = require('./modules/shared/mongo');
 
 function captureApiError(analytics, req, status) {
-  if (req.path.startsWith('/api/admin') || req.path.startsWith('/api/operator')) return;
+  if (req.path.startsWith('/api/admin') || req.path.startsWith('/api/operator') || req.path.startsWith('/api/mcp') || req.path.startsWith('/api/oauth')) return;
   const route = hideIdsInRoute(`${req.baseUrl || ''}${req.route?.path || req.path}`);
   analytics.capture('api_error', {
     event_source: 'express_error_boundary',
@@ -51,6 +54,7 @@ function createApp({
     } catch (error) { handleHttpError(res, error); }
   });
   app.use('/api', apiRateLimits());
+  app.use(express.urlencoded({ extended: false }));
   app.use(express.json({ limit: '48kb' }));
 
   app.get('/api/health', (req, res) => {
@@ -61,6 +65,13 @@ function createApp({
   const grokbot = new Grokbot({
     operator: new AdminOperator({ bookingService, quotationService, contactActions, calendar }),
   });
+  const mcpOAuth = new McpOAuth();
+  const mcpAuth = new OperatorRouter({ grokbot, requireAdmin, env: process.env });
+  new McpServer({
+    grokbot,
+    oauth: mcpOAuth,
+    guard: mcpAuth.mcpGuard(mcpOAuth, new AdminAuth()),
+  }).attach(app);
 
   app.use('/api', createProjectsRouter());
   app.use('/api', createAdminRouter({ requireAdmin, adminLogin }));

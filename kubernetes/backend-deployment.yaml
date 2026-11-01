@@ -154,6 +154,8 @@ spec:
                   name: portfolio-secrets
                   key: DISCOVERY_FEE_PAISE
                   optional: true
+            - name: PUBLIC_URL
+              value: "https://pratyushes.dev"
             - name: GROKBOT_TOKEN
               valueFrom:
                 secretKeyRef:

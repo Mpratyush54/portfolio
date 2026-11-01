@@ -69,6 +69,6 @@ the minute scheduler retries failures and catches a missed run after restart.
 Manual summaries use the same delivery checkpoint. Settings show the sender,
 recipient and SMTP configuration state. No customer data is sent in test runs.
 
-The same admin actions are available to Grokbot at `/api/operator`. See
-[grokbot.md](./grokbot.md) for the tool catalog, bot token, and optional Google
+The same admin actions are available from the Grok Bot app at `/api/mcp`. See
+[grokbot.md](./grokbot.md) for the MCP connection, OAuth sign-in, and optional Google
 Calendar sync on paid or assigned bookings.

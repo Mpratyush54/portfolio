@@ -10,9 +10,13 @@ const { createBookingService } = require('../modules/booking/service');
 const { createQuotationService } = require('../modules/quotations/service');
 const { AdminOperator } = require('../modules/operator/AdminOperator');
 const { Grokbot } = require('../modules/operator/Grokbot');
-const { createOperatorRouter } = require('../modules/operator/routes');
+const { OperatorRouter, createOperatorRouter } = require('../modules/operator/routes');
 const { GoogleCalendar } = require('../modules/calendar/GoogleCalendar');
-const { createAdminAuth } = require('../modules/admin/auth');
+const { AdminAuth, createAdminAuth } = require('../modules/admin/auth');
+const { McpOAuth } = require('../modules/operator/McpOAuth');
+const { McpServer } = require('../modules/operator/McpServer');
+const RequestLimit = require('../modules/shared/RequestLimit');
+const crypto = require('crypto');
 
 describe('Grokbot admin operator', () => {
   let mongo;
@@ -20,7 +24,7 @@ describe('Grokbot admin operator', () => {
   before(async () => {
     mongo = await MongoMemoryServer.create();
     await mongoose.connect(mongo.getUri());
-    await Promise.all([Contact.init(), Booking.init()]);
+    await Promise.all([Contact.init(), Booking.init(), RequestLimit.init()]);
   });
 
   after(async () => {
@@ -172,5 +176,87 @@ describe('Grokbot admin operator', () => {
     assert.match(result.reply, /Ravi/);
     assert.equal(result.steps[0].name, 'list_contacts');
     assert.equal(result.steps[0].result.total, 1);
+  });
+
+  it('lets the Grok Bot app discover OAuth and call MCP tools over streamable HTTP', async () => {
+    await Contact.create({ intent: 'hire', name: 'Asha', email: 'asha@example.com', message: 'Need a site' });
+    const env = {
+      PUBLIC_URL: 'https://pratyushes.dev',
+      ADMIN_EMAIL: 'admin@example.com',
+      ADMIN_PASSWORD: 'secret',
+      ADMIN_SESSION_SECRET: 'session-key',
+      GROKBOT_TOKEN: 'bot-secret',
+    };
+    const bot = new Grokbot({ operator: operator() });
+    const oauth = new McpOAuth({ env, auth: new AdminAuth(env) });
+    const app = express();
+    app.use(express.urlencoded({ extended: false }));
+    app.use(express.json());
+    new McpServer({
+      grokbot: bot,
+      oauth,
+      guard: new OperatorRouter({ grokbot: bot, requireAdmin: () => {}, env }).mcpGuard(oauth, new AdminAuth(env)),
+    }).attach(app);
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise((resolve) => server.once('listening', resolve));
+    const base = `http://127.0.0.1:${server.address().port}`;
+    try {
+      const denied = await fetch(`${base}/api/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
+      });
+      assert.equal(denied.status, 401);
+      assert.match(denied.headers.get('www-authenticate') || '', /resource_metadata/);
+      const metadata = await fetch(`${base}/.well-known/oauth-protected-resource`);
+      assert.equal((await metadata.json()).resource, 'https://pratyushes.dev/api/mcp');
+
+      const registered = await fetch(`${base}/api/oauth/register`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ redirect_uris: ['http://127.0.0.1/cb'], client_name: 'Grok Bot' }),
+      });
+      const client = await registered.json();
+      const verifier = 'a'.repeat(64);
+      const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+      const authorized = await fetch(`${base}/api/oauth/authorize`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        redirect: 'manual',
+        body: new URLSearchParams({
+          client_id: client.client_id,
+          redirect_uri: 'http://127.0.0.1/cb',
+          state: 'xyz',
+          code_challenge: challenge,
+          code_challenge_method: 'S256',
+          email: 'admin@example.com',
+          password: 'secret',
+        }),
+      });
+      assert.equal(authorized.status, 303);
+      const code = new URL(authorized.headers.get('location')).searchParams.get('code');
+      const tokenRes = await fetch(`${base}/api/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          client_id: client.client_id,
+          redirect_uri: 'http://127.0.0.1/cb',
+          code,
+          code_verifier: verifier,
+        }),
+      });
+      const token = await tokenRes.json();
+      const listed = await fetch(`${base}/api/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token.access_token}` },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'list_contacts', arguments: { status: 'pending' } } }),
+      });
+      assert.equal(listed.status, 200);
+      const payload = await listed.json();
+      assert.match(payload.result.content[0].text, /asha@example.com/);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 });

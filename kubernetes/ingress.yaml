@@ -18,6 +18,20 @@ spec:
                 name: backend-service
                 port:
                   number: 5000
+          - path: /.well-known/oauth-protected-resource
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 5000
+          - path: /.well-known/oauth-authorization-server
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 5000
           - path: /
             pathType: Prefix
             backend:

@@ -39,6 +39,26 @@ class OperatorRouter {
     };
   }
 
+  mcpGuard(oauth, adminAuth) {
+    return (req, res, next) => {
+      const token = this.presentedToken(req);
+      if (
+        this.tokensMatch(token, this.botToken()) ||
+        oauth.validAccessToken(token) ||
+        adminAuth.validSession(token)
+      ) {
+        res.set('Cache-Control', 'no-store');
+        return next();
+      }
+      res.set({
+        'Cache-Control': 'no-store',
+        'WWW-Authenticate': oauth.challenge(req),
+        'Access-Control-Allow-Origin': '*',
+      });
+      return res.status(401).json({ error: 'Connect Grok Bot with OAuth, or send a bot token.' });
+    };
+  }
+
   send(res, work) {
     return work.then((payload) => res.json(payload)).catch((error) => handleHttpError(res, error));
   }

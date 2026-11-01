@@ -58,8 +58,12 @@ export async function bootstrap(options = {}) {
       insight,
       name: definition.name,
       subscribed_users: [],
-      threshold: definition.threshold,
-      condition: definition.condition,
+      threshold: {
+        configuration: { type: 'absolute', bounds: { upper: definition.threshold } },
+      },
+      condition: { type: 'absolute_value' },
+      config: { type: 'TrendsAlertConfig', series_index: 0 },
+      calculation_interval: 'daily',
       enabled: true,
     };
     try {
@@ -72,6 +76,11 @@ export async function bootstrap(options = {}) {
         id: found?.id || saved.id,
       });
     } catch (error) {
+      if (/limit of \d+ alerts/.test(error.message)) {
+        (result.skipped ||= []).push(definition.name);
+        console.warn(`Skipped alert "${definition.name}": plan alert limit reached.`);
+        continue;
+      }
       throw new Error(
         `Alert bootstrap failed for "${definition.name}". Confirm alert:write scope and plan support; the API did not accept the documented /alerts/ payload. ${error.message}`,
       );

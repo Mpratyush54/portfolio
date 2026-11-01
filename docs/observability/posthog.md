@@ -95,7 +95,7 @@ Alert destinations are organization-specific; configure approved recipients in P
 
 ## Production source maps
 
-The Angular production configuration emits hidden script, style, and vendor source maps. On non-PR builds of `main`, the frontend deploy job:
+The Angular production configuration emits hidden script, style, and vendor source maps. On non-PR builds of `main` with `POSTHOG_CLI_API_KEY` set, the frontend deploy job:
 
 1. builds `frontend/dist/frontend`;
 2. injects PostHog chunk/release metadata into those exact bundles;

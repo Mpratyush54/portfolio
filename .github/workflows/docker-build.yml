@@ -104,7 +104,7 @@ jobs:
 
       # POSTHOG_CLI_API_KEY needs error-tracking write and organization read.
       - name: Inject metadata and upload PostHog source maps
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && secrets.POSTHOG_CLI_API_KEY != ''
         uses: PostHog/upload-source-maps@v2
         with:
           directory: frontend/dist/frontend/browser

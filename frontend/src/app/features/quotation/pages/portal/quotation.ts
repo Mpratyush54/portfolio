@@ -61,7 +61,10 @@ export class QuotationComponent {
 },
   ];
   constructor() {
-    if (this.isExample || this.token) void this.load();
+    if (this.isExample || this.token) {
+      setTimeout(() => void this.analytics.track('quotation_opened'));
+      void this.load();
+    }
   }
   private async action(path: string, body: any) {
     if (this.isExample || this.busy()) return;
@@ -184,6 +187,7 @@ export class QuotationComponent {
     this.error.set('');
     try {
       await this.quotes.download(this.token, path, name, this.isExample);
+      void this.analytics.track('quotation_downloaded');
     } catch (e: any) {
       this.error.set(e.error?.error || 'Download failed. Try again.');
     } finally {

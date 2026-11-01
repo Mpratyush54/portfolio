@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { Router, provideRouter } from '@angular/router';
+import { AnalyticsConsentService } from './analytics-consent.service';
 import { ANALYTICS_LOADER, AnalyticsService, analyticsPath } from './analytics.service';
 @Component({ template: '' })
 class RouteStub {}
@@ -15,6 +16,7 @@ describe('PostHog public analytics boundary', () => {
     captures: any[],
     loads: number;
   beforeEach(() => {
+    localStorage.setItem('portfolio-analytics-consent', 'granted');
     config = null;
     captures = [];
     loads = 0;
@@ -90,7 +92,10 @@ describe('PostHog public analytics boundary', () => {
     http = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
   });
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    localStorage.removeItem('portfolio-analytics-consent');
+  });
   async function enable(path = '/book?email=private@example.com#invite-secret') {
     service.start();
     await router.navigateByUrl(path);
@@ -297,6 +302,39 @@ describe('PostHog public analytics boundary', () => {
         uuid: 'admin-snap',
         event: '$snapshot',
         properties: { $snapshot_data: [{ type: 2 }] },
+      }),
+    ).toBeNull();
+  });
+  it('records when the visitor ignores the notice', async () => {
+    localStorage.removeItem('portfolio-analytics-consent');
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: '**', component: RouteStub }]),
+        { provide: ANALYTICS_LOADER, useValue: async () => ({ init: () => {}, startSessionRecording: () => {}, stopSessionRecording: () => {}, capture: () => {}, captureException: () => {} }) },
+      ],
+    });
+    expect(TestBed.inject(AnalyticsConsentService).granted()).toBe(true);
+  });
+  it('does not load PostHog after the visitor declines analytics', async () => {
+    TestBed.inject(AnalyticsConsentService).set('denied');
+    service.start();
+    await router.navigateByUrl('/book');
+    await service.track('contact_submitted');
+    http.expectNone('/runtime/analytics.json');
+    expect(loads).toBe(0);
+    expect(captures).toEqual([]);
+  });
+  it('drops SDK events after consent is withdrawn', async () => {
+    await enable();
+    TestBed.inject(AnalyticsConsentService).set('denied');
+    expect(
+      config.before_send({
+        uuid: 'after-opt-out',
+        event: '$autocapture',
+        properties: { $event_type: 'click' },
       }),
     ).toBeNull();
   });

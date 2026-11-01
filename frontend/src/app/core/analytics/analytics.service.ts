@@ -4,8 +4,11 @@ import {
   Injectable,
   InjectionToken,
   NgZone,
+  effect,
   inject,
+  untracked,
 } from '@angular/core';
+import { AnalyticsConsentService } from './analytics-consent.service';
 import { HttpClient } from '@angular/common/http';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, firstValueFrom, timeout } from 'rxjs';
@@ -47,11 +50,31 @@ export class AnalyticsService implements ErrorHandler {
   private zone = inject(NgZone);
   private destroy = inject(DestroyRef);
   private loader = inject(ANALYTICS_LOADER);
+  private consent = inject(AnalyticsConsentService);
   private client?: Client;
   private loading?: Promise<void>;
   private started = false;
   private navigation = 0;
   private environment: 'development' | 'staging' | 'production' = 'production';
+
+  constructor() {
+    let previous = this.consent.granted();
+    effect(() => {
+      const granted = this.consent.granted();
+      if (granted === previous) return;
+      previous = granted;
+      untracked(() => {
+        if (!granted) {
+          this.navigation++;
+          this.zone.runOutsideAngular(() => this.client?.stopSessionRecording());
+        } else if (this.started) void this.pageview();
+      });
+    });
+  }
+
+  private permitted(): boolean {
+    return this.consent.granted() && analyticsPath(this.router.url) !== null;
+  }
 
   start(): void {
     if (this.started || typeof window === 'undefined') return;
@@ -66,7 +89,7 @@ export class AnalyticsService implements ErrorHandler {
   }
 
   private async load(): Promise<void> {
-    if (!analyticsPath(this.router.url)) return;
+    if (!this.permitted()) return;
     if (this.loading) return this.loading;
     this.loading = (async () => {
       try {
@@ -86,7 +109,7 @@ export class AnalyticsService implements ErrorHandler {
         const host = new URL(parsed.data.apiHost);
         const uiHost = new URL(parsed.data.uiHost || 'https://us.posthog.com');
         const sdk = await this.loader();
-        if (!analyticsPath(this.router.url)) {
+        if (!this.permitted()) {
           this.loading = undefined;
           return;
         }
@@ -148,15 +171,16 @@ export class AnalyticsService implements ErrorHandler {
             person_profiles: 'never',
             persistence: 'memory',
             disable_persistence: true,
-            respect_dnt: true,
             ip: false,
             before_send: (event) =>
-              sanitizeAnalyticsEvent(
-                event,
-                this.router.url,
-                location.origin,
-                this.environment,
-              ),
+              this.consent.granted()
+                ? sanitizeAnalyticsEvent(
+                    event,
+                    this.router.url,
+                    location.origin,
+                    this.environment,
+                  )
+                : null,
           } satisfies Partial<PostHogConfig>),
         );
         this.client = sdk;
@@ -169,12 +193,12 @@ export class AnalyticsService implements ErrorHandler {
 
   private async pageview(): Promise<void> {
     const sequence = ++this.navigation;
-    if (!analyticsPath(this.router.url)) {
+    if (!this.permitted()) {
       this.zone.runOutsideAngular(() => this.client?.stopSessionRecording());
       return;
     }
     await this.load();
-    if (sequence === this.navigation && analyticsPath(this.router.url))
+    if (sequence === this.navigation && this.permitted())
       this.zone.runOutsideAngular(() => {
         this.client?.startSessionRecording();
         this.client?.capture('$pageview');
@@ -185,9 +209,9 @@ export class AnalyticsService implements ErrorHandler {
     event: AnalyticsEvent,
     details: BookingStep | AnalyticsProperties = {},
   ): Promise<void> {
-    if (!ANALYTICS_EVENTS.has(event) || !analyticsPath(this.router.url)) return;
+    if (!ANALYTICS_EVENTS.has(event) || !this.permitted()) return;
     await this.load();
-    if (!analyticsPath(this.router.url)) return;
+    if (!this.permitted()) return;
     const properties: AnalyticsProperties =
       typeof details === 'string' ? { step: details } : details;
     this.zone.runOutsideAngular(() =>
@@ -201,9 +225,9 @@ export class AnalyticsService implements ErrorHandler {
   }
 
   private async captureException(error: unknown): Promise<void> {
-    if (!analyticsPath(this.router.url)) return;
+    if (!this.permitted()) return;
     await this.load();
-    if (!analyticsPath(this.router.url)) return;
+    if (!this.permitted()) return;
     this.zone.runOutsideAngular(() =>
       this.client?.captureException(
         error instanceof Error ? error : new Error(String(error)),

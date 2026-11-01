@@ -45,6 +45,7 @@ Not covered: `/admin` activity, person profiles, persistent identity, raw reques
 
 - `/admin`, admin descendants, unknown private routes, query strings, and URL fragments are excluded. The SDK is not loaded on excluded routes, and `before_send` still drops `/admin` after a public pageview.
 - Invitation tokens, names, email addresses, phone numbers, free text, raw identifiers, payment/order IDs, amounts, request bodies, and headers must never be analytics properties.
+- A small notice links to /privacy with Accept / No thanks. Ignoring it or accepting keeps analytics on; declining (localStorage key `portfolio-analytics-consent` = `denied`) stops recording and all capture. `respect_dnt` is intentionally not set.
 - Person profiles, persistent identity, IP enrichment, and surveys remain disabled. Public-route session replay, heatmaps, web vitals, network timing, error tracking, replay console logs, and first-party tracing headers are enabled. Inputs and Razorpay iframes are masked or excluded.
 - Browser capture uses the first-party ingest host `https://v.pratyushes.dev` with `ui_host` `https://us.posthog.com`, so toolbar, replay, and heatmaps keep working while ad blockers are less likely to drop events.
 - Text and element attributes are masked before autocapture. Exception URLs lose query strings and fragments, and email-like text is redacted.

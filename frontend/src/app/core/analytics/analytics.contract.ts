@@ -7,7 +7,9 @@ export type AnalyticsEvent =
   | 'booking_confirmed'
   | 'booking_payment_review'
   | 'contact_submitted'
+  | 'quotation_opened'
   | 'quotation_viewed'
+  | 'quotation_downloaded'
   | 'quotation_accepted'
   | 'quotation_milestone_reviewed'
   | 'quotation_payment_checkout_opened'
@@ -52,7 +54,9 @@ export const ANALYTICS_EVENTS = new Set<string>([
   'booking_confirmed',
   'booking_payment_review',
   'contact_submitted',
+  'quotation_opened',
   'quotation_viewed',
+  'quotation_downloaded',
   'quotation_accepted',
   'quotation_milestone_reviewed',
   'quotation_payment_checkout_opened',

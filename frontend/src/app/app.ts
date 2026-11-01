@@ -2,6 +2,7 @@ import { Component, inject, Renderer2, OnInit, effect } from '@angular/core';
 import { RouterOutlet, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { CustomCursorComponent } from './shared/ui/custom-cursor/custom-cursor';
+import { ConsentBannerComponent } from './shared/ui/consent-banner/consent-banner';
 import { SfxService } from './core/sfx/sfx.service';
 import { ViewportService } from './core/viewport/viewport.service';
 import { pathOnly } from './core/text';
@@ -9,7 +10,7 @@ import { pathOnly } from './core/text';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CustomCursorComponent],
+  imports: [RouterOutlet, CustomCursorComponent, ConsentBannerComponent],
   template: `
     @if (showCursor) {
       <app-custom-cursor></app-custom-cursor>
@@ -17,6 +18,7 @@ import { pathOnly } from './core/text';
     <main class="shell-main">
       <router-outlet></router-outlet>
     </main>
+    <app-consent-banner></app-consent-banner>
   `,
   styles: [
     `

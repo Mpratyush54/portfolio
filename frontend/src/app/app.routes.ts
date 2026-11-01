@@ -51,13 +51,20 @@ export const routes: Routes = [
   {
     path: 'work',
     loadComponent: () =>
-      import('./features/services-catalog/pages/services/services').then((m) => m.ServicesComponent),
+      import('./features/projects/pages/work/work').then((m) => m.WorkComponent),
+  },
+  {
+    path: 'work/:id',
+    loadComponent: () =>
+      import('./features/projects/pages/project-detail/project-detail').then(
+        (m) => m.ProjectDetailComponent,
+      ),
   },
   { path: 'pricing', redirectTo: 'work', pathMatch: 'full' },
   { path: 'services', redirectTo: 'work', pathMatch: 'full' },
   { path: 'projects', redirectTo: 'work', pathMatch: 'full' },
   { path: 'projects/systems', redirectTo: 'work', pathMatch: 'full' },
-  { path: 'projects/:id', redirectTo: 'work', pathMatch: 'full' },
+  { path: 'projects/:id', redirectTo: 'work/:id', pathMatch: 'full' },
   { path: 'about', component: HomeComponent },
   {
     path: 'contact',

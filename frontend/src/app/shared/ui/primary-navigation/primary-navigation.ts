@@ -71,7 +71,7 @@ export class PrimaryNavigationComponent {
   @Input() visible = true;
   readonly items = [
     { key: 'home', path: '/', label: 'Home' },
-    { key: 'work', path: '/work', label: 'Services' },
+    { key: 'work', path: '/work', label: 'Work' },
     { key: 'about', path: '/about', label: 'About' },
     { key: 'contact', path: '/contact', label: 'Contact' },
   ] as const;

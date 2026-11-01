@@ -140,18 +140,18 @@
           <h1 class="display-name"><span class="desktop-title">pratyush mishra.</span><span class="mobile-title">Start your next project.</span></h1>
           <p class="role-line">backend engineer · team lead · full stack</p>
           <p class="lead">
-            Websites, backend APIs and cloud deployment services for businesses. Choose a defined package or request a custom project quotation.
+            Development and cloud work for businesses. See past projects, then request a pricing analysis for your brief.
           </p>
           <div class="home-cta">
             <button type="button" class="cta-book" (click)="openDiscovery()">Book a technical consultation</button>
-            <button type="button" class="cta-ghost" (click)="setView('work')">Services &amp; pricing</button>
+            <button type="button" class="cta-ghost" (click)="setView('work')">See the work</button>
           </div>
-          <p class="booking-summary">Public package prices and exact deliverables are available in Services &amp; pricing.<br>Project enquiries are free. Paid technical consultations and project work are separate services.</p>
+          <p class="booking-summary">Work is priced after I see the brief — there are no public package fees.<br>Project enquiries are free. Paid consultations and delivery are quoted separately.</p>
           <div class="ask-row">
             <span class="ask-label">ask bud</span>
             <div class="chips">
               <button type="button" class="chip" (click)="triggerQnA('who')">who is pratyush?</button>
-              <button type="button" class="chip" (click)="triggerQnA('built')">what services are offered?</button>
+              <button type="button" class="chip" (click)="triggerQnA('built')">what has he built?</button>
               <button type="button" class="chip" (click)="triggerQnA('work')">is he open to work?</button>
             </div>
           </div>
@@ -161,7 +161,7 @@
     }
 
     @if (view === 'work') {
-      <div class="view"><p>Opening services and pricing…</p></div>
+      <div class="view"><p>Opening work…</p></div>
     }
 
     @if (view === 'about') {
@@ -174,15 +174,15 @@
             infrastructure around them. Clear architecture, clean delivery, no drama.
           </p>
           <p>
-            Core tools: <strong>Node</strong>, <strong>Python</strong>, Redis,
-            WebSockets, containers. When a product needs a full surface, I take it
-            through with Angular, Flutter, or React Native.
+            Core tools: <strong>Node</strong>, <strong>Python</strong>, <strong>React</strong>,
+            Redis, WebSockets, containers. When a product needs a full surface, I take
+            it through with Angular, React, Flutter, or React Native.
           </p>
           <div class="about-facts">
             <ul class="facts">
               <li><span>Focus</span> Backend · realtime · platforms</li>
               <li><span>Approach</span> Architecture first</li>
-              <li><span>Stack</span> Node · Python · K8s · Redis</li>
+              <li><span>Stack</span> Node · Python · React · K8s</li>
             </ul>
           </div>
 
@@ -224,12 +224,12 @@
                 />
                 <div class="sticker-copy">
                   <p class="sticker-kicker">Microsoft Certified</p>
-                  <h3>Azure AI-900</h3>
+                  <h3>Azure AI-901</h3>
                   <p class="sticker-sub">AI Fundamentals</p>
                 </div>
                 <div class="sticker-preview azure-preview" aria-hidden="true">
                   <img [src]="assets.badges.azure" alt="" draggable="false" />
-                  <p>Azure AI Fundamentals · AI-900</p>
+                  <p>Azure AI Fundamentals · AI-901</p>
                 </div>
               } @else {
                 <div class="sticker-logo-wrap" aria-label="odoo">

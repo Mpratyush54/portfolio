@@ -1,0 +1,143 @@
+<div class="business-page">
+  <app-public-header active="work" context="work · projects" />
+  <main>
+    <section class="intro">
+      <p class="eyebrow">Work</p>
+      <h1>Development and cloud services.<br /><span>Past projects, then a price.</span></h1>
+      <p class="lead">
+        I build websites, backends and cloud systems. Look through shipped work first. If you need
+        something similar — or something else — send a brief and I will reply with a pricing
+        analysis. There are no public package fees.
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/contact" class="button">Request a pricing analysis</a>
+        <button type="button" class="text-link" (click)="showProjects()">See past projects</button>
+      </div>
+      <div class="trust-line">
+        <span>Development</span><span>Cloud services</span><span>Other work, defined in writing</span
+        ><span>Quoted after the brief</span>
+      </div>
+    </section>
+
+    <section id="projects" class="projects-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">01 / Past projects</p>
+          <h2>What I have shipped</h2>
+        </div>
+        <p>Development covers apps and backends.<br />Cloud covers platforms and operations.</p>
+      </div>
+      <div class="filters" role="tablist" aria-label="Work type">
+        @for (filter of filters; track filter.id) {
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="kind() === filter.id"
+            [class.active]="kind() === filter.id"
+            (click)="setKind(filter.id)"
+          >
+            {{ filter.label }}
+          </button>
+        }
+      </div>
+      @if (error()) {
+        <p class="note" role="status">
+          Live project metadata could not refresh. Showing the last curated set.
+        </p>
+      }
+      @if (loading()) {
+        <p role="status">Loading projects…</p>
+      } @else if (!visible.length) {
+        <p>No projects in this group yet.</p>
+      } @else {
+        <div class="project-list">
+          @for (project of visible; track project._id; let i = $index) {
+            <a class="project-row" [routerLink]="['/work', project._id]">
+              <span class="row-index">{{ (i + 1).toString().padStart(2, '0') }}</span>
+              @if (thumb(project); as image) {
+                <img class="row-thumb" [src]="image" [alt]="project.title + ' product'" />
+              }
+              <div class="row-copy">
+                <div class="row-title-line">
+                  <h3>{{ project.title }}</h3>
+                  <span class="row-meta">{{ statusLine(project) }}</span>
+                </div>
+                <p>{{ project.shortDescription }}</p>
+                @if (project.tags.length) {
+                  <p class="row-stack">{{ project.tags.slice(0, 6).join(' · ') }}</p>
+                }
+              </div>
+              <span class="row-arrow" aria-hidden="true">→</span>
+            </a>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="pricing" id="pricing" aria-labelledby="pricing-heading">
+      <div class="pricing-copy">
+        <p class="eyebrow">02 / Pricing analysis</p>
+        <h2 id="pricing-heading">Price the work after we see the brief.</h2>
+        <p>
+          Development, cloud and any other defined work are quoted from the requirements, not from a
+          public menu. I compare your brief with past projects and send a written quotation.
+        </p>
+        <dl>
+          <div>
+            <dt>What you send</dt>
+            <dd>Goals, current systems, users and the outcome you need.</dd>
+          </div>
+          <div>
+            <dt>What you receive</dt>
+            <dd>A scoped price, exclusions and a milestone plan in writing.</dd>
+          </div>
+        </dl>
+      </div>
+      <div class="pricing-action">
+        <p class="fee-label">Next step</p>
+        <p class="price">Written analysis<span>Free to request. Work starts after you accept a quotation.</span></p>
+        <a routerLink="/contact" class="button">Request a pricing analysis</a>
+        <a routerLink="/book" class="text-link">Or book a 30-minute consultation</a>
+      </div>
+    </section>
+
+    <section class="process" aria-labelledby="process-heading">
+      <div class="section-heading">
+        <h2 id="process-heading">How a project starts</h2>
+        <p>From a brief to a written price.</p>
+      </div>
+      <div class="process-list" role="list">
+        <article role="listitem">
+          <div class="step-heading"><span class="step-number">01</span><h3>Past work</h3></div>
+          <p>Review development and cloud projects that are already shipped.</p>
+        </article>
+        <article role="listitem">
+          <div class="step-heading"><span class="step-number">02</span><h3>Brief</h3></div>
+          <p>Send the problem, constraints and timeline. The first enquiry is free.</p>
+        </article>
+        <article role="listitem">
+          <div class="step-heading"><span class="step-number">03</span><h3>Pricing analysis</h3></div>
+          <p>I define the work and reply with a written quotation before anything starts.</p>
+        </article>
+        <article role="listitem">
+          <div class="step-heading"><span class="step-number">04</span><h3>Delivery</h3></div>
+          <p>Accepted work is paid in milestones, then handed over with agreed defect support.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div>
+      <strong>Pratyush Mishra</strong>
+      <p>Development and cloud services, priced from the brief.</p>
+      <a href="mailto:developer@pratyushes.dev">developer&#64;pratyushes.dev</a>
+    </div>
+    <nav aria-label="Business information">
+      <a routerLink="/about">About</a><a routerLink="/contact">Contact</a
+      ><a routerLink="/work">Work</a><a routerLink="/terms">Terms of service</a
+      ><a routerLink="/privacy">Privacy policy</a
+      ><a routerLink="/refunds">Cancellation &amp; refunds</a
+      ><a routerLink="/delivery">Service delivery</a>
+    </nav>
+  </footer>
+</div>

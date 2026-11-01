@@ -17,6 +17,7 @@ Target: take a service from git push to a live preview URL in about five minutes
       'One-command cluster bootstrap'
     ],
     tags: ['TypeScript', 'Kubernetes', 'Docker', 'OAuth2', 'SDK', 'DevOps'],
+    link: 'https://platform.pratyushes.dev/',
     repo: 'https://github.com/Mpratyush54/server-automation',
     category: 'DevOps',
     source: 'github',
@@ -33,7 +34,7 @@ Target: take a service from git push to a live preview URL in about five minutes
     deployment: {
       type: 'Internal PaaS + SDK Packages',
       platform: 'Kubernetes (on-prem) + Docker Compose',
-      url: '',
+      url: 'https://platform.pratyushes.dev/',
       details:
         'On-prem Kubernetes with OAuth2 proxy SSO. Docker Compose for local Postgres, Mongo, Redis, MinIO, Loki, Prometheus, and Grafana. SDKs published via CI.',
       ciCd: 'GitHub Actions — lint, test, build, and publish SDKs on conventional commits.'
@@ -272,19 +273,21 @@ Employees check in/out with an offline-capable PWA queue that flushes on reconne
   {
     title: 'CAPS Automation — Operations Portal',
     shortDescription:
-      'Official CAPS Kengeri operations PWA — events, QR attendance, certificates, reports, notifications, and 5-tier RBAC. Live at worklog.capskengeri.com.',
-    fullDescription: `CAPS Automation is the daily operations portal for Centre for Academic and Professional Support at CHRIST University, Kengeri.
+      'Official CAPS ops stack: events, certificates, RAG reports, worklogs, Google sync, Kubernetes, and a role-aware remote MCP. Live at worklog.capskengeri.com.',
+    fullDescription: `CAPS Automation is the operations system for Centre for Academic and Professional Support at CHRIST University, Kengeri — not a single events form.
 
-It covers event registration, QR attendance, bulk certificates, feedback analytics, PDF/Excel reports, push notifications, meeting minutes, and team workflows. Five access tiers from volunteer to super admin. Offline-capable PWA with queued writes when the network drops.`,
+A React PWA talks to an Express API with JWT, Google OAuth and API keys. Volunteer through super-admin roles gate both REST and a Streamable HTTP MCP server with OAuth 2.1 PKCE. Domain services cover events, custom forms, certificate templates, public verification, worklogs, meeting minutes, inventory, bookings and SMTP mail.
+
+Background workers handle registrations, notifications, Google photo sync, token renewal and scheduled reports. Weekly, period and session reports can go through embeddings and a RAG path into DOCX. Mongo and Redis sit behind Kubernetes and Infisical, with Socket.IO on a Redis adapter for live updates.`,
     features: [
-      'Event registration',
-      'QR attendance',
-      'Bulk certificates',
-      'PDF & Excel reports',
-      'PWA push notifications',
-      '5-tier RBAC'
+      'Events, custom forms and registration workers',
+      'Certificate templates and public verify',
+      'Weekly, period, session and RAG reports',
+      'Worklogs, MOMs, inventory and bookings',
+      'Remote MCP with OAuth PKCE',
+      'Kubernetes, Infisical, Redis, Google Drive'
     ],
-    tags: ['React', 'Node.js', 'PWA', 'PostgreSQL', 'RBAC'],
+    tags: ['React', 'Node.js', 'MongoDB', 'Redis', 'MCP', 'Kubernetes'],
     link: 'https://worklog.capskengeri.com/',
     repo: 'https://gitlab.com/techtank.capskengeri/CAPS-Automation',
     category: 'Web',
@@ -299,31 +302,47 @@ It covers event registration, QR attendance, bulk certificates, feedback analyti
       type: 'Progressive Web Application',
       platform: 'Cloudflare / VPS (worklog.capskengeri.com)',
       url: 'https://worklog.capskengeri.com/',
-      details: 'React PWA + Node/Express + PostgreSQL behind Cloudflare.',
+      details: 'React PWA + Node/Express + Mongo + Redis on Kubernetes. Infisical for secrets. Remote MCP at /mcp.',
       ciCd: 'GitLab CI on merge to main.'
     },
     architecture: {
       title: 'How CAPS Automation Works',
       steps: [
         {
-          icon: '📅',
-          label: 'Create events',
-          description: 'Admins configure forms, capacity, and certificate templates.'
+          icon: '🔐',
+          label: 'Identity and policy',
+          description:
+            'JWT, Google OAuth, API keys and device sessions under volunteer to super-admin. The same predicates gate REST and MCP.'
         },
         {
-          icon: '✅',
-          label: 'QR check-in',
-          description: 'Attendees scan at the door; attendance syncs to the dashboard live.'
+          icon: '📅',
+          label: 'Event operations',
+          description:
+            'Custom forms, registration mail, a registration worker and device heartbeats. Photos sync to Google Drive.'
         },
         {
           icon: '📜',
-          label: 'Certificates & reports',
-          description: 'Bulk PDFs after attendance finalization; Excel/PDF analytics for leadership.'
+          label: 'Certificates and mail',
+          description:
+            'Template engine plus pdf-lib render certificates. Public verify and SMTP send them. Secrets stay in Infisical.'
+        },
+        {
+          icon: '📊',
+          label: 'Reports and RAG',
+          description:
+            'Scheduled weekly, period and session reports. Embeddings turn monthly ops notes into leadership DOCX.'
         },
         {
           icon: '👥',
-          label: 'Team workflows',
-          description: 'Tasks, minutes, and permissions across five role tiers.'
+          label: 'Coordination plane',
+          description:
+            'Worklogs, minutes, inventory, bookings and Socket.IO notifications on Mongo and Redis in Kubernetes.'
+        },
+        {
+          icon: '🤖',
+          label: 'Remote MCP',
+          description:
+            'Streamable HTTP MCP with OAuth 2.1 PKCE calls the same services. It does not HTTP-proxy REST.'
         }
       ]
     },

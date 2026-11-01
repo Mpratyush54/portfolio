@@ -41,8 +41,8 @@ export class AskConsoleComponent implements OnDestroy {
       a: "I'm <b>Pratyush Mishra</b> — Backend Engineer & Full Stack Dev. Clean architecture, automated deploys, great DX.",
     },
     built: {
-      q: 'what services are offered?',
-      a: 'Business websites, backend APIs, DevOps deployment and AWS optimisation. Open <span class="cmd">work</span> for package prices and exact scopes, or <span class="cmd">contact</span> for a written quotation.',
+      q: 'what has he built?',
+      a: 'Development and cloud systems — websites, backends and internal platforms. Open <span class="cmd">work</span> for past projects, or <span class="cmd">contact</span> for a pricing analysis.',
     },
     work: {
       q: 'is he open to work?',
@@ -54,7 +54,7 @@ export class AskConsoleComponent implements OnDestroy {
     },
     experience: {
       q: 'what is his experience?',
-      a: 'Software development experience across backend APIs, application interfaces and cloud deployment automation. See <span class="cmd">about</span> for background and <span class="cmd">work</span> for professional services.',
+      a: 'Software development experience across backend APIs, application interfaces and cloud deployment automation. See <span class="cmd">about</span> for background and <span class="cmd">work</span> for past projects.',
     },
     contact: {
       q: 'how to contact him?',
@@ -232,7 +232,7 @@ export class AskConsoleComponent implements OnDestroy {
 
   private go(view: ShellView): void {
     this.shell.setView(view);
-    const path = view === 'home' ? '/' : view === 'work' ? '/projects' : `/${view}`;
+    const path = view === 'home' ? '/' : view === 'work' ? '/work' : `/${view}`;
     this.router.navigateByUrl(path, { replaceUrl: true });
     this.push('out', `Opening ${view}…`);
     setTimeout(() => this.close(), 350);

@@ -272,6 +272,7 @@ describe('PostHog public analytics boundary', () => {
   });
   it('normalises public project URLs and rejects private/unknown routes', () => {
     expect(analyticsPath('/projects/client-specific-id?email=private#token')).toBe('/projects/:id');
+    expect(analyticsPath('/work/2?ref=nav')).toBe('/work/:id');
     expect(analyticsPath('/admin?password=private')).toBeNull();
     expect(analyticsPath('/admin/quotations/private-id')).toBeNull();
     expect(analyticsPath('/proposal#token')).toBe('/proposal');

@@ -82,6 +82,9 @@ export function analyticsPath(url: string): string | null {
   const path = pathOnly(url);
   if (path === '/admin' || path.startsWith('/admin/')) return null;
   if (PUBLIC_ROUTES.has(path)) return path;
+  const workPrefix = '/work/';
+  if (path.startsWith(workPrefix) && isSafeToken(path.slice(workPrefix.length), 1, 120))
+    return '/work/:id';
   const projectPrefix = '/projects/';
   if (path.startsWith(projectPrefix) && isSafeToken(path.slice(projectPrefix.length), 1, 120))
     return '/projects/:id';

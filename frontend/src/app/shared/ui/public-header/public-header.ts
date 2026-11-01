@@ -27,5 +27,5 @@ import { PrimaryNavigationComponent } from '../primary-navigation/primary-naviga
 })
 export class PublicHeaderComponent {
   @Input() active = '';
-  @Input() context = 'services · pricing';
+  @Input() context = 'work · projects';
 }

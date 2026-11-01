@@ -28,6 +28,7 @@ export interface Project {
     tags: string[];
     imageUrl?: string;
     gallery?: string[];
+    videoUrl?: string;
     architecture?: {
         title: string;
         steps: ArchitectureStep[];

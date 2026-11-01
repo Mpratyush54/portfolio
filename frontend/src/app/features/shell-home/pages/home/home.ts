@@ -409,7 +409,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     const path = this.router.url.split('?')[0];
     if (['/', '/about', '/contact'].includes(path)) {
       this.pageTitle.setTitle(path === '/' ? 'Pratyush Mishra' : (path === '/about' ? 'About' : 'Contact') + ' | Pratyush Mishra');
-      this.pageMeta.updateTag({name: 'description', content: 'Website development, backend APIs and cloud technical services by Pratyush Mishra. View defined service packages or request a project quotation.'});
+      this.pageMeta.updateTag({name: 'description', content: 'Development and cloud work by Pratyush Mishra. Review past projects, then request a pricing analysis.'});
     }
     if (path.startsWith('/projects/') && path !== '/projects' && path !== '/projects/systems') {
       const id = path.split('/')[2];

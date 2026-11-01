@@ -12,11 +12,11 @@ import { PublicHeaderComponent } from '../../../shared/ui/public-header/public-h
 })
 export class ContactComponent {
   constructor() {
-    inject(Title).setTitle('Project enquiry | Pratyush Mishra');
+    inject(Title).setTitle('Pricing analysis | Pratyush Mishra');
     inject(Meta).updateTag({
       name: 'description',
       content:
-        'Send a free project enquiry for website development, backend APIs or cloud services. Share your requirements with Pratyush Mishra.',
+        'Request a free pricing analysis for development or cloud work. Share your brief with Pratyush Mishra.',
     });
   }
 }

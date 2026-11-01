@@ -1,0 +1,114 @@
+<div class="business-page">
+  <app-public-header active="work" context="work · project" />
+  <main>
+    @if (loading()) {
+      <p class="status" role="status">Loading project…</p>
+    } @else if (project(); as p) {
+      <section class="intro">
+        <a routerLink="/work" class="text-link">← All work</a>
+        <p class="eyebrow">{{ kindLabel(p) }} · {{ p.category }}</p>
+        <h1>{{ p.title }}</h1>
+        <p class="lead">{{ p.shortDescription }}</p>
+        @if (p.tags.length) {
+          <p class="stack">{{ p.tags.slice(0, 8).join(' · ') }}</p>
+        }
+      </section>
+
+      @if (media.image) {
+        <section class="media-stage" aria-label="Product interface">
+          <img [src]="media.image" [alt]="p.title + ' product interface'" />
+        </section>
+      }
+      @if (media.video) {
+        <section class="media-stage media-video" aria-label="Product walkthrough">
+          <video [poster]="media.poster || media.image" controls playsinline preload="metadata">
+            <source [src]="media.video" [type]="media.video.endsWith('.webm') ? 'video/webm' : 'video/mp4'" />
+          </video>
+        </section>
+      }
+
+      @if (media.gallery.length > 1) {
+        <div class="gallery" aria-label="App screens">
+          @for (shot of media.gallery; track shot) {
+            <img [src]="shot" [alt]="p.title + ' screen'" />
+          }
+        </div>
+      }
+
+      @if (media.mermaid || media.steps.length) {
+        <section class="architecture" aria-label="Architecture">
+          <h2>{{ p.architecture?.title || 'Architecture' }}</h2>
+          @if (media.mermaid) {
+            <app-mermaid-diagram [chart]="media.mermaid" />
+          }
+          @if (media.steps.length) {
+            <ol class="steps">
+              @for (step of media.steps; track step.label) {
+                <li>
+                  <strong>{{ step.label }}</strong>
+                  <span>{{ step.description }}</span>
+                </li>
+              }
+            </ol>
+          }
+        </section>
+      }
+
+      <div class="detail">
+        <div class="detail-main">
+          @for (para of paragraphs(p); track para) {
+            <p>{{ para }}</p>
+          }
+          @if (p.features.length) {
+            <h2>What shipped</h2>
+            <ul>
+              @for (item of p.features; track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          }
+        </div>
+        <aside>
+          @if (p.languageStats?.length) {
+            <section>
+              <h2>Stack mix</h2>
+              @for (lang of p.languageStats; track lang.name) {
+                <div class="lang">
+                  <span>{{ lang.name }}</span>
+                  <i [style.width.%]="lang.percent" [style.background]="lang.color"></i>
+                  <em>{{ lang.percent }}%</em>
+                </div>
+              }
+            </section>
+          }
+          @if (p.timeline) {
+            <section>
+              <h2>Timeline</h2>
+              <p>{{ p.timeline.start }} → {{ p.timeline.end || 'now' }}</p>
+            </section>
+          }
+          <section>
+            <h2>Links</h2>
+            @if (p.link) {
+              <a [href]="p.link" target="_blank" rel="noopener">Live site</a>
+            }
+            @if (p.frontendRepo) {
+              <a [href]="p.frontendRepo" target="_blank" rel="noopener">Frontend</a>
+            }
+            @if (p.backendRepo) {
+              <a [href]="p.backendRepo" target="_blank" rel="noopener">Backend</a>
+            }
+            @if (!p.frontendRepo && !p.backendRepo && p.repo) {
+              <a [href]="p.repo" target="_blank" rel="noopener">Source</a>
+            }
+          </section>
+          <section class="ask-card">
+            <h2>Need similar work?</h2>
+            <p>Send a brief and I will price it against this kind of project.</p>
+            <a routerLink="/contact" class="ask-button">Request a pricing analysis</a>
+          </section>
+        </aside>
+      </div>
+    }
+  </main>
+</div>

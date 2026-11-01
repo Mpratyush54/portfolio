@@ -1,0 +1,15 @@
+{
+  "name": "portfolio-posthog-operations",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bootstrap": "node bootstrap.mjs",
+    "verify": "node verify.mjs",
+    "scan": "node scan-analytics.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

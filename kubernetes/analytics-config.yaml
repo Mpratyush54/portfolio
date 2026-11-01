@@ -3,9 +3,13 @@ kind: ConfigMap
 metadata:
   name: portfolio-analytics
 data:
+  POSTHOG_PROJECT_TOKEN: "phc_kD3JjncDDaQkhoz25mGWETjSNj43HQnVYNhmiS64pgu3"
+  POSTHOG_HOST: "https://us.i.posthog.com"
   analytics.json: |
     {
       "enabled": true,
       "projectToken": "phc_kD3JjncDDaQkhoz25mGWETjSNj43HQnVYNhmiS64pgu3",
-      "apiHost": "https://us.i.posthog.com"
+      "apiHost": "https://v.pratyushes.dev",
+      "uiHost": "https://us.posthog.com",
+      "environment": "production"
     }

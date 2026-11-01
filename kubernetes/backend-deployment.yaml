@@ -50,6 +50,16 @@ spec:
               value: "5000"
             - name: TRUST_PROXY_HOPS
               value: "1"
+            - name: POSTHOG_PROJECT_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: portfolio-analytics
+                  key: POSTHOG_PROJECT_TOKEN
+            - name: POSTHOG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: portfolio-analytics
+                  key: POSTHOG_HOST
             - name: QUOTATION_INVITE_SECRET
               valueFrom:
                 secretKeyRef:

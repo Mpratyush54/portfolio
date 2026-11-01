@@ -5,3 +5,10 @@ dist/
 fuch-clone/
 .opencode/
 backend/data/contacts.json
+
+# Local scratch: screenshots, logs, one-off audits and capture scripts
+_scratch/
+tmp/
+tmp-*
+*.log
+output/

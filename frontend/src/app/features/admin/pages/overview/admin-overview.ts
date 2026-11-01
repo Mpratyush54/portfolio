@@ -7,7 +7,8 @@ import { AdminWorkspaceService } from '../../data/admin-workspace.service';
   selector: 'app-admin-overview',
   standalone: true,
   imports: [CommonModule, RouterLink],
-  templateUrl: './admin-overview.html'
+  templateUrl: './admin-overview.html',
+  styleUrl: '../../styles/admin.scss',
 })
 export class AdminOverviewComponent {
   workspace = inject(AdminWorkspaceService);

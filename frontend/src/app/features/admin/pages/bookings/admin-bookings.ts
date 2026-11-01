@@ -10,7 +10,8 @@ import { AdminWorkspaceService } from '../../data/admin-workspace.service';
   selector: 'app-admin-bookings',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './admin-bookings.html'
+  templateUrl: './admin-bookings.html',
+  styleUrl: '../../styles/admin.scss',
 })
 export class AdminBookingsComponent implements OnInit, OnDestroy {
   private auth = inject(AdminAuthService);

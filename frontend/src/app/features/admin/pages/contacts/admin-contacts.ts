@@ -10,7 +10,8 @@ import { AdminWorkspaceService } from '../../data/admin-workspace.service';
   selector: 'app-admin-contacts',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './admin-contacts.html'
+  templateUrl: './admin-contacts.html',
+  styleUrl: '../../styles/admin.scss',
 })
 export class AdminContactsComponent implements OnInit, OnDestroy {
   private auth = inject(AdminAuthService);

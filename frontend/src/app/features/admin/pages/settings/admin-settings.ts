@@ -10,7 +10,8 @@ import { AdminWorkspaceService } from '../../data/admin-workspace.service';
   selector: 'app-admin-settings',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
-  templateUrl: './admin-settings.html'
+  templateUrl: './admin-settings.html',
+  styleUrl: '../../styles/admin.scss',
 })
 export class AdminSettingsComponent implements OnInit, OnDestroy {
   private auth = inject(AdminAuthService);

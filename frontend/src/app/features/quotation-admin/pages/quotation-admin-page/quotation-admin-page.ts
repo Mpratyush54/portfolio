@@ -11,7 +11,8 @@ import { QuotationAdminHostComponent } from '../../components/host/quotation-adm
   selector: 'app-quotation-admin-page',
   standalone: true,
   imports: [QuotationAdminHostComponent],
-  templateUrl: './quotation-admin-page.html'
+  templateUrl: './quotation-admin-page.html',
+  styleUrl: '../../../admin/styles/admin.scss',
 })
 export class QuotationAdminPageComponent implements OnInit, OnDestroy {
   @ViewChild(QuotationAdminHostComponent) host?: QuotationAdminHostComponent;
